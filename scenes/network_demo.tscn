@@ -1,10 +1,11 @@
-[gd_scene load_steps=23 format=3]
+[gd_scene load_steps=24 format=3]
 
 [ext_resource type="Script" path="res://scripts/network_main.gd" id="1_main"]
 [ext_resource type="Script" path="res://scripts/terrain.gd" id="2_terrain"]
 [ext_resource type="PackedScene" path="res://scenes/network_player.tscn" id="3_player"]
 [ext_resource type="PackedScene" path="res://scenes/network_lobby.tscn" id="4_lobby"]
 [ext_resource type="Script" path="res://scripts/network_flag.gd" id="5_flag"]
+[ext_resource type="Script" path="res://scripts/visual_qa_capture.gd" id="6_visual_qa"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial"]
 sky_top_color = Color(0.025, 0.16, 0.34, 1)
@@ -276,3 +277,6 @@ shadow_enabled = false
 replication_config = SubResource("GameReplicationConfig")
 
 [node name="NetworkLobby" parent="." instance=ExtResource("4_lobby")]
+
+[node name="VisualQACapture" type="Node" parent="."]
+script = ExtResource("6_visual_qa")

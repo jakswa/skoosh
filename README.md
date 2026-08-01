@@ -66,6 +66,8 @@ Clients are balanced between RED and BLUE. Take the opposing flag and return to 
 
 The multiplayer test takes about 51 seconds and validates two-team spawning, combat, death/respawn, ski/jet movement, a flag capture, win state, and round restart.
 
+For off-screen visual and UX review, run `./tools/capture_visual_qa.sh`. It renders the lobby and a live bot-driven match on private Xvfb displays, so it does not open desktop windows or capture the host mouse. See [`docs/VISUAL_QA.md`](docs/VISUAL_QA.md).
+
 The original solo time-trial remains available as `res://scenes/main.tscn`; the multiplayer CTF scene is the project entry point.
 
 ## Current network boundary

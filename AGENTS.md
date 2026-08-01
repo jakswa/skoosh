@@ -7,3 +7,4 @@
 - Multiplayer entry: `scenes/network_demo.tscn`; preserved solo entry: `scenes/main.tscn`.
 - Validate with `tools/test_ground_jet.sh` and `tools/test_multiplayer_demo.sh`.
 - Prefer headless checks; launch graphical clients only when requested.
+- Visual/UX work: run the desktop-safe off-screen loop in `docs/VISUAL_QA.md`.
