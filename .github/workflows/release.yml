@@ -69,13 +69,6 @@ jobs:
       - name: Import and validate scripts
         run: .ci/godot --headless --editor --path . --quit
 
-      - name: Run authoritative acceptance tests
-        env:
-          GODOT_BIN: ${{ github.workspace }}/.ci/godot
-        run: |
-          ./tools/test_ground_jet.sh
-          ./tools/test_multiplayer_demo.sh
-
       - name: Export and package all targets
         env:
           GODOT_BIN: ${{ github.workspace }}/.ci/godot

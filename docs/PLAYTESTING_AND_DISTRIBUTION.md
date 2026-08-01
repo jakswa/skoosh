@@ -111,7 +111,7 @@ This repository has Linux, Windows, and universal macOS client presets plus a Li
 
 Every push to `main` triggers `.github/workflows/integration.yml`. Linux, Windows, and macOS runners each export their native client, start a native headless server, and run two exported clients through the ground-jet and authoritative CTF acceptance scenarios. Other branches and pull requests do not trigger this matrix.
 
-Tags matching `v*` trigger `.github/workflows/release.yml`, which runs the Linux headless acceptance suite, exports all four targets with pinned Godot 4.4.1 templates, writes checksums, and publishes a GitHub Release. Create a playtest release with:
+Tags matching `v*` trigger `.github/workflows/release.yml`. It first requires a successful three-OS `main` integration run for the exact tagged commit, then exports all four targets with pinned Godot 4.4.1 templates, writes checksums, and publishes a GitHub Release. Create a playtest release with:
 
 ```bash
 git tag v0.1.0-playtest.1
