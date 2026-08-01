@@ -5,10 +5,12 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GODOT_BIN="${GODOT_BIN:-godot}"
 
 cd "$ROOT"
-mkdir -p build/linux build/windows build/server build/dist
+rm -rf build/dist
+mkdir -p build/linux build/windows build/macos build/server build/dist
 
 "$GODOT_BIN" --headless --path "$ROOT" --export-release "Linux Client"
 "$GODOT_BIN" --headless --path "$ROOT" --export-release "Windows Client"
+"$GODOT_BIN" --headless --path "$ROOT" --export-release "macOS Client"
 "$GODOT_BIN" --headless --path "$ROOT" --export-release "Linux Dedicated Server"
 
 chmod +x build/linux/skoosh.x86_64 build/server/skoosh-server.x86_64
@@ -19,10 +21,11 @@ if command -v zip >/dev/null 2>&1; then
 else
   echo "zip is unavailable; distribute build/windows/skoosh.exe directly." >&2
 fi
+cp build/macos/skoosh-macos-client.zip build/dist/
 
 (
   cd build/dist
-  sha256sum ./* > SHA256SUMS
+  sha256sum skoosh-* > SHA256SUMS
 )
 
 echo "Release artifacts written to $ROOT/build/dist"

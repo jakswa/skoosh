@@ -22,7 +22,7 @@ The release binary has its Godot PCK embedded; no other game files or Godot inst
 Install the pinned Godot 4.4.1 Linux executable, then:
 
 ```bash
-sudo git clone https://github.com/OWNER/REPOSITORY.git /opt/skoosh
+sudo git clone https://github.com/jakswa/skoosh.git /opt/skoosh
 cd /opt/skoosh
 sudo git checkout COMMIT_OR_RELEASE_TAG
 sudo install -m 0755 /path/to/Godot_v4.4.1-stable_linux.x86_64 /opt/skoosh/godot

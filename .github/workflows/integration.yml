@@ -1,0 +1,126 @@
+name: Cross-platform integration
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: integration-main
+  cancel-in-progress: true
+
+env:
+  GODOT_VERSION: "4.4.1"
+  GODOT_CHANNEL: stable
+
+jobs:
+  exported-client:
+    name: ${{ matrix.label }} exported clients
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: Linux
+            os: ubuntu-24.04
+            preset: Linux Client
+          - label: Windows
+            os: windows-2022
+            preset: Windows Client
+          - label: macOS
+            os: macos-14
+            preset: macOS Client
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+
+      - name: Install pinned Godot and export templates
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .ci
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-${GODOT_CHANNEL}"
+          case "$RUNNER_OS" in
+            Linux)
+              archive="Godot_v${GODOT_VERSION}-${GODOT_CHANNEL}_linux.x86_64.zip"
+              godot_bin="$PWD/.ci/Godot_v${GODOT_VERSION}-${GODOT_CHANNEL}_linux.x86_64"
+              template_root="$HOME/.local/share/godot/export_templates"
+              ;;
+            Windows)
+              archive="Godot_v${GODOT_VERSION}-${GODOT_CHANNEL}_win64.exe.zip"
+              godot_bin="$PWD/.ci/Godot_v${GODOT_VERSION}-${GODOT_CHANNEL}_win64.exe"
+              template_root="$(cygpath -u "$APPDATA")/Godot/export_templates"
+              ;;
+            macOS)
+              archive="Godot_v${GODOT_VERSION}-${GODOT_CHANNEL}_macos.universal.zip"
+              godot_bin="$PWD/.ci/Godot.app/Contents/MacOS/Godot"
+              template_root="$HOME/Library/Application Support/Godot/export_templates"
+              ;;
+            *) exit 1 ;;
+          esac
+          curl -fL --retry 3 "$base/$archive" -o .ci/godot.zip
+          curl -fL --retry 3 \
+            "$base/Godot_v${GODOT_VERSION}-${GODOT_CHANNEL}_export_templates.tpz" \
+            -o .ci/export-templates.tpz
+          unzip -q .ci/godot.zip -d .ci
+          mkdir -p .ci/templates "$template_root/${GODOT_VERSION}.${GODOT_CHANNEL}"
+          unzip -q .ci/export-templates.tpz -d .ci/templates
+          cp -a .ci/templates/templates/. "$template_root/${GODOT_VERSION}.${GODOT_CHANNEL}/"
+          chmod +x "$godot_bin" || true
+          echo "GODOT_BIN=$godot_bin" >> "$GITHUB_ENV"
+          "$godot_bin" --version
+
+      - name: Import and validate scripts
+        shell: bash
+        run: |
+          "$GODOT_BIN" --headless --editor --path . --quit
+
+      - name: Export native client
+        shell: bash
+        run: |
+          "$GODOT_BIN" --headless --path . --export-release "${{ matrix.preset }}"
+
+      - name: Locate exported client
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "$RUNNER_OS" in
+            Linux)
+              client_bin="$PWD/build/linux/skoosh.x86_64"
+              chmod +x "$client_bin"
+              ;;
+            Windows)
+              client_bin="$PWD/build/windows/skoosh.exe"
+              ;;
+            macOS)
+              mkdir -p build/macos/unpacked
+              unzip -q build/macos/skoosh-macos-client.zip -d build/macos/unpacked
+              client_bin="$(find "$PWD/build/macos/unpacked" -path '*.app/Contents/MacOS/*' -type f | head -n 1)"
+              chmod +x "$client_bin"
+              ;;
+          esac
+          test -f "$client_bin"
+          echo "SKOOSH_CLIENT_BIN=$client_bin" >> "$GITHUB_ENV"
+
+      - name: Run ground-jet test
+        shell: bash
+        run: ./tools/test_ground_jet.sh
+
+      - name: Run exported two-client integration test
+        shell: bash
+        env:
+          SKOOSH_TEST_LOG_DIR: ${{ runner.temp }}/skoosh-network-test
+        run: ./tools/test_multiplayer_demo.sh
+
+      - name: Upload failure logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-logs-${{ matrix.label }}
+          path: ${{ runner.temp }}/skoosh-network-test/*.log
+          if-no-files-found: ignore

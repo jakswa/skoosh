@@ -1,0 +1,105 @@
+name: Tagged release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  GODOT_VERSION: "4.4.1"
+  GODOT_CHANNEL: stable
+
+jobs:
+  test-export-release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v4
+
+      - name: Require successful cross-platform integration
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          commit="$(git rev-parse HEAD)"
+          successful_runs="$(gh api \
+            "repos/${GITHUB_REPOSITORY}/actions/workflows/integration.yml/runs?branch=main&head_sha=$commit&per_page=100" \
+            --jq '[.workflow_runs[] | select(.conclusion == "success")] | length')"
+          if [[ "$successful_runs" -lt 1 ]]; then
+            echo "No successful main cross-platform integration run found for $commit" >&2
+            exit 1
+          fi
+          echo "Verified successful main integration for $commit"
+
+      - name: Install packaging tools
+        run: sudo apt-get update && sudo apt-get install -y unzip zip
+
+      - name: Install pinned Godot and export templates
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .ci "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.${GODOT_CHANNEL}"
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-${GODOT_CHANNEL}"
+          curl -fL --retry 3 \
+            "$base/Godot_v${GODOT_VERSION}-${GODOT_CHANNEL}_linux.x86_64.zip" \
+            -o .ci/godot.zip
+          curl -fL --retry 3 \
+            "$base/Godot_v${GODOT_VERSION}-${GODOT_CHANNEL}_export_templates.tpz" \
+            -o .ci/export-templates.tpz
+          unzip -q .ci/godot.zip -d .ci
+          mv ".ci/Godot_v${GODOT_VERSION}-${GODOT_CHANNEL}_linux.x86_64" .ci/godot
+          chmod +x .ci/godot
+          mkdir -p .ci/templates
+          unzip -q .ci/export-templates.tpz -d .ci/templates
+          cp -a .ci/templates/templates/. \
+            "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.${GODOT_CHANNEL}/"
+          .ci/godot --version
+
+      - name: Import and validate scripts
+        run: .ci/godot --headless --editor --path . --quit
+
+      - name: Run authoritative acceptance tests
+        env:
+          GODOT_BIN: ${{ github.workspace }}/.ci/godot
+        run: |
+          ./tools/test_ground_jet.sh
+          ./tools/test_multiplayer_demo.sh
+
+      - name: Export and package all targets
+        env:
+          GODOT_BIN: ${{ github.workspace }}/.ci/godot
+        run: ./tools/export_binaries.sh
+
+      - name: Preserve release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: skoosh-${{ github.ref_name }}
+          path: build/dist/*
+          if-no-files-found: error
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" build/dist/* --clobber
+          else
+            gh release create "$TAG" build/dist/* \
+              --verify-tag \
+              --generate-notes \
+              --title "SKOOSH $TAG"
+          fi

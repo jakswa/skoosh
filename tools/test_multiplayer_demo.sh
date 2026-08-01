@@ -3,7 +3,10 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GODOT_BIN="${GODOT_BIN:-/tmp/godot-skoosh/Godot_v4.4.1-stable_linux.x86_64}"
+CLIENT_BIN="${SKOOSH_CLIENT_BIN:-$GODOT_BIN}"
 PORT="${SKOOSH_TEST_PORT:-19077}"
+TEST_SECONDS="${SKOOSH_TEST_SECONDS:-50}"
+CLIENT_TEST_SECONDS=$((TEST_SECONDS + 1))
 LOG_DIR="${SKOOSH_TEST_LOG_DIR:-/tmp/skoosh-network-test}"
 rm -rf "$LOG_DIR"
 mkdir -p "$LOG_DIR"
@@ -17,14 +20,19 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 "$GODOT_BIN" --headless --path "$ROOT" -- --server --port="$PORT" \
-  --test-seconds=35 --require-combat --require-movement --require-ctf >"$LOG_DIR/server.log" 2>&1 &
+  --test-seconds="$TEST_SECONDS" --require-combat --require-movement --require-ctf >"$LOG_DIR/server.log" 2>&1 &
 server_pid=$!
 pids+=("$server_pid")
 sleep 1
 
+client_command=("$CLIENT_BIN" --headless)
+if [[ "$CLIENT_BIN" == "$GODOT_BIN" ]]; then
+  client_command+=(--path "$ROOT")
+fi
+
 for client in 1 2; do
-  "$GODOT_BIN" --headless --path "$ROOT" -- --join=127.0.0.1 --port="$PORT" \
-    --bot --test-seconds=36 >"$LOG_DIR/client-$client.log" 2>&1 &
+  "${client_command[@]}" -- --join=127.0.0.1 --port="$PORT" \
+    --bot --test-seconds="$CLIENT_TEST_SECONDS" >"$LOG_DIR/client-$client.log" 2>&1 &
   pids+=("$!")
 done
 

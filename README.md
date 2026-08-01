@@ -2,9 +2,9 @@
 
 A Godot 4 momentum-skiing, jet-assisted, authoritative multiplayer CTF prototype.
 
-## Run the local CTF lab
+## Run from source
 
-Godot 4.4+ is required. The helper defaults to the temporary development binary when present:
+Godot 4.4+ is required. For one local server and two clients, the helper defaults to the temporary development binary when present:
 
 ```bash
 ./tools/run_multiplayer_demo.sh
@@ -26,7 +26,19 @@ Connect two local clients to any direct host with:
 
 The lobby and `--join=HOST --port=PORT` arguments also support one-client connections.
 
-See [`docs/PLAYTESTING_AND_DISTRIBUTION.md`](docs/PLAYTESTING_AND_DISTRIBUTION.md) for client/playtest workflows. Give server operators [`docs/SERVER_DEPLOYMENT.md`](docs/SERVER_DEPLOYMENT.md), which covers Git and prebuilt-binary installs, systemd, UDP forwarding, updates, and verification.
+## Run from a GitHub Release
+
+Download the client archive for Linux, Windows, or macOS from [GitHub Releases](https://github.com/jakswa/skoosh/releases), extract it, and launch the executable. Enter the server hostname and UDP port `9077` in the lobby. Release clients and servers must use the same version tag.
+
+Linux can also connect directly with:
+
+```bash
+./skoosh.x86_64 -- --join=home.jake.town --port=9077
+```
+
+The current macOS build is ad-hoc signed but not Apple-notarized, so Gatekeeper may require right-clicking the app and selecting **Open**.
+
+See [`docs/PLAYTESTING_AND_DISTRIBUTION.md`](docs/PLAYTESTING_AND_DISTRIBUTION.md) for complete source/release client workflows. Give server operators [`docs/SERVER_DEPLOYMENT.md`](docs/SERVER_DEPLOYMENT.md), which covers Git and prebuilt-binary installs, systemd, UDP forwarding, updates, and verification.
 
 ### Controls
 
@@ -46,10 +58,10 @@ Clients are balanced between RED and BLUE. Take the opposing flag and return to 
 
 ```bash
 ./tools/test_ground_jet.sh
-./tools/test_multiplayer_demo.sh       # about 36 seconds
+./tools/test_multiplayer_demo.sh       # about 51 seconds
 ```
 
-The multiplayer test takes about 36 seconds and validates two-team spawning, combat, death/respawn, ski/jet movement, a flag capture, win state, and round restart.
+The multiplayer test takes about 51 seconds and validates two-team spawning, combat, death/respawn, ski/jet movement, a flag capture, win state, and round restart.
 
 The original solo time-trial remains available as `res://scenes/main.tscn`; the multiplayer CTF scene is the project entry point.
 

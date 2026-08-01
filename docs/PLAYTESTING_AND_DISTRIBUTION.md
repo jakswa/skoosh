@@ -91,6 +91,7 @@ The script exports and packages:
 ```text
 build/dist/skoosh-linux-client.tar.gz
 build/dist/skoosh-windows-client.zip
+build/dist/skoosh-macos-client.zip
 build/dist/skoosh-linux-server.tar.gz
 build/dist/SHA256SUMS
 ```
@@ -102,10 +103,21 @@ The equivalent manual export commands are:
 ```bash
 godot --headless --path . --export-release "Linux Client"
 godot --headless --path . --export-release "Windows Client"
+godot --headless --path . --export-release "macOS Client"
 godot --headless --path . --export-release "Linux Dedicated Server"
 ```
 
-This repository currently has Linux client/server and Windows client presets. A Windows dedicated-server preset is not needed for the planned Linux hosting path.
+This repository has Linux, Windows, and universal macOS client presets plus a Linux server preset. The macOS archive is ad-hoc signed but not notarized, so Gatekeeper may require right-clicking the app and selecting **Open**. Windows may likewise warn about an unknown unsigned publisher. A Windows dedicated-server preset is not needed for the planned Linux hosting path.
+
+Every push to `main` triggers `.github/workflows/integration.yml`. Linux, Windows, and macOS runners each export their native client, start a native headless server, and run two exported clients through the ground-jet and authoritative CTF acceptance scenarios. Other branches and pull requests do not trigger this matrix.
+
+Tags matching `v*` trigger `.github/workflows/release.yml`, which runs the Linux headless acceptance suite, exports all four targets with pinned Godot 4.4.1 templates, writes checksums, and publishes a GitHub Release. Create a playtest release with:
+
+```bash
+git tag v0.1.0-playtest.1
+git push origin main
+git push origin v0.1.0-playtest.1
+```
 
 ## 5. Fly.io experiment
 
