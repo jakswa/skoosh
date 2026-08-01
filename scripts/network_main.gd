@@ -16,6 +16,7 @@ const FLAG_RETURN_TICKS := 600
 const ROUND_RESTART_TICKS := 300
 const ARENA_CENTER := Vector2(0.0, -207.0)
 const BASE_SEPARATION := 48.0
+const OOB_RECOVERY_SAFE_FRAMES := 3
 
 @export var player_scene: PackedScene
 
@@ -65,6 +66,7 @@ var _peak_server_speed := 0.0
 var _server_saw_jet := false
 var _peak_rollback_ticks := 0
 var _peak_network_loop_ms := 0.0
+var _oob_recovery_safe_frames: Dictionary = {}
 
 
 func _ready() -> void:
@@ -250,6 +252,7 @@ func _assign_balanced_team() -> int:
 
 
 func _remove_avatar(id: int) -> void:
+	_oob_recovery_safe_frames.erase(id)
 	if not avatars.has(id):
 		return
 	var avatar := avatars[id] as Node
@@ -396,9 +399,23 @@ func _physics_process(_delta: float) -> void:
 		var position: Vector3 = player.global_position
 		var outside := absf(position.x) > 278.0 or absf(position.z) > 278.0
 		var far_below := position.y < float(terrain.height_at(position.x, position.z)) - 35.0
-		if outside or far_below:
-			_drop_flags_carried_by(player.peer_id)
-			player.request_authoritative_respawn(false)
+		var needs_recovery := outside or far_below
+		if needs_recovery:
+			# Rollback may briefly restore the pre-teleport OOB snapshot. Latch the
+			# recovery until several consecutive safe frames prevent repeated
+			# respawns and log bursts during that reconciliation window.
+			if not _oob_recovery_safe_frames.has(player.peer_id):
+				_oob_recovery_safe_frames[player.peer_id] = 0
+				_drop_flags_carried_by(player.peer_id)
+				player.request_authoritative_respawn(false)
+			else:
+				_oob_recovery_safe_frames[player.peer_id] = 0
+		elif _oob_recovery_safe_frames.has(player.peer_id):
+			var safe_frames := int(_oob_recovery_safe_frames[player.peer_id]) + 1
+			if safe_frames >= OOB_RECOVERY_SAFE_FRAMES:
+				_oob_recovery_safe_frames.erase(player.peer_id)
+			else:
+				_oob_recovery_safe_frames[player.peer_id] = safe_frames
 	if round_over:
 		if NetworkTime.tick >= round_restart_tick:
 			_start_new_round()

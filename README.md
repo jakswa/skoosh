@@ -58,6 +58,7 @@ Clients are balanced between RED and BLUE. Take the opposing flag and return to 
 
 ```bash
 ./tools/test_ground_jet.sh
+./tools/test_oob_recovery.sh
 ./tools/test_multiplayer_demo.sh       # about 51 seconds
 ```
 

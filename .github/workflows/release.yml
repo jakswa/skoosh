@@ -75,7 +75,7 @@ jobs:
         run: ./tools/export_binaries.sh
 
       - name: Preserve release artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: skoosh-${{ github.ref_name }}
           path: build/dist/*
