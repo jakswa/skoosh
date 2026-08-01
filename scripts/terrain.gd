@@ -146,7 +146,7 @@ func generate() -> void:
 
 	var material := StandardMaterial3D.new()
 	material.vertex_color_use_as_albedo = true
-	material.roughness = 0.93
+	material.roughness = 0.88
 	material.metallic = 0.0
 	material.cull_mode = BaseMaterial3D.CULL_BACK
 	terrain_mesh.surface_set_material(0, material)
@@ -155,13 +155,16 @@ func generate() -> void:
 
 
 func _terrain_color(height: float, normal_y: float) -> Color:
-	var valley := Color("#227d78")
-	var slope := Color("#527f6e")
-	var stone := Color("#829889")
-	var snow := Color("#c5d5ca")
-	var rock := Color("#4c5960")
+	var valley := Color("#163f47")
+	var slope := Color("#356356")
+	var stone := Color("#7d806e")
+	var snow := Color("#d6d0b3")
+	var rock := Color("#303b48")
 	var color := valley.lerp(slope, smoothstep(-8.0, 12.0, height))
 	color = color.lerp(stone, smoothstep(12.0, 28.0, height))
 	color = color.lerp(snow, smoothstep(27.0, 46.0, height))
-	var steepness := smoothstep(0.84, 0.45, normal_y)
-	return color.lerp(rock, steepness * 0.72)
+	var steepness := smoothstep(0.9, 0.5, normal_y)
+	color = color.lerp(rock, steepness * 0.82)
+	# Four-meter value bands remain readable at speed without adding textures.
+	var contour_band := int(floor((height + 64.0) / 4.0)) & 1
+	return color.darkened(0.065 * contour_band)

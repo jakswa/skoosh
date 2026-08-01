@@ -94,6 +94,12 @@ if (( ${#captures[@]} < 5 )); then
   exit 1
 fi
 
+if grep -E "ERROR:|SCRIPT ERROR|rejected|Invalid" "$LOG_DIR"/*.log \
+  | grep -v "ERROR: 1 resources still in use at exit" >/dev/null; then
+  echo "Visual QA logged a runtime error. Logs: $LOG_DIR" >&2
+  exit 1
+fi
+
 if command -v montage >/dev/null 2>&1; then
   montage "${captures[@]}" -thumbnail 640x360 -tile 2x -geometry +12+12 \
     -background '#07121c' "$OUTPUT_DIR/contact-sheet.png"

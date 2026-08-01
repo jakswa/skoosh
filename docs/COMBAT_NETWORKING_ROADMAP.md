@@ -2,11 +2,11 @@
 
 ## Current contract
 
-The dedicated server owns health, death, respawn, teams, flags, score, and round state. A client may request a pulse-rifle shot only for its own avatar. The server independently enforces death/round state and cooldown, reconstructs its current muzzle ray, rejects requests more than 2 m from the server muzzle or more than 18 degrees from server aim, performs the accepted ray against the server collision world, rejects friendly fire, and applies damage.
+The dedicated server owns health, death, respawn, teams, flags, score, and round state. A client may request a disc launch only for its own avatar. The server independently enforces alive/round state, post-teleport lockout, cadence, ownership, team, and bounded request age. It discards the requested transform, reconstructs the launch from its current muzzle and aim, and owns swept projectile collision, splash falloff, friendly-fire rejection, damage, and kill credit. Clients predict only projectile presentation.
 
 The current player collision capsule is also the current hitbox. The more detailed armor model is presentation only.
 
-This is sufficient for the local vertical slice, but it is not finished Internet-grade hit registration. In particular, shooting evaluates current server transforms rather than historical transforms from the client's fire tick.
+This is sufficient for the local vertical slice, but it is not finished Internet-grade projectile registration. Launch validation uses current server transforms, remote projectile presentation is only coarsely fast-forwarded, and impaired-network behavior has not been qualified.
 
 ## Next implementation stages
 
@@ -16,20 +16,19 @@ This is sufficient for the local vertical slice, but it is not finished Internet
 - Record correction distance, correction frequency, floor/contact disagreement, rollback depth, and input age.
 - Verify skiing, ground-jet pops, crest launches, impacts, and respawns before expanding combat.
 
-### 2. Define a historical hitbox record
+### 2. Bound and instrument launch requests
 
-- Record one compact authoritative capsule/head state per alive player per network tick.
-- Retain only a bounded window matching the maximum compensated latency.
-- Clear or mark discontinuities on death, respawn, and authoritative teleport.
-- Keep historical hitboxes separate from presentation meshes and live physics transforms.
+- Clamp accepted fire age and reject future, stale, duplicate, or impossible launch requests.
+- Record launch age, origin/angle correction, rejection reason, impact age, and projectile lifetime.
+- Clear launch eligibility across death, respawn, and authoritative teleport discontinuities.
+- Measure whether visual fast-forwarding needs a smoother correction path.
 
-### 3. Add bounded server rewind
+### 3. Decide latency treatment by weapon type
 
-- Include the input/fire tick in validated shot requests.
-- Clamp accepted fire age and reject future, stale, duplicate, or impossible requests.
-- Evaluate the server-approved ray against historical capsule/head geometry at the accepted tick.
-- Prefer analytic ray/capsule tests or a dedicated query structure over mutating the live physics world.
-- Preserve server-owned cadence, team rules, damage, and kill credit.
+- Keep disc collisions forward-simulated and server-owned; do not rewind moving projectiles through historical world state.
+- Consider a small, bounded launch fast-forward only after impairment measurements show it is needed and fair.
+- If a future hitscan weapon is added, record compact historical capsules and evaluate server-approved rays analytically rather than mutating the live physics world.
+- Preserve server-owned cadence, team rules, splash, damage, and kill credit for every weapon type.
 
 ### 4. Validate high-speed edge cases
 
@@ -49,4 +48,4 @@ This is sufficient for the local vertical slice, but it is not finished Internet
 - Skeletal/per-limb hitboxes and damage multipliers
 - Client-authoritative hits
 - Matchmaking, accounts, progression, and inventory
-- A second weapon until the movement and pulse-rifle path pass impairment testing
+- A second weapon until movement and disc-launcher paths pass impairment testing

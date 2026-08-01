@@ -8,10 +8,10 @@
 [ext_resource type="Script" path="res://scripts/visual_qa_capture.gd" id="6_visual_qa"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial"]
-sky_top_color = Color(0.025, 0.16, 0.34, 1)
-sky_horizon_color = Color(0.36, 0.72, 0.79, 1)
-ground_bottom_color = Color(0.025, 0.06, 0.1, 1)
-ground_horizon_color = Color(0.3, 0.55, 0.57, 1)
+sky_top_color = Color(0.015, 0.075, 0.18, 1)
+sky_horizon_color = Color(0.34, 0.58, 0.61, 1)
+ground_bottom_color = Color(0.018, 0.035, 0.055, 1)
+ground_horizon_color = Color(0.2, 0.36, 0.37, 1)
 sun_angle_max = 18.0
 sun_curve = 0.1
 
@@ -23,15 +23,15 @@ radiance_size = 3
 background_mode = 2
 sky = SubResource("Sky")
 ambient_light_source = 3
-ambient_light_color = Color(0.4, 0.58, 0.66, 1)
-ambient_light_energy = 0.48
+ambient_light_color = Color(0.28, 0.4, 0.46, 1)
+ambient_light_energy = 0.38
 reflected_light_source = 2
 tonemap_mode = 2
 fog_enabled = true
-fog_light_color = Color(0.37, 0.62, 0.67, 1)
-fog_light_energy = 0.5
-fog_density = 0.00115
-fog_sky_affect = 0.45
+fog_light_color = Color(0.26, 0.43, 0.45, 1)
+fog_light_energy = 0.36
+fog_density = 0.00082
+fog_sky_affect = 0.32
 
 [sub_resource type="BoxMesh" id="PlatformMesh"]
 size = Vector3(14, 2, 14)
@@ -173,8 +173,8 @@ environment = SubResource("Environment")
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
 rotation_degrees = Vector3(-48, -32, 0)
-light_color = Color(1, 0.84, 0.64, 1)
-light_energy = 1.2
+light_color = Color(1, 0.79, 0.58, 1)
+light_energy = 1.05
 shadow_enabled = true
 directional_shadow_max_distance = 310.0
 directional_shadow_fade_start = 0.82
@@ -272,6 +272,10 @@ light_energy = 1.8
 shadow_enabled = false
 
 [node name="Players" type="Node3D" parent="."]
+
+[node name="Projectiles" type="Node3D" parent="."]
+
+[node name="Effects" type="Node3D" parent="."]
 
 [node name="GameStateSynchronizer" type="MultiplayerSynchronizer" parent="."]
 replication_config = SubResource("GameReplicationConfig")

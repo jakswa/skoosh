@@ -14,6 +14,8 @@ var _gameplay_started_at := 0
 var _queued: Dictionary = {}
 var _capture_queue: Array[String] = []
 var _writing := false
+var _comms_capture_started := false
+var _comms_capture_closed := false
 
 
 func _ready() -> void:
@@ -47,8 +49,17 @@ func _process(_delta: float) -> void:
 		if _player == null:
 			return
 		_gameplay_started_at = Time.get_ticks_msec()
+		_player.input.visual_qa_lock = true
 
 	var elapsed := (Time.get_ticks_msec() - _gameplay_started_at) / 1000.0
+	if elapsed >= 1.35 and not _comms_capture_started:
+		_comms_capture_started = true
+		_player.hud.set_voice_menu_category(0)
+		_queue_capture("12-team-comms")
+	if elapsed >= 2.15 and not _comms_capture_closed:
+		_comms_capture_closed = true
+		_player.hud.set_voice_menu_visible(false)
+		_player.input.visual_qa_lock = false
 	for capture_name: String in TIMED_CAPTURES:
 		if elapsed >= float(TIMED_CAPTURES[capture_name]):
 			_queue_capture(capture_name)
@@ -60,6 +71,10 @@ func _process(_delta: float) -> void:
 		_queue_capture("60-flag-carrier")
 	if arena.round_over:
 		_queue_capture("70-round-result")
+	if not _player.hud.is_voice_menu_visible() and arena.get_node("Projectiles").get_child_count() > 0:
+		_queue_capture("32-disc-flight")
+	if arena.get_node("Effects").get_child_count() > 0:
+		_queue_capture("34-disc-impact")
 
 
 func _queue_capture(capture_name: String) -> void:

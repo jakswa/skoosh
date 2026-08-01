@@ -24,7 +24,7 @@ Override the engine, output directory, port, or capture duration when needed:
 
 ```bash
 GODOT_BIN=/path/to/Godot \
-SKOOSH_VISUAL_QA_DIR=/tmp/skoosh-visual-qa \
+SKOOSH_VISUAL_QA_DIR=.tmp/skoosh-visual-qa \
 SKOOSH_VISUAL_QA_PORT=29078 \
 SKOOSH_VISUAL_QA_SECONDS=24 \
 ./tools/capture_visual_qa.sh

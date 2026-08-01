@@ -17,6 +17,12 @@ func fire() -> Node3D:
 func get_fired_tick() -> int:
 	return _weapon.get_fired_tick()
 
+func get_projectile_id(projectile: Node3D) -> String:
+	return _weapon.get_projectile_id(projectile)
+
+func despawn_projectile(id: String):
+	_weapon.despawn_projectile(id)
+
 func _init():
 	_weapon = _NetworkWeaponProxy.new()
 	add_child(_weapon, true, INTERNAL_MODE_BACK)

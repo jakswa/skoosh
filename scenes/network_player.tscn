@@ -1,4 +1,4 @@
-[gd_scene load_steps=22 format=3]
+[gd_scene load_steps=27 format=3]
 
 [ext_resource type="Script" path="res://scripts/network_player.gd" id="1_player"]
 [ext_resource type="Script" path="res://scripts/network_player_input.gd" id="2_input"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://scripts/network_hud.gd" id="4_hud"]
 [ext_resource type="Script" path="res://addons/netfox/rollback/rollback-synchronizer.gd" id="5_rollback"]
 [ext_resource type="Script" path="res://addons/netfox/tick-interpolator.gd" id="6_interpolator"]
+[ext_resource type="PackedScene" path="res://scenes/disc_projectile.tscn" id="7_projectile"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape_player"]
 radius = 0.48
@@ -63,26 +64,44 @@ metallic = 0.55
 roughness = 0.2
 
 [sub_resource type="BoxMesh" id="GunMesh"]
-size = Vector3(0.18, 0.14, 0.68)
+size = Vector3(0.24, 0.18, 0.76)
 
 [sub_resource type="CylinderMesh" id="GunBarrelMesh"]
-top_radius = 0.045
-bottom_radius = 0.06
-height = 0.58
-radial_segments = 8
+top_radius = 0.1
+bottom_radius = 0.13
+height = 0.16
+radial_segments = 14
 rings = 1
 
+[sub_resource type="CylinderMesh" id="DiscChamberMesh"]
+top_radius = 0.16
+bottom_radius = 0.16
+height = 0.1
+radial_segments = 16
+rings = 1
+
+[sub_resource type="BoxMesh" id="GunGripMesh"]
+size = Vector3(0.16, 0.36, 0.18)
+
 [sub_resource type="StandardMaterial3D" id="GunMaterial"]
-albedo_color = Color(0.025, 0.075, 0.105, 1)
-metallic = 0.45
-roughness = 0.38
+albedo_color = Color(0.035, 0.07, 0.085, 1)
+metallic = 0.62
+roughness = 0.3
 
 [sub_resource type="StandardMaterial3D" id="GunGlowMaterial"]
-albedo_color = Color(0.06, 0.85, 0.84, 1)
+albedo_color = Color(0.19, 0.95, 0.66, 1)
 emission_enabled = true
-emission = Color(0.02, 0.86, 0.82, 1)
-emission_energy_multiplier = 2.5
+emission = Color(0.05, 0.95, 0.55, 1)
+emission_energy_multiplier = 2.4
 roughness = 0.25
+
+[sub_resource type="StandardMaterial3D" id="GunDiscMaterial"]
+albedo_color = Color(0.035, 0.23, 0.18, 1)
+emission_enabled = true
+emission = Color(0.05, 0.72, 0.42, 1)
+emission_energy_multiplier = 0.65
+metallic = 0.58
+roughness = 0.3
 
 [sub_resource type="SceneReplicationConfig" id="ReplicationConfig"]
 properties/0/path = NodePath(".:health")
@@ -184,10 +203,10 @@ mesh = SubResource("LegMesh")
 [node name="NameLabel" type="Label3D" parent="."]
 position = Vector3(0, 2.72, 0)
 text = "SYNCING"
-font_size = 36
-outline_size = 8
+font_size = 20
+outline_size = 4
 modulate = Color(0.85, 1, 1, 1)
-pixel_size = 0.004
+pixel_size = 0.003
 billboard = 1
 fixed_size = true
 no_depth_test = true
@@ -203,8 +222,8 @@ fov = 80.0
 
 [node name="ViewGun" type="Node3D" parent="Head/Camera3D"]
 visible = false
-position = Vector3(0.32, -0.25, -0.48)
-rotation_degrees = Vector3(-4, 0, 0)
+position = Vector3(0.48, -0.38, -0.66)
+rotation_degrees = Vector3(-5, -2, 0)
 
 [node name="Body" type="MeshInstance3D" parent="Head/Camera3D/ViewGun"]
 material_override = SubResource("GunMaterial")
@@ -212,19 +231,34 @@ mesh = SubResource("GunMesh")
 cast_shadow = 0
 
 [node name="Barrel" type="MeshInstance3D" parent="Head/Camera3D/ViewGun"]
-position = Vector3(0, 0, -0.48)
+position = Vector3(0, 0, -0.47)
 rotation_degrees = Vector3(90, 0, 0)
 material_override = SubResource("GunGlowMaterial")
 mesh = SubResource("GunBarrelMesh")
 cast_shadow = 0
 
-[node name="PulseRifle" type="Node3D" parent="Head"]
+[node name="DiscChamber" type="MeshInstance3D" parent="Head/Camera3D/ViewGun"]
+position = Vector3(-0.13, 0.03, -0.12)
+rotation_degrees = Vector3(0, 0, 90)
+material_override = SubResource("GunDiscMaterial")
+mesh = SubResource("DiscChamberMesh")
+cast_shadow = 0
+
+[node name="Grip" type="MeshInstance3D" parent="Head/Camera3D/ViewGun"]
+position = Vector3(0, -0.23, 0.1)
+rotation_degrees = Vector3(-12, 0, 0)
+material_override = SubResource("GunMaterial")
+mesh = SubResource("GunGripMesh")
+cast_shadow = 0
+
+[node name="DiscLauncher" type="Node3D" parent="Head"]
 position = Vector3(0, 0, -0.18)
 script = ExtResource("3_weapon")
+projectile_scene = ExtResource("7_projectile")
 
-[node name="MuzzleLight" type="OmniLight3D" parent="Head/PulseRifle"]
+[node name="MuzzleLight" type="OmniLight3D" parent="Head/DiscLauncher"]
 position = Vector3(0, 0, -0.4)
-light_color = Color(0.3, 0.95, 1, 1)
+light_color = Color(0.3, 1, 0.58, 1)
 light_energy = 0.0
 omni_range = 4.0
 shadow_enabled = false

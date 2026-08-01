@@ -1,0 +1,67 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/disc_projectile.gd" id="1_projectile"]
+
+[sub_resource type="SphereMesh" id="CoreMesh"]
+radius = 0.16
+height = 0.32
+radial_segments = 12
+rings = 6
+
+[sub_resource type="StandardMaterial3D" id="CoreMaterial"]
+albedo_color = Color(0.95, 0.99, 0.9, 1)
+emission_enabled = true
+emission = Color(0.58, 1, 0.72, 1)
+emission_energy_multiplier = 3.5
+
+[sub_resource type="CylinderMesh" id="DiscMesh"]
+top_radius = 0.36
+bottom_radius = 0.36
+height = 0.075
+radial_segments = 20
+rings = 1
+
+[sub_resource type="StandardMaterial3D" id="DiscMaterial"]
+albedo_color = Color(0.07, 0.2, 0.24, 1)
+emission_enabled = true
+emission = Color(0.08, 0.9, 0.69, 1)
+emission_energy_multiplier = 2.4
+metallic = 0.55
+roughness = 0.22
+
+[sub_resource type="BoxMesh" id="TrailMesh"]
+size = Vector3(0.08, 0.08, 1.4)
+
+[sub_resource type="StandardMaterial3D" id="TrailMaterial"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0.25, 1, 0.72, 0.42)
+emission_enabled = true
+emission = Color(0.08, 0.85, 0.58, 1)
+emission_energy_multiplier = 2.0
+
+[node name="DiscProjectile" type="Node3D"]
+script = ExtResource("1_projectile")
+
+[node name="Trail" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0, 0.72)
+material_override = SubResource("TrailMaterial")
+mesh = SubResource("TrailMesh")
+cast_shadow = 0
+
+[node name="Disc" type="MeshInstance3D" parent="."]
+rotation_degrees = Vector3(90, 0, 0)
+material_override = SubResource("DiscMaterial")
+mesh = SubResource("DiscMesh")
+cast_shadow = 0
+
+[node name="Core" type="MeshInstance3D" parent="."]
+material_override = SubResource("CoreMaterial")
+mesh = SubResource("CoreMesh")
+cast_shadow = 0
+
+[node name="Glow" type="OmniLight3D" parent="."]
+light_color = Color(0.22, 1, 0.65, 1)
+light_energy = 2.2
+omni_range = 4.5
+shadow_enabled = false

@@ -303,3 +303,21 @@ Important limitations:
 - Scale testing beyond two clients is not implemented yet.
 - The revised CTF scene and player art need a human graphical playtest.
 - netfox broadcasts input for this prototype; production relevancy/bandwidth hardening remains.
+
+## 14. Voice, disc, and playtest presentation pass
+
+Implemented on the `feature/voice-disc-ux` playtest branch:
+
+- Replaced the hitscan pulse rifle with the only/default disc launcher: 82 m/s visible projectiles, 55% shooter-velocity inheritance, 0.82-second cadence, 5.8 m authoritative splash, and up to 105 damage.
+- Clients predict disc presentation, while the server substitutes its current muzzle/aim, simulates swept flight, resolves impact/falloff, rejects friendly fire, and owns damage and kill credit.
+- Added server-rate-limited team voice commands with a two-key `V` menu and 12 Cartesia-generated clips across social, objective, and status channels.
+- Added compact callsigns, clearer score/objective/vitals/weapon hierarchy, F3-gated network telemetry, contextual pointer help, hit/damage feedback, and a focused connection terminal.
+- Darkened terrain values, added four-meter contour banding, reduced cyan fog wash, and strengthened team/base contrast.
+- Extended multiplayer acceptance to require a relayed voice command plus disc impacts/damage, and to fail on logged script errors or rejected launches.
+- Extended off-screen visual QA with team-comms, disc-flight, and disc-impact event captures.
+
+Still pending:
+
+- Human combat and audio-level playtesting.
+- Artificial latency, jitter, and loss qualification for launch timing and remote projectile presentation.
+- Projectile correction/age metrics, scale testing, and production command budgets beyond the current per-speaker voice cooldown.

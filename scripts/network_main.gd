@@ -17,6 +17,21 @@ const ROUND_RESTART_TICKS := 300
 const ARENA_CENTER := Vector2(0.0, -207.0)
 const BASE_SEPARATION := 48.0
 const OOB_RECOVERY_SAFE_FRAMES := 3
+const VOICE_COMMAND_COOLDOWN_TICKS := 60
+const VOICE_COMMANDS := [
+	{"category": "SOCIAL", "label": "HELLO"},
+	{"category": "SOCIAL", "label": "GOODBYE"},
+	{"category": "SOCIAL", "label": "THANKS"},
+	{"category": "SOCIAL", "label": "SHAZBOT"},
+	{"category": "OBJECTIVE", "label": "DEFEND OUR STANDARD"},
+	{"category": "OBJECTIVE", "label": "PUSH THE FAR PLATFORM"},
+	{"category": "OBJECTIVE", "label": "RECOVER OUR STANDARD"},
+	{"category": "OBJECTIVE", "label": "COVER MY RETURN"},
+	{"category": "STATUS", "label": "YES"},
+	{"category": "STATUS", "label": "NO"},
+	{"category": "STATUS", "label": "I NEED SUPPORT"},
+	{"category": "STATUS", "label": "ALL CLEAR"},
+]
 
 @export var player_scene: PackedScene
 
@@ -55,11 +70,15 @@ var _test_seconds := 0.0
 var _require_combat := false
 var _require_movement := false
 var _require_ctf := false
+var _require_voice := false
 var _test_started_at := 0
 var _test_timer_started := false
 var _peak_avatars := 0
 var _combat_kills := 0
 var _combat_deaths := 0
+var _disc_impacts := 0
+var _disc_damage_events := 0
+var _voice_commands_relayed := 0
 var _ctf_captures := 0
 var _completed_rounds := 0
 var _peak_server_speed := 0.0
@@ -67,6 +86,9 @@ var _server_saw_jet := false
 var _peak_rollback_ticks := 0
 var _peak_network_loop_ms := 0.0
 var _oob_recovery_safe_frames: Dictionary = {}
+var _last_voice_command_tick: Dictionary = {}
+var _last_voice_request_tick: Dictionary = {}
+var _last_team_voice_tick: Dictionary = {}
 
 
 func _ready() -> void:
@@ -120,6 +142,8 @@ func _parse_command_line() -> void:
 			_require_movement = true
 		elif arg == "--require-ctf":
 			_require_ctf = true
+		elif arg == "--require-voice":
+			_require_voice = true
 		elif arg.begins_with("--join="):
 			mode = "client"
 			address = arg.trim_prefix("--join=")
@@ -191,6 +215,8 @@ func _on_peer_joined(id: int) -> void:
 
 func _on_peer_left(id: int) -> void:
 	print("NETWORK peer left id=%d" % id)
+	_last_voice_command_tick.erase(id)
+	_last_voice_request_tick.erase(id)
 	if multiplayer.is_server():
 		_drop_flags_carried_by(id)
 	_remove_avatar(id)
@@ -292,6 +318,14 @@ func record_death() -> void:
 		_combat_deaths += 1
 
 
+func record_disc_impact(damaged_enemies: int) -> void:
+	if not multiplayer.is_server():
+		return
+	_disc_impacts += 1
+	_disc_damage_events += damaged_enemies
+	print("COMBAT disc impact=%d damaged=%d" % [_disc_impacts, damaged_enemies])
+
+
 func find_target_for(peer_id: int) -> SkooshNetworkPlayer:
 	var nearest: SkooshNetworkPlayer
 	var nearest_distance := INF
@@ -368,6 +402,65 @@ func get_flag_status(team: int) -> String:
 	if state == FLAG_DROPPED:
 		return "DROPPED"
 	return "TAKEN"
+
+
+func get_voice_commands() -> Array:
+	return VOICE_COMMANDS
+
+
+func send_voice_command(command_id: int) -> void:
+	if multiplayer.is_server():
+		_broadcast_voice_command(multiplayer.get_unique_id(), command_id)
+	else:
+		_request_voice_command.rpc_id(1, command_id)
+
+
+@rpc("any_peer", "reliable", "call_remote")
+func _request_voice_command(command_id: int) -> void:
+	if not multiplayer.is_server():
+		return
+	var sender := multiplayer.get_remote_sender_id()
+	var previous_request_tick := int(_last_voice_request_tick.get(sender, -100000))
+	if NetworkTime.tick - previous_request_tick < 15:
+		return
+	_last_voice_request_tick[sender] = NetworkTime.tick
+	_broadcast_voice_command(sender, command_id)
+
+
+func _broadcast_voice_command(speaker_peer_id: int, command_id: int) -> void:
+	if not multiplayer.is_server() or command_id < 0 or command_id >= VOICE_COMMANDS.size():
+		return
+	var speaker := avatars.get(speaker_peer_id) as SkooshNetworkPlayer
+	if speaker == null:
+		return
+	var previous_tick := int(_last_voice_command_tick.get(speaker_peer_id, -100000))
+	if NetworkTime.tick - previous_tick < VOICE_COMMAND_COOLDOWN_TICKS:
+		return
+	var previous_team_tick := int(_last_team_voice_tick.get(speaker.team, -100000))
+	if NetworkTime.tick - previous_team_tick < 30:
+		return
+	_last_voice_command_tick[speaker_peer_id] = NetworkTime.tick
+	_last_team_voice_tick[speaker.team] = NetworkTime.tick
+	_voice_commands_relayed += 1
+	for avatar_variant in avatars.values():
+		var listener := avatar_variant as SkooshNetworkPlayer
+		if listener != null and listener.team == speaker.team:
+			_receive_voice_command.rpc_id(listener.peer_id, speaker_peer_id, command_id)
+	print("VOICE speaker=%d team=%s command=%s" % [
+		speaker_peer_id, get_team_name(speaker.team), VOICE_COMMANDS[command_id]["label"]
+	])
+
+
+@rpc("authority", "reliable", "call_remote")
+func _receive_voice_command(speaker_peer_id: int, command_id: int) -> void:
+	if command_id < 0 or command_id >= VOICE_COMMANDS.size():
+		return
+	var local_player := avatars.get(multiplayer.get_unique_id()) as SkooshNetworkPlayer
+	if local_player != null:
+		local_player.hud.play_voice_command(speaker_peer_id, command_id)
+		print("VOICE received listener=%d speaker=%d command=%s" % [
+			local_player.peer_id, speaker_peer_id, VOICE_COMMANDS[command_id]["label"]
+		])
 
 
 func _process(_delta: float) -> void:
@@ -629,12 +722,18 @@ func _finish_automated_test() -> void:
 	if multiplayer.is_server():
 		total_kills = _combat_kills
 		total_deaths = _combat_deaths
-	print("ACCEPT multiplayer peer=%d peak_avatars=%d current_avatars=%d kills=%d deaths=%d captures=%d rounds=%d peak_speed=%.1f jet=%s max_rollback=%d peak_net_ms=%.2f elapsed_ms=%d" % [
+	print("ACCEPT multiplayer peer=%d peak_avatars=%d current_avatars=%d kills=%d deaths=%d disc_impacts=%d disc_damage=%d voice=%d captures=%d rounds=%d peak_speed=%.1f jet=%s max_rollback=%d peak_net_ms=%.2f elapsed_ms=%d" % [
 		peer_id, _peak_avatars, avatars.size(), total_kills, total_deaths,
-		_ctf_captures, _completed_rounds, _peak_server_speed, _server_saw_jet,
+		_disc_impacts, _disc_damage_events, _voice_commands_relayed,
+		_ctf_captures, _completed_rounds,
+		_peak_server_speed, _server_saw_jet,
 		_peak_rollback_ticks, _peak_network_loop_ms, Time.get_ticks_msec() - _test_started_at
 	])
-	var combat_failed := _require_combat and (_peak_avatars < 2 or total_deaths < 1 or total_kills < 1)
+	var combat_failed := _require_combat and (
+		_peak_avatars < 2 or total_deaths < 1 or total_kills < 1
+		or _disc_impacts < 1 or _disc_damage_events < 1
+	)
 	var movement_failed := _require_movement and (_peak_server_speed < 10.0 or not _server_saw_jet)
 	var ctf_failed := _require_ctf and (_ctf_captures < 1 or _completed_rounds < 1)
-	get_tree().quit(1 if combat_failed or movement_failed or ctf_failed else 0)
+	var voice_failed := _require_voice and _voice_commands_relayed < 1
+	get_tree().quit(1 if combat_failed or movement_failed or ctf_failed or voice_failed else 0)

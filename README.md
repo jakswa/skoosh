@@ -47,7 +47,9 @@ See [`docs/PLAYTESTING_AND_DISTRIBUTION.md`](docs/PLAYTESTING_AND_DISTRIBUTION.m
 - WASD: move and steer
 - Space: ski
 - Shift or right mouse: jet; at low grounded speed this includes a fuel-costed upward pop
-- Left mouse: pulse rifle
+- Left mouse: disc launcher
+- V, then number keys: team voice commands
+- F3: network telemetry
 - R: authoritative respawn
 - Esc: release mouse
 - Click client window: recapture mouse
@@ -72,4 +74,4 @@ The original solo time-trial remains available as `res://scenes/main.tscn`; the 
 
 ## Current network boundary
 
-The server owns movement results, energy, weapon cadence, damage, teams, flags, score, and rounds. The pulse rifle validates requested origin/aim against current server state, but historical hitbox rewind is intentionally deferred. See [`docs/COMBAT_NETWORKING_ROADMAP.md`](docs/COMBAT_NETWORKING_ROADMAP.md) and [`docs/CHECKPOINT.md`](docs/CHECKPOINT.md).
+The server owns movement results, energy, disc-launcher cadence and projectile impacts, splash damage, teams, flags, score, voice-command rate limits, and rounds. Clients predict disc visuals, while the server discards requested transforms and reconstructs each accepted launch from its current muzzle and aim. See [`docs/COMBAT_NETWORKING_ROADMAP.md`](docs/COMBAT_NETWORKING_ROADMAP.md) and [`docs/CHECKPOINT.md`](docs/CHECKPOINT.md).

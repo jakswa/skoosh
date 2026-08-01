@@ -21,7 +21,7 @@ class_name SkooshNetworkPlayer
 @onready var rollback_synchronizer := $RollbackSynchronizer as RollbackSynchronizer
 @onready var tick_interpolator := $TickInterpolator as TickInterpolator
 @onready var hud := $NetworkHUD as SkooshNetworkHUD
-@onready var weapon := $Head/PulseRifle as SkooshPulseRifle
+@onready var weapon := $Head/DiscLauncher as SkooshDiscLauncher
 
 var peer_id := 0
 var team := -1
@@ -224,7 +224,7 @@ func _update_team_presentation() -> void:
 	if team < 0:
 		team_name = "SYNCING"
 		color = Color("#d8e0d2")
-	name_label.text = "%s // #%d" % [team_name, peer_id]
+	name_label.text = "%s // %s" % [team_name, callsign_for_peer(peer_id)]
 	name_label.modulate = color.lightened(0.25)
 	var material := StandardMaterial3D.new()
 	material.albedo_color = color
@@ -235,3 +235,11 @@ func _update_team_presentation() -> void:
 	for mesh in get_tree().get_nodes_in_group("player_team_color"):
 		if mesh is MeshInstance3D and world_model.is_ancestor_of(mesh):
 			(mesh as MeshInstance3D).material_override = material
+
+
+static func callsign_for_peer(id: int) -> String:
+	const CALLSIGNS: Array[String] = [
+		"KITE", "NOVA", "ROOK", "EMBER", "VAULT", "ORBIT", "RIFT", "COMET",
+		"MICA", "VEX", "HALO", "PIKE", "ECHO", "BOLT", "WREN", "FLINT",
+	]
+	return CALLSIGNS[absi(id) % CALLSIGNS.size()]

@@ -2,3 +2,5 @@
 build/
 fly.toml
 *.import
+.env
+.tmp/

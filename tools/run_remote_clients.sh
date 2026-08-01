@@ -5,7 +5,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GODOT_BIN="${GODOT_BIN:-/tmp/godot-skoosh/Godot_v4.4.1-stable_linux.x86_64}"
 HOST="${1:-${SKOOSH_HOST:-}}"
 PORT="${SKOOSH_PORT:-9077}"
-LOG_DIR="${SKOOSH_LOG_DIR:-/tmp/skoosh-remote}"
+LOG_DIR="${SKOOSH_LOG_DIR:-$ROOT/.tmp/skoosh-remote}"
 
 if [[ -z "$HOST" ]]; then
   echo "Usage: $0 <server-host>" >&2

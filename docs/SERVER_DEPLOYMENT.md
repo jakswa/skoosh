@@ -138,4 +138,4 @@ Distribute clients from the same build. Roll back by restoring the prior binary 
 
 ## Current operational limitations
 
-This is a trusted-playtest server: no authentication, encryption, administration console, ban list, discovery, automatic updates, or DDoS protection. Historical rifle hitbox rewind and impaired-network qualification are also pending. Do not colocate sensitive workloads solely behind this process, and expose only the required UDP port.
+This is a trusted-playtest server: no authentication, encryption, administration console, ban list, discovery, automatic updates, or DDoS protection. Impaired-network movement and projectile qualification are also pending. Do not colocate sensitive workloads solely behind this process, and expose only the required UDP port.

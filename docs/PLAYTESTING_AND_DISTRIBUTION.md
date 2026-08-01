@@ -16,7 +16,7 @@ This starts a headless authoritative server and two graphical clients. Override 
 GODOT_BIN=/path/to/Godot SKOOSH_PORT=9078 ./tools/run_multiplayer_demo.sh
 ```
 
-Logs are written under `/tmp/skoosh-network`. Ctrl-C in the launching terminal stops the whole group.
+Logs are written under the ignored `.tmp/skoosh-network` directory. Ctrl-C in the launching terminal stops the whole group.
 
 To run the processes separately:
 
@@ -177,4 +177,4 @@ Keep the first remote test to one region, one Machine, direct IP/hostname, and t
 - Make sure the client uses the externally exposed port if it differs from the server's internal port.
 - A timeout with no server join log usually indicates DNS, NAT, firewall, cloud UDP configuration, or an incorrect address.
 - Do not expose the editor itself; distribute exported binaries.
-- Remote fairness remains experimental because latency/loss correction metrics and historical rifle hitbox rewind are not implemented yet.
+- Remote fairness remains experimental because latency/loss correction metrics and impaired-network projectile qualification are not implemented yet.

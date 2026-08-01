@@ -15,6 +15,8 @@ var _pending_look := Vector2.ZERO
 var _reset_buffered := false
 var _configured := false
 var _bot_start_tick := -1
+var _bot_voice_sent := false
+var visual_qa_lock := false
 
 
 func _ready() -> void:
@@ -29,7 +31,9 @@ func _input(event: InputEvent) -> void:
 		_pending_look.x -= event.relative.x * mouse_sensitivity
 		_pending_look.y -= event.relative.y * mouse_sensitivity
 	elif event.is_action_pressed("ui_cancel"):
-		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		var player := get_parent() as SkooshNetworkPlayer
+		if player == null or not player.hud.close_voice_menu():
+			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 		get_viewport().set_input_as_handled()
 	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 		if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
@@ -58,6 +62,19 @@ func _gather_bot() -> void:
 	if _bot_start_tick < 0:
 		_bot_start_tick = NetworkTime.tick
 	var bot_age := NetworkTime.tick - _bot_start_tick
+	if bot_age >= 90 and not _bot_voice_sent:
+		_bot_voice_sent = true
+		var voice_arena := get_parent().get_parent().get_parent()
+		if voice_arena.has_method("send_voice_command"):
+			voice_arena.send_voice_command(0)
+	if visual_qa_lock:
+		movement = Vector2.ZERO
+		ski = false
+		jet = false
+		fire = false
+		reset = false
+		look_delta = Vector2.ZERO
+		return
 	var movement_phase := bot_age >= 240
 	movement = Vector2.ZERO
 	ski = false
