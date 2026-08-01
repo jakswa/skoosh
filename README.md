@@ -1,0 +1,56 @@
+# SKOOSH
+
+A Godot 4 momentum-skiing, jet-assisted, authoritative multiplayer CTF prototype.
+
+## Run the local CTF lab
+
+Godot 4.4+ is required. The helper defaults to the temporary development binary when present:
+
+```bash
+./tools/run_multiplayer_demo.sh
+```
+
+This starts one headless authoritative server and two graphical clients on UDP 9077. Focus one client window at a time. Press Ctrl-C in the launching terminal to stop the complete session.
+
+Override the engine path or port when needed:
+
+```bash
+GODOT_BIN=/path/to/Godot SKOOSH_PORT=9078 ./tools/run_multiplayer_demo.sh
+```
+
+A client can connect to any direct host from the lobby or command line:
+
+```bash
+/path/to/Godot --path . -- --join=play.example.com --port=9077
+```
+
+See [`docs/PLAYTESTING_AND_DISTRIBUTION.md`](docs/PLAYTESTING_AND_DISTRIBUTION.md) for separate-process local testing, home-router UDP forwarding, Fly.io notes, exports, and GitHub Release packaging.
+
+### Controls
+
+- WASD: move and steer
+- Space: ski
+- Shift or right mouse: jet; at low grounded speed this includes a fuel-costed upward pop
+- Left mouse: pulse rifle
+- R: authoritative respawn
+- Esc: release mouse
+- Click client window: recapture mouse
+
+### CTF loop
+
+Clients are balanced between RED and BLUE. Take the opposing flag and return to the glowing ring on your raised team platform while your flag is home. Death drops a carried flag; teammates return their dropped flag by touching it, otherwise it returns after ten seconds. The compact demo is sudden death: one capture wins, followed by a five-second intermission and a fresh round.
+
+## Automated checks
+
+```bash
+./tools/test_ground_jet.sh
+./tools/test_multiplayer_demo.sh       # about 36 seconds
+```
+
+The multiplayer test takes about 36 seconds and validates two-team spawning, combat, death/respawn, ski/jet movement, a flag capture, win state, and round restart.
+
+The original solo time-trial remains available as `res://scenes/main.tscn`; the multiplayer CTF scene is the project entry point.
+
+## Current network boundary
+
+The server owns movement results, energy, weapon cadence, damage, teams, flags, score, and rounds. The pulse rifle validates requested origin/aim against current server state, but historical hitbox rewind is intentionally deferred. See [`docs/COMBAT_NETWORKING_ROADMAP.md`](docs/COMBAT_NETWORKING_ROADMAP.md) and [`docs/CHECKPOINT.md`](docs/CHECKPOINT.md).

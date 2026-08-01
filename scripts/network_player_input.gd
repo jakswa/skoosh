@@ -59,9 +59,9 @@ func _gather_bot() -> void:
 		_bot_start_tick = NetworkTime.tick
 	var bot_age := NetworkTime.tick - _bot_start_tick
 	var movement_phase := bot_age >= 240
-	movement = Vector2(0.0, -1.0) if movement_phase else Vector2.ZERO
-	ski = movement_phase
-	jet = movement_phase and (bot_age % 180) < 75
+	movement = Vector2.ZERO
+	ski = false
+	jet = false
 	fire = not movement_phase
 	reset = false
 	look_delta = Vector2.ZERO
@@ -69,14 +69,28 @@ func _gather_bot() -> void:
 	if player == null or player.dead:
 		fire = false
 		return
-	var target: SkooshNetworkPlayer = player.find_bot_target()
-	if target == null or target.dead:
-		return
+	var target := player.find_bot_target()
+	if movement_phase:
+		# Acceptance bots become asymmetric after proving combat: RED runs the
+		# flag while BLUE holds its platform. This avoids a two-player flag
+		# standoff and gives the authoritative capture/win/restart loop a stable test.
+		fire = false
+	var target_position := player.get_bot_objective_position()
+	if movement_phase and player.team == 0:
+		var planar_distance := Vector2(
+			target_position.x - player.global_position.x,
+			target_position.z - player.global_position.z
+		).length()
+		var carrying := player.carries_enemy_flag()
+		movement = Vector2(0.0, -1.0) if planar_distance > 2.0 else Vector2.ZERO
+		ski = planar_distance > 13.0 and not carrying
+		jet = planar_distance > 16.0 and not carrying and (bot_age % 180) < 78
+	if (fire or not movement_phase) and target != null and not target.dead:
+		target_position = target.global_position + Vector3.UP * 1.1
 	var origin := player.head.global_position
-	var target_position := target.global_position + Vector3.UP * 1.1
 	var direction := origin.direction_to(target_position)
 	var desired_yaw := atan2(-direction.x, -direction.z)
-	var desired_pitch := asin(clampf(direction.y, -1.0, 1.0))
+	var desired_pitch := asin(clampf(direction.y, -1.0, 1.0)) if fire else 0.0
 	look_delta.x = clampf(angle_difference(player.rotation.y, desired_yaw), -0.2, 0.2)
 	look_delta.y = clampf(desired_pitch - player.head.rotation.x, -0.15, 0.15)
 

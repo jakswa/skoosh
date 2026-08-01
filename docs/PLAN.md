@@ -92,7 +92,8 @@ The implementation agent should create approximately this structure. Minor chang
 
 ```text
 skoosh/
-├── PLAN.md
+├── docs/
+│   └── PLAN.md
 ├── project.godot
 ├── export_presets.cfg
 ├── icon.svg
@@ -112,7 +113,7 @@ skoosh/
     └── terrain.gdshader        # only if vertex colors are insufficient
 ```
 
-Prefer scene-authored node composition for stable structure and scripts for generated terrain/course content. Do not create separate markdown documentation; this file remains the single product and implementation reference.
+Prefer scene-authored node composition for stable structure and scripts for generated terrain/course content. This is the original solo MVP plan; current multiplayer decisions and checkpoints live alongside it in `docs/`.
 
 ## 6. Scene architecture
 

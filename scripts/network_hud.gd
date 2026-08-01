@@ -5,6 +5,9 @@ var player: SkooshNetworkPlayer
 var _stats: Label
 var _status: Label
 var _death: Label
+var _round_notice: Label
+var _score: Label
+var _objective: Label
 var _reticle: Label
 var _hit_time := 0.0
 var _shot_time := 0.0
@@ -39,9 +42,27 @@ func _process(delta: float) -> void:
 	var reticle_color := Color("#ffeb77") if _hit_time > 0.0 else Color("#5df4ed")
 	_reticle.modulate = reticle_color
 	_reticle.scale = Vector2.ONE * (1.28 if _shot_time > 0.0 else 1.0)
-	_stats.text = "HEALTH  %03d     K / D  %d / %d\nSPEED   %5.1f m/s     JET  %03d" % [
-		player.health, player.kills, player.deaths, player.horizontal_speed, roundi(player.jet_energy)
+	var arena: Variant = player.get_parent().get_parent()
+	var team_name: String = arena.get_team_name(player.team) if arena.has_method("get_team_name") else "SYNC"
+	_stats.text = "%s TEAM     HEALTH  %03d     K / D  %d / %d\nSPEED   %5.1f m/s     JET  %03d" % [
+		team_name, player.health, player.kills, player.deaths,
+		player.horizontal_speed, roundi(player.jet_energy)
 	]
+	var team_color := Color("#ff776b") if player.team == 0 else Color("#62cfff")
+	_stats.add_theme_color_override("font_color", team_color)
+	var capture_limit: int = int(arena.get_capture_limit())
+	_score.text = "RED  %d / %d  [%s]        ROUND %d        [%s]  %d / %d  BLUE" % [
+		arena.red_score, capture_limit, arena.get_flag_status(0), arena.round_number,
+		arena.get_flag_status(1), arena.blue_score, capture_limit
+	]
+	var carrying: bool = arena.player_carries_enemy_flag(player)
+	_objective.visible = carrying
+	_objective.text = "ENEMY FLAG ACQUIRED  //  RETURN TO YOUR PLATFORM" if carrying else ""
+	_round_notice.visible = arena.round_over
+	if arena.round_over:
+		var won: bool = arena.winner_team == player.team
+		var remaining := maxi(0, arena.round_restart_tick - NetworkTime.tick)
+		_round_notice.text = ("YOUR TEAM WINS" if won else "YOUR TEAM LOSES") + "\nNEXT ROUND IN %.1f" % (remaining / 60.0)
 	var rtt_ms := roundi(NetworkTimeSynchronizer.rtt * 1000.0)
 	_status.text = "PULSE RIFLE  40 DMG     PEER #%d     RTT %d ms     ROLLBACK %d / %.2f ms" % [
 		player.peer_id, rtt_ms, NetworkPerformance.get_rollback_ticks(),
@@ -70,10 +91,25 @@ func _build() -> void:
 
 	_status = _label(14, Color(0.75, 0.91, 0.92, 0.9))
 	_status.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	_status.position = Vector2(-300, 22)
+	_status.position = Vector2(-300, 62)
 	_status.size = Vector2(600, 28)
 	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	add_child(_status)
+
+	_score = _label(21, Color("#f2efda"))
+	_score.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_score.position = Vector2(-390, 18)
+	_score.size = Vector2(780, 34)
+	_score.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	add_child(_score)
+
+	_objective = _label(20, Color("#ffe46b"))
+	_objective.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_objective.position = Vector2(-330, 98)
+	_objective.size = Vector2(660, 34)
+	_objective.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_objective.visible = false
+	add_child(_objective)
 
 	_reticle = _label(28, Color("#5df4ed"))
 	_reticle.text = "+"
@@ -100,6 +136,15 @@ func _build() -> void:
 	_death.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_death.visible = false
 	add_child(_death)
+
+	_round_notice = _label(40, Color("#ffe46b"))
+	_round_notice.set_anchors_preset(Control.PRESET_CENTER)
+	_round_notice.position = Vector2(-300, -100)
+	_round_notice.size = Vector2(600, 200)
+	_round_notice.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_round_notice.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_round_notice.visible = false
+	add_child(_round_notice)
 
 
 func _label(size: int, color: Color) -> Label:

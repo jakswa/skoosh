@@ -14,7 +14,8 @@ class_name SkooshNetworkPlayer
 
 @onready var head := $Head as Node3D
 @onready var camera := $Head/Camera3D as Camera3D
-@onready var body_mesh := $BodyMesh as MeshInstance3D
+@onready var world_model := $WorldModel as Node3D
+@onready var body_mesh := $WorldModel/BodyMesh as MeshInstance3D
 @onready var name_label := $NameLabel as Label3D
 @onready var input := $Input as SkooshNetworkInput
 @onready var rollback_synchronizer := $RollbackSynchronizer as RollbackSynchronizer
@@ -23,6 +24,7 @@ class_name SkooshNetworkPlayer
 @onready var weapon := $Head/PulseRifle as SkooshPulseRifle
 
 var peer_id := 0
+var team := -1
 var health := 100
 var dead := false
 var kills := 0
@@ -34,6 +36,7 @@ var teleport_tick := -1
 var last_attacker := 0
 var did_teleport := false
 var _local_active := false
+var _presented_team := -99
 
 
 func _ready() -> void:
@@ -46,15 +49,15 @@ func _ready() -> void:
 	call_deferred("_finish_network_setup")
 
 
-func configure_peer(id: int, spawn_transform: Transform3D, use_bot: bool) -> void:
+func configure_peer(id: int, spawn_transform: Transform3D, use_bot: bool, assigned_team: int = -1) -> void:
 	peer_id = id
+	team = assigned_team
 	name = "Player_%d" % id
 	global_transform = spawn_transform
 	respawn_position = spawn_transform.origin
 	respawn_yaw = spawn_transform.basis.get_euler().y
 	input.bot_mode = use_bot
-	name_label.text = "PEER #%d" % id
-	_apply_peer_color()
+	_update_team_presentation()
 
 
 func _finish_network_setup() -> void:
@@ -70,7 +73,7 @@ func activate_local_player() -> void:
 		return
 	_local_active = true
 	camera.current = true
-	body_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+	world_model.visible = false
 	name_label.visible = false
 	$Head/Camera3D/ViewGun.visible = true
 	hud.bind(self)
@@ -109,6 +112,8 @@ func _after_tick_loop() -> void:
 
 
 func _process(delta: float) -> void:
+	if _presented_team != team:
+		_update_team_presentation()
 	if not _local_active:
 		return
 	var fov_t: float = clampf(
@@ -182,13 +187,44 @@ func find_bot_target() -> SkooshNetworkPlayer:
 	return null
 
 
+func get_bot_objective_position() -> Vector3:
+	var arena := get_parent().get_parent()
+	if arena.has_method("get_bot_objective_position"):
+		return arena.get_bot_objective_position(peer_id)
+	return global_position - global_transform.basis.z * 20.0
+
+
+func should_bot_fire() -> bool:
+	var arena := get_parent().get_parent()
+	return arena.has_method("should_bot_fire") and arena.should_bot_fire(peer_id)
+
+
+func carries_enemy_flag() -> bool:
+	var arena := get_parent().get_parent()
+	return arena.has_method("player_carries_enemy_flag") and arena.player_carries_enemy_flag(self)
+
+
 func get_telemetry() -> Dictionary:
 	return get_movement_telemetry()
 
 
-func _apply_peer_color() -> void:
+func _update_team_presentation() -> void:
+	if not is_node_ready():
+		return
+	_presented_team = team
+	var team_name := "RED" if team == 0 else "BLUE"
+	var color := Color("#ff594d") if team == 0 else Color("#36bfff")
+	if team < 0:
+		team_name = "SYNCING"
+		color = Color("#d8e0d2")
+	name_label.text = "%s // #%d" % [team_name, peer_id]
+	name_label.modulate = color.lightened(0.25)
 	var material := StandardMaterial3D.new()
-	var hue := fmod(float(peer_id) * 0.217, 1.0)
-	material.albedo_color = Color.from_hsv(hue, 0.72, 0.94)
-	material.roughness = 0.72
-	body_mesh.material_override = material
+	material.albedo_color = color
+	material.emission_enabled = true
+	material.emission = color
+	material.emission_energy_multiplier = 0.32
+	material.roughness = 0.68
+	for mesh in get_tree().get_nodes_in_group("player_team_color"):
+		if mesh is MeshInstance3D and world_model.is_ancestor_of(mesh):
+			(mesh as MeshInstance3D).material_override = material

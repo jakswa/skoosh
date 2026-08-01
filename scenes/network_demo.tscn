@@ -1,9 +1,10 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=23 format=3]
 
 [ext_resource type="Script" path="res://scripts/network_main.gd" id="1_main"]
 [ext_resource type="Script" path="res://scripts/terrain.gd" id="2_terrain"]
 [ext_resource type="PackedScene" path="res://scenes/network_player.tscn" id="3_player"]
 [ext_resource type="PackedScene" path="res://scenes/network_lobby.tscn" id="4_lobby"]
+[ext_resource type="Script" path="res://scripts/network_flag.gd" id="5_flag"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial"]
 sky_top_color = Color(0.025, 0.16, 0.34, 1)
@@ -22,7 +23,7 @@ background_mode = 2
 sky = SubResource("Sky")
 ambient_light_source = 3
 ambient_light_color = Color(0.4, 0.58, 0.66, 1)
-ambient_light_energy = 0.42
+ambient_light_energy = 0.48
 reflected_light_source = 2
 tonemap_mode = 2
 fog_enabled = true
@@ -31,19 +32,136 @@ fog_light_energy = 0.5
 fog_density = 0.00115
 fog_sky_affect = 0.45
 
-[sub_resource type="CylinderMesh" id="BeaconMesh"]
-top_radius = 0.18
-bottom_radius = 0.65
-height = 18.0
+[sub_resource type="BoxMesh" id="PlatformMesh"]
+size = Vector3(14, 2, 14)
+
+[sub_resource type="BoxShape3D" id="PlatformShape"]
+size = Vector3(14, 2, 14)
+
+[sub_resource type="StandardMaterial3D" id="RedPlatformMaterial"]
+albedo_color = Color(0.31, 0.055, 0.045, 1)
+emission_enabled = true
+emission = Color(0.34, 0.025, 0.015, 1)
+emission_energy_multiplier = 0.55
+roughness = 0.82
+
+[sub_resource type="StandardMaterial3D" id="BluePlatformMaterial"]
+albedo_color = Color(0.035, 0.17, 0.3, 1)
+emission_enabled = true
+emission = Color(0.015, 0.19, 0.38, 1)
+emission_energy_multiplier = 0.55
+roughness = 0.82
+
+[sub_resource type="CylinderMesh" id="BaseRingMesh"]
+top_radius = 3.2
+bottom_radius = 3.2
+height = 0.1
+radial_segments = 24
+rings = 1
+
+[sub_resource type="StandardMaterial3D" id="RedGlowMaterial"]
+albedo_color = Color(0.84, 0.11, 0.07, 1)
+emission_enabled = true
+emission = Color(1, 0.08, 0.035, 1)
+emission_energy_multiplier = 2.6
+roughness = 0.48
+
+[sub_resource type="StandardMaterial3D" id="BlueGlowMaterial"]
+albedo_color = Color(0.04, 0.52, 0.9, 1)
+emission_enabled = true
+emission = Color(0.025, 0.55, 1, 1)
+emission_energy_multiplier = 2.6
+roughness = 0.48
+
+[sub_resource type="CylinderMesh" id="FlagPoleMesh"]
+top_radius = 0.055
+bottom_radius = 0.075
+height = 2.8
 radial_segments = 8
 rings = 1
 
-[sub_resource type="StandardMaterial3D" id="BeaconMaterial"]
-albedo_color = Color(0.05, 0.35, 0.38, 1)
+[sub_resource type="StandardMaterial3D" id="PoleMaterial"]
+albedo_color = Color(0.12, 0.16, 0.18, 1)
+metallic = 0.72
+roughness = 0.3
+
+[sub_resource type="BoxMesh" id="FlagBannerMesh"]
+size = Vector3(1.25, 0.72, 0.07)
+
+[sub_resource type="BoxMesh" id="CenterLineMesh"]
+size = Vector3(0.24, 0.08, 34)
+
+[sub_resource type="StandardMaterial3D" id="CenterLineMaterial"]
+albedo_color = Color(0.32, 0.95, 0.84, 1)
 emission_enabled = true
-emission = Color(0.05, 0.88, 0.82, 1)
-emission_energy_multiplier = 2.0
-roughness = 0.55
+emission = Color(0.16, 0.82, 0.72, 1)
+emission_energy_multiplier = 1.7
+
+[sub_resource type="BoxMesh" id="SupportMesh"]
+size = Vector3(2.2, 12, 2.2)
+
+[sub_resource type="StandardMaterial3D" id="SupportMaterial"]
+albedo_color = Color(0.075, 0.12, 0.14, 1)
+metallic = 0.25
+roughness = 0.78
+
+[sub_resource type="SceneReplicationConfig" id="GameReplicationConfig"]
+properties/0/path = NodePath(".:red_score")
+properties/0/spawn = true
+properties/0/sync = true
+properties/0/watch = true
+properties/1/path = NodePath(".:blue_score")
+properties/1/spawn = true
+properties/1/sync = true
+properties/1/watch = true
+properties/2/path = NodePath(".:red_flag_state")
+properties/2/spawn = true
+properties/2/sync = true
+properties/2/watch = true
+properties/3/path = NodePath(".:red_flag_carrier")
+properties/3/spawn = true
+properties/3/sync = true
+properties/3/watch = true
+properties/4/path = NodePath(".:red_flag_position")
+properties/4/spawn = true
+properties/4/sync = true
+properties/4/watch = true
+properties/5/path = NodePath(".:red_flag_return_tick")
+properties/5/spawn = true
+properties/5/sync = true
+properties/5/watch = true
+properties/6/path = NodePath(".:blue_flag_state")
+properties/6/spawn = true
+properties/6/sync = true
+properties/6/watch = true
+properties/7/path = NodePath(".:blue_flag_carrier")
+properties/7/spawn = true
+properties/7/sync = true
+properties/7/watch = true
+properties/8/path = NodePath(".:blue_flag_position")
+properties/8/spawn = true
+properties/8/sync = true
+properties/8/watch = true
+properties/9/path = NodePath(".:blue_flag_return_tick")
+properties/9/spawn = true
+properties/9/sync = true
+properties/9/watch = true
+properties/10/path = NodePath(".:round_over")
+properties/10/spawn = true
+properties/10/sync = true
+properties/10/watch = true
+properties/11/path = NodePath(".:winner_team")
+properties/11/spawn = true
+properties/11/sync = true
+properties/11/watch = true
+properties/12/path = NodePath(".:round_restart_tick")
+properties/12/spawn = true
+properties/12/sync = true
+properties/12/watch = true
+properties/13/path = NodePath(".:round_number")
+properties/13/spawn = true
+properties/13/sync = true
+properties/13/watch = true
 
 [node name="NetworkDemo" type="Node3D"]
 script = ExtResource("1_main")
@@ -63,12 +181,98 @@ directional_shadow_fade_start = 0.82
 [node name="Terrain" type="StaticBody3D" parent="."]
 script = ExtResource("2_terrain")
 
-[node name="ArenaBeacon" type="MeshInstance3D" parent="."]
-position = Vector3(0, 8, -207)
-material_override = SubResource("BeaconMaterial")
-mesh = SubResource("BeaconMesh")
+[node name="CompactArena" type="Node3D" parent="."]
+
+[node name="RedPlatform" type="StaticBody3D" parent="CompactArena"]
+collision_layer = 1
+collision_mask = 0
+
+[node name="Mesh" type="MeshInstance3D" parent="CompactArena/RedPlatform"]
+material_override = SubResource("RedPlatformMaterial")
+mesh = SubResource("PlatformMesh")
+
+[node name="Collision" type="CollisionShape3D" parent="CompactArena/RedPlatform"]
+shape = SubResource("PlatformShape")
+
+[node name="Support" type="MeshInstance3D" parent="CompactArena/RedPlatform"]
+position = Vector3(0, -7, 0)
+material_override = SubResource("SupportMaterial")
+mesh = SubResource("SupportMesh")
+
+[node name="BaseRing" type="MeshInstance3D" parent="CompactArena/RedPlatform"]
+position = Vector3(0, 1.06, 0)
+material_override = SubResource("RedGlowMaterial")
+mesh = SubResource("BaseRingMesh")
 cast_shadow = 0
 
+[node name="BluePlatform" type="StaticBody3D" parent="CompactArena"]
+collision_layer = 1
+collision_mask = 0
+
+[node name="Mesh" type="MeshInstance3D" parent="CompactArena/BluePlatform"]
+material_override = SubResource("BluePlatformMaterial")
+mesh = SubResource("PlatformMesh")
+
+[node name="Collision" type="CollisionShape3D" parent="CompactArena/BluePlatform"]
+shape = SubResource("PlatformShape")
+
+[node name="Support" type="MeshInstance3D" parent="CompactArena/BluePlatform"]
+position = Vector3(0, -7, 0)
+material_override = SubResource("SupportMaterial")
+mesh = SubResource("SupportMesh")
+
+[node name="BaseRing" type="MeshInstance3D" parent="CompactArena/BluePlatform"]
+position = Vector3(0, 1.06, 0)
+material_override = SubResource("BlueGlowMaterial")
+mesh = SubResource("BaseRingMesh")
+cast_shadow = 0
+
+[node name="CenterLine" type="MeshInstance3D" parent="CompactArena"]
+material_override = SubResource("CenterLineMaterial")
+mesh = SubResource("CenterLineMesh")
+cast_shadow = 0
+
+[node name="RedFlag" type="Node3D" parent="CompactArena"]
+script = ExtResource("5_flag")
+team = 0
+
+[node name="Pole" type="MeshInstance3D" parent="CompactArena/RedFlag"]
+position = Vector3(0, 1.4, 0)
+material_override = SubResource("PoleMaterial")
+mesh = SubResource("FlagPoleMesh")
+
+[node name="Banner" type="MeshInstance3D" parent="CompactArena/RedFlag"]
+position = Vector3(0.63, 2.15, 0)
+mesh = SubResource("FlagBannerMesh")
+
+[node name="Glow" type="OmniLight3D" parent="CompactArena/RedFlag"]
+position = Vector3(0, 1.5, 0)
+omni_range = 7.0
+light_energy = 1.8
+shadow_enabled = false
+
+[node name="BlueFlag" type="Node3D" parent="CompactArena"]
+script = ExtResource("5_flag")
+team = 1
+
+[node name="Pole" type="MeshInstance3D" parent="CompactArena/BlueFlag"]
+position = Vector3(0, 1.4, 0)
+material_override = SubResource("PoleMaterial")
+mesh = SubResource("FlagPoleMesh")
+
+[node name="Banner" type="MeshInstance3D" parent="CompactArena/BlueFlag"]
+position = Vector3(0.63, 2.15, 0)
+mesh = SubResource("FlagBannerMesh")
+
+[node name="Glow" type="OmniLight3D" parent="CompactArena/BlueFlag"]
+position = Vector3(0, 1.5, 0)
+omni_range = 7.0
+light_energy = 1.8
+shadow_enabled = false
+
 [node name="Players" type="Node3D" parent="."]
+
+[node name="GameStateSynchronizer" type="MultiplayerSynchronizer" parent="."]
+replication_config = SubResource("GameReplicationConfig")
 
 [node name="NetworkLobby" parent="." instance=ExtResource("4_lobby")]

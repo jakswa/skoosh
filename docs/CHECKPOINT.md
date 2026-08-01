@@ -22,7 +22,7 @@ The current build includes:
 - Generated terrain colors, procedural sky, lighting, fog, emissive gates, and gate pulses.
 - Linux and legacy Web export presets. Web is no longer a product target; its preset can be removed during later project cleanup.
 
-The project still follows the original narrow MVP definition in `PLAN.md`: movement and time trial, no combat or multiplayer yet.
+The original narrow movement/time-trial MVP in `PLAN.md` remains preserved, while the current project entry point now exercises the authoritative combat/CTF vertical slice documented below.
 
 ## 2. Validation completed
 
@@ -258,7 +258,7 @@ The best leverage is to make movement command-driven, readable, and enjoyable, t
 - Executable next phase: `MULTIPLAYER_SPIKE.md`.
 - Research brief and source-discovery paths: `RESEARCH_PATHS.md`.
 - Current product baseline: `PLAN.md` and this checkpoint.
-- The directory is not yet a Git repository; establish a baseline commit before the refactor if approved.
+- Git was initialized and the validated pre-CTF multiplayer baseline is commit `d992749`.
 - Multiplayer implementation is now underway; see the implementation checkpoint below.
 
 ## 13. Multiplayer implementation checkpoint
@@ -267,32 +267,39 @@ Implemented:
 
 - Vendored netfox v1.35.3 (`addons/netfox*`) under its MIT license.
 - Godot/ENet authoritative server on UDP port 9077, with CLI server/client modes.
-- Dedicated server owns no player avatar; peers receive deterministic player spawns.
-- Shared `MovementBody` seam used by the solo and network players.
+- Dedicated server owns no player avatar; peers receive balanced RED/BLUE assignments.
+- Shared `MovementBody` seam used by solo and network players.
 - Netfox rollback state/input synchronization at 60 Hz and tick interpolation.
 - Networked skiing, jet energy/state, mouse aim, reset, and out-of-bounds recovery.
-- Simple pulse rifle: server-side ray result/damage, 40 damage, 0.32 s cooldown.
-- Server-owned health, kills, deaths, one-second death state, and respawn.
-- Network HUD with health, K/D, speed, jet energy, RTT, and rollback telemetry.
+- Restrained low-speed ground-jet pop: 7.5 m/s minimum upward velocity plus a fixed 6-energy cost; disabled above 11 m/s planar speed and latched until jet release.
+- Pulse rifle: authoritative cadence/ray/damage, 40 damage, 0.32 s cooldown, friendly-fire rejection, and bounded client origin/direction validation.
+- Server-owned health, kills, deaths, one-second death state, and team respawn.
+- Compact CTF arena with two raised, 48 m-separated team platforms.
+- Server-owned flag pickup, carry, drop, teammate return, timeout return, capture, sudden-death win/loss, five-second intermission, and round reset.
+- Objective HUD with team, score, flag status, carry prompt, win/loss notice, health, K/D, speed, energy, RTT, and rollback telemetry.
+- More readable low-poly armored player models with team colors, helmet/visor, backpack, jet pods, and an improved first-person rifle model.
 - `tools/run_multiplayer_demo.sh` for a headless server plus two graphical clients.
-- `tools/test_multiplayer_demo.sh` for two headless combat/movement bots.
+- `tools/test_multiplayer_demo.sh` for automated combat, movement, capture, win, and round-reset acceptance.
+- `tools/test_ground_jet.sh` for the low-speed pop and high-speed exclusion.
 - Linux client and dedicated-server export presets; browser preset removed.
 
 Latest automated zero-latency result:
 
-- Two peers spawned and synchronized.
+- Two opposing peers spawned and synchronized.
 - Authoritative combat produced kills, deaths, and respawns.
-- Bot movement reached 44.0 m/s and exercised jets.
-- Peak observed rollback was 5 ticks; peak network-loop time was 2.41 ms on this machine.
+- A bot picked up and captured the enemy flag, RED won, and round 2 began.
+- Bot movement reached 40.5 m/s and exercised jets.
+- Peak observed rollback was 5 ticks; peak network-loop time was 1.95 ms on this machine.
+- Ground-jet acceptance measured an 8.20 m/s first-tick pop for 6.50 energy; a 20 m/s player received no pop.
 - No parser, runtime, client, or server errors/warnings in the final check.
-- Original solo smoke behavior still passes at 8.5 m/s walking and 35.4 m/s opening skiing.
+- Original solo smoke and full course acceptance still pass; the one-second grounded jet check now drains 36 energy including the fixed pop cost.
 
 Important limitations:
 
+- CTF is deliberately sudden death (one capture) for a quick two-client loop.
 - No artificial latency, jitter, or loss has been measured yet.
 - Correction-distance/contact-disagreement instrumentation is not implemented yet.
-- The pulse rifle has no historical hitbox rewind/lag compensation yet.
+- The pulse rifle uses the server's current collision world and has no historical hitbox rewind/lag compensation yet; see `COMBAT_NETWORKING_ROADMAP.md`.
 - Scale testing beyond two clients is not implemented yet.
-- The network scene has not received a human graphical playtest yet.
+- The revised CTF scene and player art need a human graphical playtest.
 - netfox broadcasts input for this prototype; production relevancy/bandwidth hardening remains.
-- The project directory is still not a Git repository.

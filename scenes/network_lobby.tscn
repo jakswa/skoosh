@@ -53,14 +53,14 @@ theme_override_constants/separation = 16
 layout_mode = 2
 theme_override_colors/font_color = Color(0.36, 0.96, 0.93, 1)
 theme_override_font_sizes/font_size = 38
-text = "SKOOSH // NETWORK LAB"
+text = "SKOOSH // CTF LAB"
 horizontal_alignment = 1
 
 [node name="Subtitle" type="Label" parent="Panel/Layout"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.84, 0.91, 0.88, 1)
 theme_override_font_sizes/font_size = 16
-text = "AUTHORITATIVE ENET / PREDICTED MOVEMENT / PULSE RIFLE"
+text = "AUTHORITATIVE ENET / ROLLBACK SKIING / COMPACT CTF"
 horizontal_alignment = 1
 
 [node name="AddressRow" type="HBoxContainer" parent="Panel/Layout"]

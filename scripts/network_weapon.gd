@@ -30,11 +30,21 @@ func _network_tick(_delta: float, _tick: int) -> void:
 
 
 func _can_fire() -> bool:
-	return not player.dead and NetworkTime.seconds_between(last_fire_tick, NetworkTime.tick) >= fire_cooldown
+	var arena := player.get_parent().get_parent()
+	var round_active: bool = not arena.has_method("is_round_active") or bool(arena.is_round_active())
+	return not player.dead and round_active and NetworkTime.seconds_between(last_fire_tick, NetworkTime.tick) >= fire_cooldown
 
 
 func _can_peer_use(peer_id: int) -> bool:
 	return peer_id == player.peer_id
+
+
+func _is_reconcilable(request_data: Dictionary, local_data: Dictionary) -> bool:
+	var requested_origin := request_data.get("origin", Vector3.ZERO) as Vector3
+	var server_origin := local_data.get("origin", Vector3.ZERO) as Vector3
+	var requested_direction := (request_data.get("direction", Vector3.FORWARD) as Vector3).normalized()
+	var server_direction := (local_data.get("direction", Vector3.FORWARD) as Vector3).normalized()
+	return requested_origin.distance_to(server_origin) <= 2.0 and requested_direction.dot(server_direction) >= cos(deg_to_rad(18.0))
 
 
 func _after_fire() -> void:
@@ -48,6 +58,8 @@ func _on_hit(result: Dictionary) -> void:
 	var collider := result.get("collider") as Node
 	if collider is SkooshNetworkPlayer:
 		var target := collider as SkooshNetworkPlayer
+		if target.team == player.team:
+			return
 		if input.is_multiplayer_authority():
 			player.hud.flash_hit()
 		if multiplayer.is_server():

@@ -25,6 +25,9 @@ class_name MovementBody
 @export var jet_vertical_acceleration: float = 42.0
 @export var jet_forward_acceleration: float = 8.0
 @export var jet_lateral_acceleration: float = 5.0
+@export var jet_ground_pop_max_speed: float = 11.0
+@export var jet_ground_pop_velocity: float = 7.5
+@export var jet_ground_pop_energy_cost: float = 6.0
 
 @export_category("Safety")
 @export var emergency_speed_cap: float = 120.0
@@ -37,6 +40,7 @@ var horizontal_speed := 0.0
 var total_speed := 0.0
 var floor_angle_degrees := 0.0
 var recharge_wait := 0.0
+var jet_ground_pop_latched := false
 
 
 func configure_movement_body() -> void:
@@ -76,7 +80,7 @@ func simulate_movement(input_vector: Vector2, skiing: bool, jet_requested: bool,
 		velocity += Vector3.DOWN * gravity * delta
 		accelerate_movement(wish_direction, air_wish_speed, air_acceleration, delta)
 
-	update_movement_jets(jet_requested, input_vector, wish_direction, delta)
+	update_movement_jets(jet_requested, input_vector, wish_direction, was_grounded, delta)
 	velocity.y = max(velocity.y, -maximum_fall_speed)
 	if velocity.length() > emergency_speed_cap:
 		velocity = velocity.normalized() * emergency_speed_cap
@@ -137,11 +141,19 @@ func apply_movement_friction(source_velocity: Vector3, amount: float, delta: flo
 	return source_velocity * (new_speed / speed)
 
 
-func update_movement_jets(requested: bool, input_vector: Vector2, wish_direction: Vector3, delta: float) -> void:
+func update_movement_jets(requested: bool, input_vector: Vector2, wish_direction: Vector3, grounded: bool, delta: float) -> void:
 	jet_active = requested and jet_energy > 0.0
 	if jet_active:
 		jet_energy = max(0.0, jet_energy - jet_drain * delta)
 		recharge_wait = jet_recharge_delay
+		var planar_speed := Vector2(velocity.x, velocity.z).length()
+		if grounded and not jet_ground_pop_latched and planar_speed <= jet_ground_pop_max_speed:
+			# A restrained Tribes-style hop: enough to clear the floor snap, but with
+			# a fixed fuel cost so repeated low-speed pops remain a deliberate choice.
+			floor_snap_length = 0.0
+			velocity.y = maxf(velocity.y, jet_ground_pop_velocity)
+			jet_energy = maxf(0.0, jet_energy - jet_ground_pop_energy_cost)
+			jet_ground_pop_latched = true
 		velocity += Vector3.UP * jet_vertical_acceleration * delta
 		var forward := wish_direction
 		if forward.length_squared() < 0.001:
@@ -152,6 +164,8 @@ func update_movement_jets(requested: bool, input_vector: Vector2, wish_direction
 		# A/D adds a small airborne correction without rotating existing momentum.
 		velocity += global_transform.basis.x * input_vector.x * jet_lateral_acceleration * delta
 	else:
+		if not requested:
+			jet_ground_pop_latched = false
 		recharge_wait = max(0.0, recharge_wait - delta)
 		if not requested and recharge_wait <= 0.0:
 			jet_energy = min(max_jet_energy, jet_energy + jet_recharge * delta)
@@ -172,6 +186,7 @@ func reset_movement_state() -> void:
 	jet_energy = max_jet_energy
 	recharge_wait = 0.0
 	jet_active = false
+	jet_ground_pop_latched = false
 	ski_held = false
 	horizontal_speed = 0.0
 	total_speed = 0.0

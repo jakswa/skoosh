@@ -17,14 +17,14 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 "$GODOT_BIN" --headless --path "$ROOT" -- --server --port="$PORT" \
-  --test-seconds=12 --require-combat --require-movement >"$LOG_DIR/server.log" 2>&1 &
+  --test-seconds=35 --require-combat --require-movement --require-ctf >"$LOG_DIR/server.log" 2>&1 &
 server_pid=$!
 pids+=("$server_pid")
 sleep 1
 
 for client in 1 2; do
   "$GODOT_BIN" --headless --path "$ROOT" -- --join=127.0.0.1 --port="$PORT" \
-    --bot --test-seconds=13 >"$LOG_DIR/client-$client.log" 2>&1 &
+    --bot --test-seconds=36 >"$LOG_DIR/client-$client.log" 2>&1 &
   pids+=("$!")
 done
 
