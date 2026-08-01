@@ -83,6 +83,7 @@ jobs:
       - name: Export native client
         shell: bash
         run: |
+          mkdir -p build/linux build/windows build/macos
           "$GODOT_BIN" --headless --path . --export-release "${{ matrix.preset }}"
 
       - name: Locate exported client
