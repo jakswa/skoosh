@@ -33,7 +33,7 @@ Download the client archive for Linux, Windows, or macOS from [GitHub Releases](
 Linux can also connect directly with:
 
 ```bash
-./skoosh.x86_64 -- --join=home.jake.town --port=9077
+./skoosh.x86_64 -- --join=server.example.com --port=9077
 ```
 
 The current macOS build is ad-hoc signed but not Apple-notarized, so Gatekeeper may require right-clicking the app and selecting **Open**.

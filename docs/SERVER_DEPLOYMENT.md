@@ -104,7 +104,7 @@ Useful checks:
 ```bash
 sudo ss -lunp | grep ':9077'
 sudo journalctl -u skoosh -n 100 --no-pager
-dig +short home.jake.town A
+dig +short server.example.com A
 ```
 
 A joining player produces `NETWORK peer joined` and `NETWORK avatar spawned` log lines. If no join reaches the log, check UDP forwarding, host/router firewalls, DNS, and whether the ISP uses carrier-grade NAT.
@@ -114,13 +114,13 @@ A joining player produces `NETWORK peer joined` and `NETWORK avatar spawned` log
 Players enter the hostname and `9077` in the lobby, or run:
 
 ```bash
-skoosh.x86_64 -- --join=home.jake.town --port=9077
+skoosh.x86_64 -- --join=server.example.com --port=9077
 ```
 
 Two clients from a source checkout can be launched with:
 
 ```bash
-./tools/run_remote_clients.sh home.jake.town
+./tools/run_remote_clients.sh server.example.com
 ```
 
 ## Updating

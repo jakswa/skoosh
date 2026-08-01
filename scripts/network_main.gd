@@ -209,7 +209,11 @@ func _reset_multiplayer_peer() -> void:
 
 
 func _on_connection_failed() -> void:
-	lobby.show_error("CONNECTION FAILED")
+	print("NETWORK connection failed")
+	for id in avatars.keys():
+		_remove_avatar(id)
+	call_deferred("_reset_multiplayer_peer")
+	lobby.show_error("CONNECTION FAILED\nCHECK THE ADDRESS, UDP PORT, AND SERVER STATUS")
 
 
 func _spawn_avatar(id: int) -> void:

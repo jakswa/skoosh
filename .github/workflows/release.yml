@@ -24,7 +24,7 @@ jobs:
 
     steps:
       - name: Check out tagged source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Require successful cross-platform integration
         env:
@@ -75,7 +75,7 @@ jobs:
         run: ./tools/export_binaries.sh
 
       - name: Preserve release artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: skoosh-${{ github.ref_name }}
           path: build/dist/*
@@ -91,8 +91,13 @@ jobs:
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" build/dist/* --clobber
           else
+            release_flags=()
+            if [[ "$TAG" == *-* ]]; then
+              release_flags+=(--prerelease)
+            fi
             gh release create "$TAG" build/dist/* \
               --verify-tag \
               --generate-notes \
-              --title "SKOOSH $TAG"
+              --title "SKOOSH $TAG" \
+              "${release_flags[@]}"
           fi

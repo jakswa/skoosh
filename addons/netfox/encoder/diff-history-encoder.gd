@@ -93,7 +93,7 @@ func decode(data: PackedByteArray, properties: Array[PropertyEntry]) -> _Propert
 func apply(tick: int, snapshot: _PropertySnapshot, reference_tick: int, sender: int = -1) -> bool:
 	if tick < NetworkRollback.history_start:
 		# State too old!
-		_logger.error(
+		_logger.trace(
 			"Received diff snapshot for @%d, rejecting because older than %s frames",
 			[tick, NetworkRollback.history_limit]
 		)
@@ -109,8 +109,9 @@ func apply(tick: int, snapshot: _PropertySnapshot, reference_tick: int, sender: 
 			return false
 
 	if not _history.has(reference_tick):
-		# Reference tick missing, hope for the best
-		_logger.warning("Reference tick %d missing for #%s applying %d", [reference_tick, sender, tick])
+		# Packet loss can briefly remove a diff baseline. A periodic full state
+		# restores it, so keep this available for tracing without warning spam.
+		_logger.trace("Reference tick %d missing for #%s applying %d", [reference_tick, sender, tick])
 
 	var reference_snapshot := _history.get_snapshot(reference_tick)
 	_history.set_snapshot(tick, reference_snapshot.merge(snapshot))

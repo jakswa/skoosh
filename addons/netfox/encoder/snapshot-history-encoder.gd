@@ -55,8 +55,9 @@ func decode(data: Array, properties: Array[PropertyEntry]) -> _PropertySnapshot:
 
 func apply(tick: int, snapshot: _PropertySnapshot, sender: int = -1) -> bool:
 	if tick < NetworkRollback.history_start:
-		# State too old!
-		_logger.error("Received full snapshot for %s, rejecting because older than %s frames", [tick, NetworkRollback.history_limit])
+		# Delayed or duplicated packets can legitimately outlive the rollback
+		# window. Reject them quietly; this is expected recovery, not a fault.
+		_logger.trace("Received full snapshot for %s, rejecting because older than %s frames", [tick, NetworkRollback.history_limit])
 		return false
 
 	if sender > 0:

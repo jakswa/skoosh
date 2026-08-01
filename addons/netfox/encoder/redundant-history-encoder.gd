@@ -89,7 +89,7 @@ func apply(tick: int, snapshots: Array[_PropertySnapshot], sender: int = 0) -> i
 
 		if offset_tick < NetworkRollback.history_start:
 			# Data too old
-			_logger.warning(
+			_logger.trace(
 				"Received data for %s, rejecting because older than %s frames",
 				[offset_tick, NetworkRollback.history_limit]
 			)
