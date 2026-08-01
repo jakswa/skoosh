@@ -1,0 +1,9 @@
+*
+!build/
+build/*
+!build/server/
+build/server/*
+!build/server/skoosh-server.x86_64
+!deploy/
+deploy/*
+!deploy/Dockerfile.server

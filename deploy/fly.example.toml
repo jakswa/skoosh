@@ -1,5 +1,6 @@
 # Copy to fly.toml, choose a globally unique app name and nearby region,
 # then verify Fly.io's current UDP/IP requirements before deployment.
+# For the simplest ENet path, allocate a dedicated public IPv4 for this app.
 app = "replace-with-your-skoosh-server-name"
 primary_region = "iad"
 

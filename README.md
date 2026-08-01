@@ -18,13 +18,15 @@ Override the engine path or port when needed:
 GODOT_BIN=/path/to/Godot SKOOSH_PORT=9078 ./tools/run_multiplayer_demo.sh
 ```
 
-A client can connect to any direct host from the lobby or command line:
+Connect two local clients to any direct host with:
 
 ```bash
-/path/to/Godot --path . -- --join=play.example.com --port=9077
+./tools/run_remote_clients.sh play.example.com
 ```
 
-See [`docs/PLAYTESTING_AND_DISTRIBUTION.md`](docs/PLAYTESTING_AND_DISTRIBUTION.md) for separate-process local testing, home-router UDP forwarding, Fly.io notes, exports, and GitHub Release packaging.
+The lobby and `--join=HOST --port=PORT` arguments also support one-client connections.
+
+See [`docs/PLAYTESTING_AND_DISTRIBUTION.md`](docs/PLAYTESTING_AND_DISTRIBUTION.md) for client/playtest workflows. Give server operators [`docs/SERVER_DEPLOYMENT.md`](docs/SERVER_DEPLOYMENT.md), which covers Git and prebuilt-binary installs, systemd, UDP forwarding, updates, and verification.
 
 ### Controls
 

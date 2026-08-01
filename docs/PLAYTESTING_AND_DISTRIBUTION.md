@@ -32,7 +32,13 @@ Launching a client without arguments opens the lobby. Enter an address and port 
 
 ## 2. Local client connecting to a remote server
 
-From a source checkout:
+To open two local clients against one remote server:
+
+```bash
+./tools/run_remote_clients.sh play.example.com
+```
+
+Override the port with `SKOOSH_PORT=9078`. To launch only one client from source:
 
 ```bash
 /path/to/Godot --path . -- --join=play.example.com --port=9077
@@ -110,20 +116,43 @@ deploy/Dockerfile.server
 deploy/fly.example.toml
 ```
 
-First export the Linux dedicated server so `build/server/skoosh-server.x86_64` exists. Then copy the example config, choose an app name and region, and use current Fly CLI instructions:
+First export the Linux dedicated server so `build/server/skoosh-server.x86_64` exists. Then choose a globally unique app name and nearby region:
 
 ```bash
+APP=replace-with-your-skoosh-server-name
 cp deploy/fly.example.toml fly.toml
-fly apps create replace-with-your-skoosh-server-name
-fly deploy --config fly.toml
+sed -i "s/replace-with-your-skoosh-server-name/$APP/" fly.toml
+fly apps create "$APP"
 ```
 
-Expose UDP 9077 and keep at least one Machine running during a playtest; an auto-stopped UDP server cannot wake from Godot traffic in every hosting configuration. Confirm Fly.io's current UDP service and public-IP requirements before relying on the example, as platform networking details can change.
-
-After deployment, connect with the Fly hostname and port from the lobby or command line. Check server logs before debugging the client:
+For the simplest ENet/UDP path, allocate a dedicated public IPv4 unless current Fly documentation explicitly supports the required UDP port on shared IPv4:
 
 ```bash
+fly ips allocate-v4 --app "$APP"
+```
+
+A dedicated IPv4 may add a small monthly charge. Verify the current price before confirming, then deploy exactly one Machine:
+
+```bash
+fly deploy --app "$APP" --config fly.toml --remote-only --ha=false \
+  --vm-size shared-cpu-1x --vm-memory 512
+```
+
+UDP 9077 is exposed by `fly.toml`. Auto-stop is disabled because a stopped Machine cannot reliably wake from raw game traffic. Platform networking requirements can change; verify Fly's current UDP guidance if deployment behavior differs.
+
+After deployment, confirm the Machine, UDP service, public address, and server log before debugging the client:
+
+```bash
+fly status
+fly services list
+fly ips list
 fly logs
+```
+
+Then connect two local clients:
+
+```bash
+./tools/run_remote_clients.sh replace-with-your-skoosh-server-name.fly.dev
 ```
 
 Keep the first remote test to one region, one Machine, direct IP/hostname, and trusted testers. Do not add load balancing: ENet sessions require all packets for a player to reach the same authoritative process.
