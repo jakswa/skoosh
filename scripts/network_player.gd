@@ -152,12 +152,19 @@ func _die() -> void:
 	])
 
 
-func request_authoritative_respawn(count_death: bool = false) -> void:
+func request_authoritative_respawn(
+	count_death: bool = false,
+	return_carried_flags_home: bool = false
+) -> void:
 	if not multiplayer.is_server():
 		return
 	if count_death:
 		deaths += 1
 	var arena := get_parent().get_parent()
+	# Resolve carried objectives before moving the body. Otherwise a reset or
+	# recovery can briefly put a carrier at their own base and satisfy capture.
+	if arena.has_method("prepare_player_respawn"):
+		arena.prepare_player_respawn(peer_id, return_carried_flags_home)
 	var spawn_transform := Transform3D.IDENTITY
 	if arena.has_method("get_spawn_transform"):
 		spawn_transform = arena.get_spawn_transform(peer_id, deaths)

@@ -406,8 +406,7 @@ func _physics_process(_delta: float) -> void:
 			# respawns and log bursts during that reconciliation window.
 			if not _oob_recovery_safe_frames.has(player.peer_id):
 				_oob_recovery_safe_frames[player.peer_id] = 0
-				_drop_flags_carried_by(player.peer_id)
-				player.request_authoritative_respawn(false)
+				player.request_authoritative_respawn(false, true)
 			else:
 				_oob_recovery_safe_frames[player.peer_id] = 0
 		elif _oob_recovery_safe_frames.has(player.peer_id):
@@ -517,14 +516,22 @@ func _validate_flag_carrier(team: int) -> void:
 		_drop_flag(team, carrier.global_position)
 
 
-func _drop_flags_carried_by(peer_id: int) -> void:
+func prepare_player_respawn(peer_id: int, return_carried_flags_home: bool = false) -> void:
 	for team in [TEAM_RED, TEAM_BLUE]:
-		if _get_flag_state(team) == FLAG_CARRIED and _get_flag_carrier(team) == peer_id:
-			var carrier := avatars.get(peer_id) as SkooshNetworkPlayer
-			if carrier != null:
-				_drop_flag(team, carrier.global_position)
-			else:
-				_return_flag_home(team, "carrier left")
+		if _get_flag_state(team) != FLAG_CARRIED or _get_flag_carrier(team) != peer_id:
+			continue
+		if return_carried_flags_home:
+			_return_flag_home(team, "carrier out of bounds")
+			continue
+		var carrier := avatars.get(peer_id) as SkooshNetworkPlayer
+		if carrier != null:
+			_drop_flag(team, carrier.global_position)
+		else:
+			_return_flag_home(team, "carrier left")
+
+
+func _drop_flags_carried_by(peer_id: int) -> void:
+	prepare_player_respawn(peer_id)
 
 
 func _drop_flag(team: int, position: Vector3) -> void:

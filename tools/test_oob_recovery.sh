@@ -10,9 +10,9 @@ cd "$ROOT_DIR"
 cat "$LOG_FILE"
 
 respawns="$(grep -c "COMBAT respawn peer=42" "$LOG_FILE" || true)"
-if [[ "$respawns" -ne 2 ]]; then
-  echo "Expected one respawn per distinct OOB excursion, got $respawns" >&2
+if [[ "$respawns" -ne 3 ]]; then
+  echo "Expected two OOB respawns and one manual respawn, got $respawns" >&2
   exit 1
 fi
 
-grep -q "ACCEPT OOB recovery latch" "$LOG_FILE"
+grep -q "ACCEPT OOB recovery and carried-flag safety" "$LOG_FILE"
