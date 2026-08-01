@@ -1,0 +1,116 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/network_lobby.gd" id="1_lobby"]
+
+[sub_resource type="StyleBoxFlat" id="PanelStyle"]
+bg_color = Color(0.02, 0.065, 0.11, 0.94)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.22, 0.8, 0.82, 0.7)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+content_margin_left = 24.0
+content_margin_top = 20.0
+content_margin_right = 24.0
+content_margin_bottom = 20.0
+
+[node name="NetworkLobby" type="CanvasLayer"]
+layer = 100
+script = ExtResource("1_lobby")
+
+[node name="Backdrop" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.01, 0.025, 0.045, 0.68)
+mouse_filter = 2
+
+[node name="Panel" type="PanelContainer" parent="."]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = -180.0
+offset_right = 300.0
+offset_bottom = 180.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("PanelStyle")
+
+[node name="Layout" type="VBoxContainer" parent="Panel"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Title" type="Label" parent="Panel/Layout"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.36, 0.96, 0.93, 1)
+theme_override_font_sizes/font_size = 38
+text = "SKOOSH // NETWORK LAB"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="Panel/Layout"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.84, 0.91, 0.88, 1)
+theme_override_font_sizes/font_size = 16
+text = "AUTHORITATIVE ENET / PREDICTED MOVEMENT / PULSE RIFLE"
+horizontal_alignment = 1
+
+[node name="AddressRow" type="HBoxContainer" parent="Panel/Layout"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="AddressLabel" type="Label" parent="Panel/Layout/AddressRow"]
+layout_mode = 2
+text = "ADDRESS"
+
+[node name="Address" type="LineEdit" parent="Panel/Layout/AddressRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "127.0.0.1"
+
+[node name="PortLabel" type="Label" parent="Panel/Layout/AddressRow"]
+layout_mode = 2
+text = "UDP PORT"
+
+[node name="Port" type="SpinBox" parent="Panel/Layout/AddressRow"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+min_value = 1024.0
+max_value = 65535.0
+value = 9077.0
+
+[node name="Buttons" type="HBoxContainer" parent="Panel/Layout"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 12
+
+[node name="Host" type="Button" parent="Panel/Layout/Buttons"]
+custom_minimum_size = Vector2(220, 46)
+layout_mode = 2
+text = "START SERVER"
+
+[node name="Join" type="Button" parent="Panel/Layout/Buttons"]
+custom_minimum_size = Vector2(220, 46)
+layout_mode = 2
+text = "JOIN SERVER"
+
+[node name="Status" type="Label" parent="Panel/Layout"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.98, 0.82, 0.43, 1)
+theme_override_font_sizes/font_size = 16
+text = "READY"
+horizontal_alignment = 1
+
+[node name="Note" type="Label" parent="Panel/Layout"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.68, 0.76, 0.77, 1)
+text = "A server is authority only and does not own a player.\nUse tools/run_multiplayer_demo.sh for one server + two clients."
+horizontal_alignment = 1

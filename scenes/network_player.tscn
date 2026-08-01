@@ -1,0 +1,137 @@
+[gd_scene load_steps=13 format=3]
+
+[ext_resource type="Script" path="res://scripts/network_player.gd" id="1_player"]
+[ext_resource type="Script" path="res://scripts/network_player_input.gd" id="2_input"]
+[ext_resource type="Script" path="res://scripts/network_weapon.gd" id="3_weapon"]
+[ext_resource type="Script" path="res://scripts/network_hud.gd" id="4_hud"]
+[ext_resource type="Script" path="res://addons/netfox/rollback/rollback-synchronizer.gd" id="5_rollback"]
+[ext_resource type="Script" path="res://addons/netfox/tick-interpolator.gd" id="6_interpolator"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape_player"]
+radius = 0.48
+height = 2.2
+
+[sub_resource type="StandardMaterial3D" id="BodyMaterial"]
+albedo_color = Color(0.15, 0.88, 0.94, 1)
+roughness = 0.72
+
+[sub_resource type="CapsuleMesh" id="BodyMesh"]
+material = SubResource("BodyMaterial")
+radius = 0.48
+height = 2.2
+radial_segments = 12
+rings = 4
+
+[sub_resource type="BoxMesh" id="GunMesh"]
+size = Vector3(0.16, 0.12, 0.62)
+
+[sub_resource type="StandardMaterial3D" id="GunMaterial"]
+albedo_color = Color(0.05, 0.12, 0.17, 1)
+emission_enabled = true
+emission = Color(0.05, 0.55, 0.62, 1)
+emission_energy_multiplier = 1.2
+
+[sub_resource type="SceneReplicationConfig" id="ReplicationConfig"]
+properties/0/path = NodePath(".:health")
+properties/0/spawn = true
+properties/0/sync = false
+properties/0/watch = true
+properties/1/path = NodePath(".:dead")
+properties/1/spawn = true
+properties/1/sync = false
+properties/1/watch = true
+properties/2/path = NodePath(".:kills")
+properties/2/spawn = true
+properties/2/sync = false
+properties/2/watch = true
+properties/3/path = NodePath(".:deaths")
+properties/3/spawn = true
+properties/3/sync = false
+properties/3/watch = true
+properties/4/path = NodePath(".:respawn_tick")
+properties/4/spawn = true
+properties/4/sync = false
+properties/4/watch = true
+properties/5/path = NodePath(".:respawn_position")
+properties/5/spawn = true
+properties/5/sync = false
+properties/5/watch = true
+properties/6/path = NodePath(".:respawn_yaw")
+properties/6/spawn = true
+properties/6/sync = false
+properties/6/watch = true
+properties/7/path = NodePath(".:teleport_tick")
+properties/7/spawn = true
+properties/7/sync = false
+properties/7/watch = true
+
+[node name="NetworkPlayer" type="CharacterBody3D"]
+script = ExtResource("1_player")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+position = Vector3(0, 1.1, 0)
+shape = SubResource("CapsuleShape_player")
+
+[node name="BodyMesh" type="MeshInstance3D" parent="."]
+position = Vector3(0, 1.1, 0)
+mesh = SubResource("BodyMesh")
+
+[node name="NameLabel" type="Label3D" parent="."]
+position = Vector3(0, 2.65, 0)
+text = "PEER"
+font_size = 36
+outline_size = 8
+modulate = Color(0.85, 1, 1, 1)
+pixel_size = 0.004
+billboard = 1
+fixed_size = true
+no_depth_test = true
+
+[node name="Head" type="Node3D" parent="."]
+position = Vector3(0, 1.78, 0)
+
+[node name="Camera3D" type="Camera3D" parent="Head"]
+current = false
+near = 0.08
+far = 800.0
+fov = 80.0
+
+[node name="ViewGun" type="MeshInstance3D" parent="Head/Camera3D"]
+visible = false
+position = Vector3(0.32, -0.25, -0.48)
+rotation_degrees = Vector3(-4, 0, 0)
+material_override = SubResource("GunMaterial")
+mesh = SubResource("GunMesh")
+cast_shadow = 0
+
+[node name="PulseRifle" type="Node3D" parent="Head"]
+position = Vector3(0, 0, -0.18)
+script = ExtResource("3_weapon")
+
+[node name="MuzzleLight" type="OmniLight3D" parent="Head/PulseRifle"]
+position = Vector3(0, 0, -0.4)
+light_color = Color(0.3, 0.95, 1, 1)
+light_energy = 0.0
+omni_range = 4.0
+shadow_enabled = false
+
+[node name="Input" type="Node" parent="."]
+script = ExtResource("2_input")
+
+[node name="RollbackSynchronizer" type="Node" parent="." node_paths=PackedStringArray("root")]
+script = ExtResource("5_rollback")
+root = NodePath("..")
+state_properties = Array[String]([":transform", ":velocity", ":jet_energy", ":recharge_wait", ":ski_held", ":jet_active", ":did_teleport", "Head:transform"])
+input_properties = Array[String](["Input:movement", "Input:ski", "Input:jet", "Input:fire", "Input:reset", "Input:look_delta"])
+enable_input_broadcast = true
+
+[node name="TickInterpolator" type="Node" parent="." node_paths=PackedStringArray("root")]
+script = ExtResource("6_interpolator")
+root = NodePath("..")
+properties = Array[String]([":transform", "Head:transform"])
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
+replication_config = SubResource("ReplicationConfig")
+
+[node name="NetworkHUD" type="CanvasLayer" parent="."]
+script = ExtResource("4_hud")

@@ -1,0 +1,33 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/checkpoint_gate.gd" id="1_gate"]
+
+[sub_resource type="BoxShape3D" id="BoxShape_trigger"]
+size = Vector3(20, 12, 5)
+
+[sub_resource type="BoxMesh" id="BoxMesh_post"]
+size = Vector3(0.65, 9, 0.65)
+
+[sub_resource type="BoxMesh" id="BoxMesh_beam"]
+size = Vector3(20, 0.65, 0.65)
+
+[node name="CheckpointGate" type="Area3D"]
+script = ExtResource("1_gate")
+
+[node name="Trigger" type="CollisionShape3D" parent="."]
+position = Vector3(0, 5.5, 0)
+shape = SubResource("BoxShape_trigger")
+
+[node name="Frame" type="Node3D" parent="."]
+
+[node name="LeftPost" type="MeshInstance3D" parent="Frame"]
+position = Vector3(-9.65, 4.5, 0)
+mesh = SubResource("BoxMesh_post")
+
+[node name="RightPost" type="MeshInstance3D" parent="Frame"]
+position = Vector3(9.65, 4.5, 0)
+mesh = SubResource("BoxMesh_post")
+
+[node name="TopBeam" type="MeshInstance3D" parent="Frame"]
+position = Vector3(0, 9, 0)
+mesh = SubResource("BoxMesh_beam")

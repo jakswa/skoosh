@@ -1,0 +1,57 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="Script" path="res://scripts/terrain.gd" id="2_terrain"]
+[ext_resource type="Script" path="res://scripts/course_manager.gd" id="3_course"]
+[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="4_player"]
+[ext_resource type="PackedScene" path="res://scenes/hud.tscn" id="5_hud"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSky_skoosh"]
+sky_top_color = Color(0.08, 0.38, 0.72, 1)
+sky_horizon_color = Color(0.48, 0.82, 0.88, 1)
+ground_bottom_color = Color(0.06, 0.12, 0.18, 1)
+ground_horizon_color = Color(0.43, 0.68, 0.68, 1)
+sun_angle_max = 20.0
+sun_curve = 0.08
+
+[sub_resource type="Sky" id="Sky_skoosh"]
+sky_material = SubResource("ProceduralSky_skoosh")
+radiance_size = 3
+
+[sub_resource type="Environment" id="Environment_skoosh"]
+background_mode = 2
+sky = SubResource("Sky_skoosh")
+ambient_light_source = 3
+ambient_light_color = Color(0.54, 0.68, 0.76, 1)
+ambient_light_energy = 0.58
+reflected_light_source = 2
+tonemap_mode = 2
+fog_enabled = true
+fog_light_color = Color(0.47, 0.72, 0.78, 1)
+fog_light_energy = 0.65
+fog_density = 0.0016
+fog_sky_affect = 0.55
+
+[node name="Main" type="Node3D"]
+script = ExtResource("1_main")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_skoosh")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-48, -32, 0)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.08
+shadow_enabled = true
+directional_shadow_max_distance = 310.0
+directional_shadow_fade_start = 0.82
+
+[node name="Terrain" type="StaticBody3D" parent="."]
+script = ExtResource("2_terrain")
+
+[node name="CourseManager" type="Node3D" parent="."]
+script = ExtResource("3_course")
+
+[node name="Player" parent="." instance=ExtResource("4_player")]
+
+[node name="HUD" parent="." instance=ExtResource("5_hud")]

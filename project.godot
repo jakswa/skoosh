@@ -1,0 +1,88 @@
+; Engine configuration file.
+; SKOOSH - a momentum skiing time trial.
+config_version=5
+
+[application]
+config/name="SKOOSH"
+run/main_scene="res://scenes/network_demo.tscn"
+config/features=PackedStringArray("4.3", "GL Compatibility")
+config/icon="res://icon.svg"
+
+[autoload]
+NetworkTime="*res://addons/netfox/network-time.gd"
+NetworkTimeSynchronizer="*res://addons/netfox/network-time-synchronizer.gd"
+NetworkRollback="*res://addons/netfox/rollback/network-rollback.gd"
+NetworkEvents="*res://addons/netfox/network-events.gd"
+NetworkPerformance="*res://addons/netfox/network-performance.gd"
+NetworkSimulator="*res://addons/netfox.extras/network-simulator.gd"
+
+[display]
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/size/window_width_override=1280
+window/size/window_height_override=720
+window/stretch/mode="canvas_items"
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/default_filters/use_nearest_mipmap_filter=false
+environment/defaults/default_clear_color=Color(0.18, 0.55, 0.76, 1)
+
+[physics]
+common/physics_ticks_per_second=60
+3d/default_gravity=30.0
+
+[editor_plugins]
+enabled=PackedStringArray("res://addons/netfox.internals/plugin.cfg", "res://addons/netfox/plugin.cfg", "res://addons/netfox.extras/plugin.cfg")
+
+[netfox]
+general/clear_settings=false
+time/tickrate=60
+time/sync_to_physics=true
+time/tickrate_mismatch_action=1
+rollback/history_limit=64
+rollback/input_redundancy=3
+rollback/display_offset=0
+rollback/input_delay=0
+rollback/enable_diff_states=true
+events/enabled=true
+autoconnect/enabled=false
+
+[input]
+move_forward={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"physical_keycode":87)]
+}
+move_back={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"physical_keycode":83)]
+}
+move_left={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"physical_keycode":65)]
+}
+move_right={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"physical_keycode":68)]
+}
+ski={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"physical_keycode":32)]
+}
+jet={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"physical_keycode":4194325), Object(InputEventMouseButton,"button_index":2)]
+}
+reset_run={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"physical_keycode":82)]
+}
+toggle_debug={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"physical_keycode":4194334)]
+}
+fire={
+"deadzone": 0.2,
+"events": [Object(InputEventMouseButton,"button_index":1)]
+}
