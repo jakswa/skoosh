@@ -77,14 +77,22 @@ func _gather_bot() -> void:
 		fire = false
 	var target_position := player.get_bot_objective_position()
 	if movement_phase and player.team == 0:
+		# Hold the spawn lane while crossing the compact arena. Chasing the
+		# flag's exact Z near a platform edge can flip steering after an
+		# overshoot and leave a high-momentum acceptance bot circling the base.
+		target_position.z = player.global_position.z
 		var planar_distance := Vector2(
 			target_position.x - player.global_position.x,
 			target_position.z - player.global_position.z
 		).length()
-		var carrying := player.carries_enemy_flag()
 		movement = Vector2(0.0, -1.0) if planar_distance > 2.0 else Vector2.ZERO
-		ski = planar_distance > 13.0 and not carrying
-		jet = planar_distance > 16.0 and not carrying and (bot_age % 180) < 78
+		# Keep CTF automation deliberately slower than a player. A short opening
+		# pop proves jet replication, then walking friction gives the bot a stable
+		# approach. Jet again only when it must climb onto a raised flag platform.
+		var opening_pop := bot_age < 250
+		var platform_above := target_position.y - player.global_position.y > 1.5
+		var climbing_platform := planar_distance < 13.0 and platform_above
+		jet = opening_pop or climbing_platform
 	if (fire or not movement_phase) and target != null and not target.dead:
 		target_position = target.global_position + Vector3.UP * 1.1
 	var origin := player.head.global_position
