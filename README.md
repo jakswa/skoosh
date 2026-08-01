@@ -2,6 +2,8 @@
 
 A Godot 4 momentum-skiing, jet-assisted, authoritative multiplayer CTF prototype.
 
+![SKOOSH multiplayer CTF gameplay](docs/screenshot.png)
+
 ## Run from source
 
 Godot 4.4+ is required. For one local server and two clients, the helper defaults to the temporary development binary when present:
