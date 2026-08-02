@@ -1,0 +1,77 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="PackedScene" path="res://assets/models/characters/runway_suit_rig.glb" id="1_suit"]
+[ext_resource type="Script" path="res://scripts/asset_pipeline_review.gd" id="2_script"]
+
+[sub_resource type="ProceduralSkyMaterial" id="SkyMaterial"]
+sky_top_color = Color(0.015, 0.035, 0.07, 1)
+sky_horizon_color = Color(0.18, 0.27, 0.3, 1)
+ground_bottom_color = Color(0.012, 0.018, 0.025, 1)
+ground_horizon_color = Color(0.08, 0.12, 0.13, 1)
+
+[sub_resource type="Sky" id="Sky"]
+sky_material = SubResource("SkyMaterial")
+
+[sub_resource type="Environment" id="Environment"]
+background_mode = 2
+sky = SubResource("Sky")
+ambient_light_source = 3
+ambient_light_color = Color(0.36, 0.48, 0.52, 1)
+ambient_light_energy = 0.65
+tonemap_mode = 2
+
+[sub_resource type="CylinderMesh" id="PlinthMesh"]
+top_radius = 1.2
+bottom_radius = 1.35
+height = 0.18
+radial_segments = 32
+
+[sub_resource type="StandardMaterial3D" id="PlinthMaterial"]
+albedo_color = Color(0.055, 0.075, 0.085, 1)
+metallic = 0.35
+roughness = 0.56
+
+[sub_resource type="LabelSettings" id="LabelSettings"]
+font_size = 22
+font_color = Color(0.65, 1, 0.91, 1)
+outline_size = 6
+outline_color = Color(0.01, 0.02, 0.025, 0.9)
+
+[node name="AssetPipelineReview" type="Node3D"]
+script = ExtResource("2_script")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment")
+
+[node name="KeyLight" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-48, -28, 0)
+light_color = Color(1, 0.84, 0.68, 1)
+light_energy = 1.4
+shadow_enabled = true
+
+[node name="FillLight" type="OmniLight3D" parent="."]
+position = Vector3(-2, 1.6, 2)
+omni_range = 6.0
+light_color = Color(0.18, 0.7, 1, 1)
+light_energy = 2.2
+
+[node name="Camera3D" type="Camera3D" parent="."]
+position = Vector3(3, 1.45, 4)
+rotation_degrees = Vector3(-4, 37, 0)
+current = true
+fov = 42.0
+
+[node name="Plinth" type="MeshInstance3D" parent="."]
+position = Vector3(0, -0.11, 0)
+mesh = SubResource("PlinthMesh")
+material_override = SubResource("PlinthMaterial")
+
+[node name="RunwaySuitRig" parent="." instance=ExtResource("1_suit")]
+
+[node name="ReviewLabel" type="Label" parent="."]
+offset_left = 24.0
+offset_top = 24.0
+offset_right = 700.0
+offset_bottom = 88.0
+text = "PIPELINE PROOF // SKINNED MANNEQUIN\nSkeleton3D + MomentumLean animation + turntable"
+label_settings = SubResource("LabelSettings")

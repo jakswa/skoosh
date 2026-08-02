@@ -1,0 +1,57 @@
+{
+  "asset_name": "SKOOSH asset-pipeline runway set",
+  "category": "terrain material, environment kit, character rig proof",
+  "status": "pipeline experiment; not final visual direction",
+  "creator": "Project-local agent-authored generation",
+  "source_url": null,
+  "acquisition_date": "2026-08-02",
+  "price_usd": 0,
+  "license": "Original project work; no external asset dependencies",
+  "commercial_use": true,
+  "attribution_required": false,
+  "ai_generated_service": null,
+  "tools": [
+    "Blender 5.2.0 LTS background Python",
+    "Pillow deterministic texture generation",
+    "Godot 4.4.1 Compatibility renderer"
+  ],
+  "source_files": [
+    "tools/asset_pipeline/blender_asset_utils.py",
+    "tools/asset_pipeline/create_runway_base_kit.py",
+    "tools/asset_pipeline/create_runway_suit_rig.py",
+    "tools/asset_pipeline/create_runway_terrain_textures.py",
+    "assets/source/environment/runway_base_kit.blend",
+    "assets/source/characters/runway_suit_rig.blend"
+  ],
+  "runtime_files": [
+    "assets/models/environment/runway_base_kit.glb",
+    "assets/models/characters/runway_suit_rig.glb",
+    "assets/materials/terrain/runway_terrain.gdshader",
+    "assets/textures/terrain/runway/runway_detail_albedo.png",
+    "assets/textures/terrain/runway/runway_detail_normal.png",
+    "assets/textures/terrain/runway/runway_detail_roughness.png"
+  ],
+  "runtime_statistics": {
+    "base_kit_bytes": 340532,
+    "base_kit_meshes": 4,
+    "base_kit_materials": 4,
+    "suit_rig_bytes": 351388,
+    "suit_rig_meshes": 16,
+    "suit_rig_skins": 1,
+    "suit_rig_animations": 1,
+    "terrain_texture_resolution": "256x256",
+    "terrain_texture_maps": 3
+  },
+  "integration": {
+    "base_render_geometry": "Integrated twice from one GLB while retaining existing authoritative collision",
+    "team_variants": "Runtime material overrides; no duplicated geometry",
+    "terrain": "World-space shader detail layered over slope/height vertex colors",
+    "character": "Skeleton3D, 16 skinned parts, MomentumLean, team variants, and remote multiplayer world-model integration verified"
+  },
+  "known_limitations": [
+    "The runway assets are neutral technical proofs, not a coherent candidate aesthetic.",
+    "The integrated suit is a disposable rigid-skinned mannequin, not a production character or retargeting proof.",
+    "Terrain normal detail uses top projection and should become slope-aware or triplanar for a final direction.",
+    "Decorative base geometry remains presentation-only and does not change gameplay collision."
+  ]
+}

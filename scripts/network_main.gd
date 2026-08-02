@@ -29,7 +29,6 @@ const VOICE_COMMANDS := VoiceCommandLibrary.COMMANDS
 @onready var lobby := $NetworkLobby as SkooshNetworkLobby
 @onready var red_platform := $CompactArena/RedPlatform as StaticBody3D
 @onready var blue_platform := $CompactArena/BluePlatform as StaticBody3D
-@onready var center_line := $CompactArena/CenterLine as MeshInstance3D
 @onready var red_flag := $CompactArena/RedFlag as SkooshNetworkFlag
 @onready var blue_flag := $CompactArena/BlueFlag as SkooshNetworkFlag
 
@@ -103,11 +102,6 @@ func _configure_compact_arena() -> void:
 	platform_surface_y = maxf(red_ground, blue_ground) + 4.5
 	red_platform.position = Vector3(red_x, platform_surface_y - 1.0, ARENA_CENTER.y)
 	blue_platform.position = Vector3(blue_x, platform_surface_y - 1.0, ARENA_CENTER.y)
-	center_line.position = Vector3(
-		ARENA_CENTER.x,
-		terrain.height_at(ARENA_CENTER.x, ARENA_CENTER.y) + 0.08,
-		ARENA_CENTER.y
-	)
 	red_home = Vector3(red_x, platform_surface_y + 1.08, ARENA_CENTER.y)
 	blue_home = Vector3(blue_x, platform_surface_y + 1.08, ARENA_CENTER.y)
 	red_flag_position = red_home

@@ -1,4 +1,4 @@
-[gd_scene load_steps=24 format=3]
+[gd_scene load_steps=19 format=3]
 
 [ext_resource type="Script" path="res://scripts/network_main.gd" id="1_main"]
 [ext_resource type="Script" path="res://scripts/terrain.gd" id="2_terrain"]
@@ -6,6 +6,8 @@
 [ext_resource type="PackedScene" path="res://scenes/network_lobby.tscn" id="4_lobby"]
 [ext_resource type="Script" path="res://scripts/network_flag.gd" id="5_flag"]
 [ext_resource type="Script" path="res://scripts/visual_qa_capture.gd" id="6_visual_qa"]
+[ext_resource type="PackedScene" path="res://assets/models/environment/runway_base_kit.glb" id="7_base_kit"]
+[ext_resource type="Script" path="res://scripts/team_base_visual.gd" id="8_base_visual"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial"]
 sky_top_color = Color(0.015, 0.075, 0.18, 1)
@@ -33,25 +35,8 @@ fog_light_energy = 0.36
 fog_density = 0.00082
 fog_sky_affect = 0.32
 
-[sub_resource type="BoxMesh" id="PlatformMesh"]
-size = Vector3(14, 2, 14)
-
 [sub_resource type="BoxShape3D" id="PlatformShape"]
 size = Vector3(14, 2, 14)
-
-[sub_resource type="StandardMaterial3D" id="RedPlatformMaterial"]
-albedo_color = Color(0.31, 0.055, 0.045, 1)
-emission_enabled = true
-emission = Color(0.34, 0.025, 0.015, 1)
-emission_energy_multiplier = 0.55
-roughness = 0.82
-
-[sub_resource type="StandardMaterial3D" id="BluePlatformMaterial"]
-albedo_color = Color(0.035, 0.17, 0.3, 1)
-emission_enabled = true
-emission = Color(0.015, 0.19, 0.38, 1)
-emission_energy_multiplier = 0.55
-roughness = 0.82
 
 [sub_resource type="CylinderMesh" id="BaseRingMesh"]
 top_radius = 3.2
@@ -88,23 +73,6 @@ roughness = 0.3
 
 [sub_resource type="BoxMesh" id="FlagBannerMesh"]
 size = Vector3(1.25, 0.72, 0.07)
-
-[sub_resource type="BoxMesh" id="CenterLineMesh"]
-size = Vector3(0.24, 0.08, 34)
-
-[sub_resource type="StandardMaterial3D" id="CenterLineMaterial"]
-albedo_color = Color(0.32, 0.95, 0.84, 1)
-emission_enabled = true
-emission = Color(0.16, 0.82, 0.72, 1)
-emission_energy_multiplier = 1.7
-
-[sub_resource type="BoxMesh" id="SupportMesh"]
-size = Vector3(2.2, 12, 2.2)
-
-[sub_resource type="StandardMaterial3D" id="SupportMaterial"]
-albedo_color = Color(0.075, 0.12, 0.14, 1)
-metallic = 0.25
-roughness = 0.78
 
 [sub_resource type="SceneReplicationConfig" id="GameReplicationConfig"]
 properties/0/path = NodePath(".:red_score")
@@ -187,18 +155,12 @@ script = ExtResource("2_terrain")
 [node name="RedPlatform" type="StaticBody3D" parent="CompactArena"]
 collision_layer = 1
 collision_mask = 0
+script = ExtResource("8_base_visual")
 
-[node name="Mesh" type="MeshInstance3D" parent="CompactArena/RedPlatform"]
-material_override = SubResource("RedPlatformMaterial")
-mesh = SubResource("PlatformMesh")
+[node name="Architecture" parent="CompactArena/RedPlatform" instance=ExtResource("7_base_kit")]
 
 [node name="Collision" type="CollisionShape3D" parent="CompactArena/RedPlatform"]
 shape = SubResource("PlatformShape")
-
-[node name="Support" type="MeshInstance3D" parent="CompactArena/RedPlatform"]
-position = Vector3(0, -7, 0)
-material_override = SubResource("SupportMaterial")
-mesh = SubResource("SupportMesh")
 
 [node name="BaseRing" type="MeshInstance3D" parent="CompactArena/RedPlatform"]
 position = Vector3(0, 1.06, 0)
@@ -209,28 +171,18 @@ cast_shadow = 0
 [node name="BluePlatform" type="StaticBody3D" parent="CompactArena"]
 collision_layer = 1
 collision_mask = 0
+script = ExtResource("8_base_visual")
+team = 1
 
-[node name="Mesh" type="MeshInstance3D" parent="CompactArena/BluePlatform"]
-material_override = SubResource("BluePlatformMaterial")
-mesh = SubResource("PlatformMesh")
+[node name="Architecture" parent="CompactArena/BluePlatform" instance=ExtResource("7_base_kit")]
 
 [node name="Collision" type="CollisionShape3D" parent="CompactArena/BluePlatform"]
 shape = SubResource("PlatformShape")
-
-[node name="Support" type="MeshInstance3D" parent="CompactArena/BluePlatform"]
-position = Vector3(0, -7, 0)
-material_override = SubResource("SupportMaterial")
-mesh = SubResource("SupportMesh")
 
 [node name="BaseRing" type="MeshInstance3D" parent="CompactArena/BluePlatform"]
 position = Vector3(0, 1.06, 0)
 material_override = SubResource("BlueGlowMaterial")
 mesh = SubResource("BaseRingMesh")
-cast_shadow = 0
-
-[node name="CenterLine" type="MeshInstance3D" parent="CompactArena"]
-material_override = SubResource("CenterLineMaterial")
-mesh = SubResource("CenterLineMesh")
 cast_shadow = 0
 
 [node name="RedFlag" type="Node3D" parent="CompactArena"]

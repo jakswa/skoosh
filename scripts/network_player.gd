@@ -15,13 +15,14 @@ class_name SkooshNetworkPlayer
 @onready var head := $Head as Node3D
 @onready var camera := $Head/Camera3D as Camera3D
 @onready var world_model := $WorldModel as Node3D
-@onready var body_mesh := $WorldModel/BodyMesh as MeshInstance3D
+@onready var suit_animation := $WorldModel/RunwaySuitRig/AnimationPlayer as AnimationPlayer
 @onready var name_label := $NameLabel as Label3D
 @onready var input := $Input as SkooshNetworkInput
 @onready var rollback_synchronizer := $RollbackSynchronizer as RollbackSynchronizer
 @onready var tick_interpolator := $TickInterpolator as TickInterpolator
 @onready var hud := $NetworkHUD as SkooshNetworkHUD
 @onready var weapon := $Head/DiscLauncher as SkooshDiscLauncher
+@onready var view_gun := $Head/Camera3D/ViewGun as Node3D
 
 var peer_id := 0
 var team := -1
@@ -37,6 +38,13 @@ var last_attacker := 0
 var did_teleport := false
 var _local_active := false
 var _presented_team := -99
+var _view_gun_rest_position := Vector3.ZERO
+var _view_gun_rest_rotation := Vector3.ZERO
+var _disc_rotor: Node3D
+var _charge_core: Node3D
+var _weapon_recoil := 0.0
+var _rotor_speed := 0.45
+var _charge_fraction := 1.0
 
 
 func _ready() -> void:
@@ -44,6 +52,14 @@ func _ready() -> void:
 	health = max_health
 	camera.current = false
 	camera.fov = base_fov
+	_view_gun_rest_position = view_gun.position
+	_view_gun_rest_rotation = view_gun.rotation
+	_disc_rotor = view_gun.find_child("DiscRotor", true, false) as Node3D
+	_charge_core = view_gun.find_child("ChargeCore", true, false) as Node3D
+	var momentum_lean := suit_animation.get_animation("MomentumLean")
+	if momentum_lean != null:
+		momentum_lean.loop_mode = Animation.LOOP_LINEAR
+		suit_animation.play("MomentumLean")
 	NetworkTime.on_tick.connect(_network_tick)
 	NetworkTime.after_tick_loop.connect(_after_tick_loop)
 	call_deferred("_finish_network_setup")
@@ -114,6 +130,7 @@ func _after_tick_loop() -> void:
 func _process(delta: float) -> void:
 	if _presented_team != team:
 		_update_team_presentation()
+	suit_animation.speed_scale = clampf(0.55 + horizontal_speed / 32.0, 0.55, 2.2)
 	if not _local_active:
 		return
 	var fov_t: float = clampf(
@@ -123,6 +140,38 @@ func _process(delta: float) -> void:
 	fov_t = fov_t * fov_t * (3.0 - 2.0 * fov_t)
 	var target_fov := lerpf(base_fov, maximum_fov, fov_t)
 	camera.fov = lerpf(camera.fov, target_fov, 1.0 - exp(-fov_smoothing * delta))
+	_update_weapon_presentation(delta)
+
+
+func present_weapon_fire() -> void:
+	if not _local_active:
+		return
+	_weapon_recoil = 1.0
+	_rotor_speed += 16.0
+	_charge_fraction = 0.0
+
+
+func _update_weapon_presentation(delta: float) -> void:
+	_weapon_recoil = move_toward(_weapon_recoil, 0.0, delta * 6.5)
+	_charge_fraction = minf(1.0, _charge_fraction + delta / maxf(weapon.fire_cooldown, 0.01))
+	_rotor_speed = lerpf(_rotor_speed, 0.45, 1.0 - exp(-4.0 * delta))
+	var time := Time.get_ticks_msec() * 0.001
+	var idle_offset := Vector3(sin(time * 1.3), cos(time * 1.7), 0.0) * 0.002
+	var recoil_curve := _weapon_recoil * _weapon_recoil
+	view_gun.position = (
+		_view_gun_rest_position
+		+ idle_offset
+		+ Vector3(-0.012, 0.018, 0.105) * recoil_curve
+	)
+	view_gun.rotation = (
+		_view_gun_rest_rotation
+		+ Vector3(deg_to_rad(4.2), 0.0, deg_to_rad(-1.6)) * recoil_curve
+	)
+	if _disc_rotor != null:
+		_disc_rotor.rotate_y(_rotor_speed * delta)
+	if _charge_core != null:
+		var eased_charge := _charge_fraction * _charge_fraction * (3.0 - 2.0 * _charge_fraction)
+		_charge_core.scale = Vector3.ONE * lerpf(0.08, 1.0, eased_charge)
 
 
 func apply_damage(amount: int, attacker_peer_id: int) -> void:
@@ -230,9 +279,15 @@ func _update_team_presentation() -> void:
 	material.emission = color
 	material.emission_energy_multiplier = 0.32
 	material.roughness = 0.68
-	for mesh in get_tree().get_nodes_in_group("player_team_color"):
-		if mesh is MeshInstance3D and world_model.is_ancestor_of(mesh):
-			(mesh as MeshInstance3D).material_override = material
+	const TEAM_ARMOR_PARTS: Array[StringName] = [
+		&"Pelvis shell", &"Chest plate", &"Helmet",
+		&"Upper arm L", &"Upper arm R", &"Thigh L", &"Thigh R",
+		&"Jet pod L", &"Jet pod R",
+	]
+	for child in world_model.find_children("*", "MeshInstance3D", true, false):
+		var mesh := child as MeshInstance3D
+		if mesh.name in TEAM_ARMOR_PARTS:
+			mesh.material_override = material
 
 
 static func callsign_for_peer(id: int) -> String:

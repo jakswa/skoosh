@@ -1,4 +1,4 @@
-[gd_scene load_steps=27 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://scripts/network_player.gd" id="1_player"]
 [ext_resource type="Script" path="res://scripts/network_player_input.gd" id="2_input"]
@@ -7,101 +7,25 @@
 [ext_resource type="Script" path="res://addons/netfox/rollback/rollback-synchronizer.gd" id="5_rollback"]
 [ext_resource type="Script" path="res://addons/netfox/tick-interpolator.gd" id="6_interpolator"]
 [ext_resource type="PackedScene" path="res://scenes/disc_projectile.tscn" id="7_projectile"]
+[ext_resource type="PackedScene" path="res://assets/models/weapons/solar_nomad_disc_launcher.glb" id="8_launcher_model"]
+[ext_resource type="PackedScene" path="res://assets/models/characters/runway_suit_rig.glb" id="9_suit_model"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape_player"]
 radius = 0.48
 height = 2.2
 
-[sub_resource type="CapsuleMesh" id="BodyMesh"]
-radius = 0.43
-height = 1.55
-radial_segments = 12
-rings = 4
-
-[sub_resource type="BoxMesh" id="ChestMesh"]
-size = Vector3(0.92, 0.72, 0.56)
-
-[sub_resource type="BoxMesh" id="ShoulderMesh"]
-size = Vector3(0.3, 0.32, 0.5)
-
-[sub_resource type="SphereMesh" id="HelmetMesh"]
-radius = 0.34
-height = 0.68
+[sub_resource type="SphereMesh" id="MuzzleFlashMesh"]
+radius = 0.05
+height = 0.1
 radial_segments = 12
 rings = 6
 
-[sub_resource type="BoxMesh" id="VisorMesh"]
-size = Vector3(0.48, 0.16, 0.08)
-
-[sub_resource type="BoxMesh" id="BackpackMesh"]
-size = Vector3(0.64, 0.72, 0.3)
-
-[sub_resource type="CylinderMesh" id="JetPodMesh"]
-top_radius = 0.12
-bottom_radius = 0.15
-height = 0.7
-radial_segments = 8
-rings = 1
-
-[sub_resource type="CylinderMesh" id="LegMesh"]
-top_radius = 0.13
-bottom_radius = 0.16
-height = 0.58
-radial_segments = 8
-rings = 1
-
-[sub_resource type="StandardMaterial3D" id="DarkArmorMaterial"]
-albedo_color = Color(0.025, 0.065, 0.085, 1)
-metallic = 0.35
-roughness = 0.48
-
-[sub_resource type="StandardMaterial3D" id="VisorMaterial"]
-albedo_color = Color(0.12, 0.9, 0.86, 1)
+[sub_resource type="StandardMaterial3D" id="MuzzleFlashMaterial"]
+shading_mode = 0
+albedo_color = Color(0.72, 1, 0.86, 1)
 emission_enabled = true
-emission = Color(0.04, 0.92, 0.86, 1)
-emission_energy_multiplier = 2.2
-metallic = 0.55
-roughness = 0.2
-
-[sub_resource type="BoxMesh" id="GunMesh"]
-size = Vector3(0.24, 0.18, 0.76)
-
-[sub_resource type="CylinderMesh" id="GunBarrelMesh"]
-top_radius = 0.1
-bottom_radius = 0.13
-height = 0.16
-radial_segments = 14
-rings = 1
-
-[sub_resource type="CylinderMesh" id="DiscChamberMesh"]
-top_radius = 0.16
-bottom_radius = 0.16
-height = 0.1
-radial_segments = 16
-rings = 1
-
-[sub_resource type="BoxMesh" id="GunGripMesh"]
-size = Vector3(0.16, 0.36, 0.18)
-
-[sub_resource type="StandardMaterial3D" id="GunMaterial"]
-albedo_color = Color(0.035, 0.07, 0.085, 1)
-metallic = 0.62
-roughness = 0.3
-
-[sub_resource type="StandardMaterial3D" id="GunGlowMaterial"]
-albedo_color = Color(0.19, 0.95, 0.66, 1)
-emission_enabled = true
-emission = Color(0.05, 0.95, 0.55, 1)
-emission_energy_multiplier = 2.4
-roughness = 0.25
-
-[sub_resource type="StandardMaterial3D" id="GunDiscMaterial"]
-albedo_color = Color(0.035, 0.23, 0.18, 1)
-emission_enabled = true
-emission = Color(0.05, 0.72, 0.42, 1)
-emission_energy_multiplier = 0.65
-metallic = 0.58
-roughness = 0.3
+emission = Color(0.16, 1, 0.52, 1)
+emission_energy_multiplier = 5.0
 
 [sub_resource type="SceneReplicationConfig" id="ReplicationConfig"]
 properties/0/path = NodePath(".:health")
@@ -150,55 +74,8 @@ shape = SubResource("CapsuleShape_player")
 
 [node name="WorldModel" type="Node3D" parent="."]
 
-[node name="BodyMesh" type="MeshInstance3D" parent="WorldModel" groups=["player_team_color"]]
-position = Vector3(0, 1.12, 0)
-mesh = SubResource("BodyMesh")
-
-[node name="Chest" type="MeshInstance3D" parent="WorldModel" groups=["player_team_color"]]
-position = Vector3(0, 1.38, -0.02)
-mesh = SubResource("ChestMesh")
-
-[node name="ShoulderLeft" type="MeshInstance3D" parent="WorldModel" groups=["player_team_color"]]
-position = Vector3(-0.53, 1.48, -0.02)
-mesh = SubResource("ShoulderMesh")
-
-[node name="ShoulderRight" type="MeshInstance3D" parent="WorldModel" groups=["player_team_color"]]
-position = Vector3(0.53, 1.48, -0.02)
-mesh = SubResource("ShoulderMesh")
-
-[node name="Helmet" type="MeshInstance3D" parent="WorldModel" groups=["player_team_color"]]
-position = Vector3(0, 2.02, 0)
-mesh = SubResource("HelmetMesh")
-
-[node name="Visor" type="MeshInstance3D" parent="WorldModel"]
-position = Vector3(0, 2.04, -0.31)
-material_override = SubResource("VisorMaterial")
-mesh = SubResource("VisorMesh")
-
-[node name="Backpack" type="MeshInstance3D" parent="WorldModel"]
-position = Vector3(0, 1.37, 0.39)
-material_override = SubResource("DarkArmorMaterial")
-mesh = SubResource("BackpackMesh")
-
-[node name="JetLeft" type="MeshInstance3D" parent="WorldModel"]
-position = Vector3(-0.25, 1.02, 0.5)
-material_override = SubResource("DarkArmorMaterial")
-mesh = SubResource("JetPodMesh")
-
-[node name="JetRight" type="MeshInstance3D" parent="WorldModel"]
-position = Vector3(0.25, 1.02, 0.5)
-material_override = SubResource("DarkArmorMaterial")
-mesh = SubResource("JetPodMesh")
-
-[node name="LegLeft" type="MeshInstance3D" parent="WorldModel" groups=["player_team_color"]]
-position = Vector3(-0.2, 0.42, 0)
-material_override = SubResource("DarkArmorMaterial")
-mesh = SubResource("LegMesh")
-
-[node name="LegRight" type="MeshInstance3D" parent="WorldModel" groups=["player_team_color"]]
-position = Vector3(0.2, 0.42, 0)
-material_override = SubResource("DarkArmorMaterial")
-mesh = SubResource("LegMesh")
+[node name="RunwaySuitRig" parent="WorldModel" instance=ExtResource("9_suit_model")]
+rotation = Vector3(0, 3.14159, 0)
 
 [node name="NameLabel" type="Label3D" parent="."]
 position = Vector3(0, 2.72, 0)
@@ -222,42 +99,28 @@ fov = 80.0
 
 [node name="ViewGun" type="Node3D" parent="Head/Camera3D"]
 visible = false
-position = Vector3(0.48, -0.38, -0.66)
+position = Vector3(0.48, -0.32, -0.66)
 rotation_degrees = Vector3(-5, -2, 0)
 
-[node name="Body" type="MeshInstance3D" parent="Head/Camera3D/ViewGun"]
-material_override = SubResource("GunMaterial")
-mesh = SubResource("GunMesh")
-cast_shadow = 0
-
-[node name="Barrel" type="MeshInstance3D" parent="Head/Camera3D/ViewGun"]
-position = Vector3(0, 0, -0.47)
-rotation_degrees = Vector3(90, 0, 0)
-material_override = SubResource("GunGlowMaterial")
-mesh = SubResource("GunBarrelMesh")
-cast_shadow = 0
-
-[node name="DiscChamber" type="MeshInstance3D" parent="Head/Camera3D/ViewGun"]
-position = Vector3(-0.13, 0.03, -0.12)
-rotation_degrees = Vector3(0, 0, 90)
-material_override = SubResource("GunDiscMaterial")
-mesh = SubResource("DiscChamberMesh")
-cast_shadow = 0
-
-[node name="Grip" type="MeshInstance3D" parent="Head/Camera3D/ViewGun"]
-position = Vector3(0, -0.23, 0.1)
-rotation_degrees = Vector3(-12, 0, 0)
-material_override = SubResource("GunMaterial")
-mesh = SubResource("GunGripMesh")
-cast_shadow = 0
+[node name="SolarNomadDiscLauncher" parent="Head/Camera3D/ViewGun" instance=ExtResource("8_launcher_model")]
+scale = Vector3(0.76, 0.76, 0.76)
 
 [node name="DiscLauncher" type="Node3D" parent="Head"]
 position = Vector3(0, 0, -0.18)
 script = ExtResource("3_weapon")
 projectile_scene = ExtResource("7_projectile")
 
+[node name="MuzzleOrigin" type="Node3D" parent="Head/DiscLauncher"]
+position = Vector3(0.48, -0.28, -1.25)
+
+[node name="MuzzleFlash" type="MeshInstance3D" parent="Head/DiscLauncher/MuzzleOrigin"]
+visible = false
+material_override = SubResource("MuzzleFlashMaterial")
+mesh = SubResource("MuzzleFlashMesh")
+cast_shadow = 0
+
 [node name="MuzzleLight" type="OmniLight3D" parent="Head/DiscLauncher"]
-position = Vector3(0, 0, -0.4)
+position = Vector3(0.48, -0.28, -1.25)
 light_color = Color(0.3, 1, 0.58, 1)
 light_energy = 0.0
 omni_range = 4.0

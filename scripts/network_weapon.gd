@@ -11,6 +11,8 @@ class_name SkooshDiscLauncher
 
 @onready var player := get_parent().get_parent() as SkooshNetworkPlayer
 @onready var input := player.get_node("Input") as SkooshNetworkInput
+@onready var muzzle_origin := $MuzzleOrigin as Node3D
+@onready var muzzle_flash := $MuzzleOrigin/MuzzleFlash as MeshInstance3D
 @onready var muzzle_light := $MuzzleLight as OmniLight3D
 
 var last_fire_tick := -100000
@@ -25,7 +27,10 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_muzzle_time = maxf(0.0, _muzzle_time - delta)
-	muzzle_light.light_energy = 3.4 if _muzzle_time > 0.0 else 0.0
+	var flash_fraction := clampf(_muzzle_time / 0.08, 0.0, 1.0)
+	muzzle_flash.visible = flash_fraction > 0.0
+	muzzle_flash.scale = Vector3(1.0, 1.0, 3.0) * lerpf(0.4, 1.25, flash_fraction)
+	muzzle_light.light_energy = 4.8 if _muzzle_time > 0.0 else 0.0
 
 
 func _network_tick(_delta: float, _tick: int) -> void:
@@ -67,8 +72,12 @@ func _spawn() -> Node3D:
 	var arena := player.get_parent().get_parent()
 	var container := arena.get_node("Projectiles") as Node3D
 	container.add_child(projectile)
-	var direction := -global_basis.z.normalized()
-	var origin := global_position + direction * 0.85
+	# Preserve center-reticle aiming while making the physical disc visibly leave
+	# the authored muzzle. The authoritative server uses this same convergence.
+	var aim_direction := -global_basis.z.normalized()
+	var aim_point := global_position + aim_direction * 120.0
+	var origin := muzzle_origin.global_position
+	var direction := origin.direction_to(aim_point)
 	var inherited_velocity := player.velocity * velocity_inheritance
 	projectile.launch(
 		origin,
@@ -96,24 +105,39 @@ func _apply_data(projectile: Node3D, data: Dictionary) -> void:
 func _is_reconcilable(
 	_projectile: Node3D,
 	request_data: Dictionary,
-	_local_data: Dictionary
+	local_data: Dictionary
 ) -> bool:
 	if (
 		typeof(request_data.get("origin")) != TYPE_VECTOR3
+		or typeof(request_data.get("velocity")) != TYPE_VECTOR3
+		or typeof(request_data.get("direction")) != TYPE_VECTOR3
 		or typeof(request_data.get("source_peer_id")) != TYPE_INT
 		or typeof(request_data.get("source_team")) != TYPE_INT
 		or typeof(request_data.get("spawn_tick")) != TYPE_INT
 	):
 		return false
 	var requested_origin := request_data.get("origin", Vector3.ZERO) as Vector3
+	var requested_velocity := request_data.get("velocity", Vector3.ZERO) as Vector3
+	var requested_direction := request_data.get("direction", Vector3.FORWARD) as Vector3
+	var local_origin := local_data.get("origin", Vector3.ZERO) as Vector3
+	var local_velocity := local_data.get("velocity", Vector3.ZERO) as Vector3
+	var local_direction := local_data.get("direction", Vector3.FORWARD) as Vector3
 	var request_tick := int(request_data.get("spawn_tick", NetworkTime.tick))
 	var request_age := NetworkTime.tick - request_tick
+	# Rendered software clients can trail the server by more than 30 ticks. Keep
+	# the wider window authority-safe by requiring close agreement with the
+	# server-built launch state before netfox may reconcile the prediction.
 	return (
 		int(request_data.get("source_peer_id", -1)) == player.peer_id
 		and int(request_data.get("source_team", -1)) == player.team
 		and requested_origin.is_finite()
+		and requested_velocity.is_finite()
+		and requested_direction.is_normalized()
+		and requested_origin.distance_to(local_origin) <= 1.5
+		and requested_velocity.distance_to(local_velocity) <= 8.0
+		and requested_direction.dot(local_direction) >= 0.985
 		and request_age >= -2
-		and request_age <= 30
+		and request_age <= 60
 	)
 
 
@@ -129,6 +153,7 @@ func _after_fire(_projectile: Node3D) -> void:
 	last_fire_tick = NetworkTime.tick
 	_muzzle_time = 0.08
 	if input.is_multiplayer_authority():
+		player.present_weapon_fire()
 		player.hud.flash_shot()
 
 

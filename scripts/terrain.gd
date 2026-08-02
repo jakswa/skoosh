@@ -1,5 +1,10 @@
 extends StaticBody3D
 
+const RUNWAY_TERRAIN_SHADER := preload("res://assets/materials/terrain/runway_terrain.gdshader")
+const RUNWAY_DETAIL_ALBEDO := preload("res://assets/textures/terrain/runway/runway_detail_albedo.png")
+const RUNWAY_DETAIL_NORMAL := preload("res://assets/textures/terrain/runway/runway_detail_normal.png")
+const RUNWAY_DETAIL_ROUGHNESS := preload("res://assets/textures/terrain/runway/runway_detail_roughness.png")
+
 ## Deterministic, single-mesh alpine basin. The same height function is used for
 ## rendering, collision, course placement, and out-of-bounds checks.
 
@@ -144,11 +149,11 @@ func generate() -> void:
 	var terrain_mesh := ArrayMesh.new()
 	terrain_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 
-	var material := StandardMaterial3D.new()
-	material.vertex_color_use_as_albedo = true
-	material.roughness = 0.88
-	material.metallic = 0.0
-	material.cull_mode = BaseMaterial3D.CULL_BACK
+	var material := ShaderMaterial.new()
+	material.shader = RUNWAY_TERRAIN_SHADER
+	material.set_shader_parameter("detail_albedo", RUNWAY_DETAIL_ALBEDO)
+	material.set_shader_parameter("detail_normal", RUNWAY_DETAIL_NORMAL)
+	material.set_shader_parameter("detail_roughness", RUNWAY_DETAIL_ROUGHNESS)
 	terrain_mesh.surface_set_material(0, material)
 	_mesh_instance.mesh = terrain_mesh
 	_collision_shape.shape = terrain_mesh.create_trimesh_shape()
