@@ -18,6 +18,16 @@ The bake-off should answer:
 
 This is a direction-finding exercise, not three production art passes. Each worker should make a coherent, runnable visual prototype and produce comparable screenshots. The user chooses the winner.
 
+### Creative mandate
+
+Each candidate has permission to feel like a different game built around the same SKOOSH movement/combat/CTF simulation. Do not make three tasteful variations of the current frame.
+
+Workers have complete creative freedom over visible design and broad engineering freedom over the presentation layer. They may replace every visible asset, composition, material, shader, VFX system, animation approach, UI theme, scene hierarchy, generator, and client-side presentation script. They do not need to preserve the Solar Nomad launcher, runway terrain, base kit, mannequin, palette, proportions, or fiction.
+
+Engineering freedom remains inside the project invariants: Godot 4.4+, typed GDScript, the Compatibility renderer, native clients, and authoritative gameplay ownership. Candidates may radically re-engineer presentation, but must not move movement results, energy, combat, objectives, or score to clients. The same gameplay and collision routes should remain comparable even when their render shells are completely replaced.
+
+The desired outcome is three screenshots that could plausibly be mistaken for three separate games—not three palette swaps—while all three still run the same match underneath.
+
 ## 2. Required project context
 
 The overseer and all workers must read:
@@ -45,7 +55,9 @@ Relevant constraints:
 The bake-off succeeds when all three candidates provide:
 
 - A runnable branch/worktree based on the same baseline commit.
-- A visibly distinct and internally coherent art direction—not merely a palette swap.
+- A visibly distinct and internally coherent art direction—not merely a palette swap or runway-asset restyle.
+- At least one materially redesigned Blender-authored asset plus meaningful terrain/base treatment.
+- Evidence of at least two capture-and-critique iterations before the final standardized run.
 - A standardized visual-QA contact sheet.
 - Three nominated hero screenshots selected from the standardized captures.
 - A short direction brief and implementation inventory.
@@ -89,16 +101,16 @@ Each candidate must address:
 - Gameplay redesign or balance changes.
 - Movement, weapon, CTF, or networking rule changes.
 - Changes to authoritative ownership.
-- New maps or a terrain-topology rewrite.
-- Full production character pipelines.
-- Account systems, matchmaking, or unrelated UX work.
-- Large framework or renderer changes.
+- Collision or terrain-topology changes that materially alter competitive routes.
+- Full production character pipelines; a candidate may still replace and animate the visible character prototype.
+- Account systems, matchmaking, or unrelated product work.
+- Replacing Godot or abandoning the Compatibility renderer.
 
-Presentation must remain separable from simulation. Visual rigs, effects, and animation must not become authoritative collision or gameplay state.
+Large presentation-layer refactors are allowed. Render terrain, architecture, player silhouettes, camera presentation, and effects may be replaced completely as long as presentation remains separable from simulation. Visual rigs, effects, and animation must not become authoritative collision or gameplay state.
 
 ## 5. The three directions
 
-These descriptions are starting constraints, not exact prescriptions. Workers should commit to their assigned identity rather than converging on generic sci-fi.
+These descriptions are provocations, not asset checklists. A worker may invent a new fiction, visual grammar, interface language, architecture system, weapon mechanism, and character silhouette—and may give the candidate a better title—provided it strongly answers the assigned core idea. Workers should maximize separation from both the runway baseline and one another rather than converging on generic sci-fi.
 
 ### A. Alpine expeditionary sci-fi
 
@@ -170,6 +182,17 @@ Reasons:
 - Prevents one candidate from winning solely through unrelated high-fidelity assets.
 
 Workers may include a future asset-sourcing proposal in their direction brief.
+
+Round 1 guardrails:
+
+- Current runway assets are implementation examples and anti-anchors, not a starter kit that must be reskinned.
+- Every candidate must create at least one fresh Blender-authored focal asset; rearranged Godot primitives do not satisfy this requirement.
+- Do not download assets, textures, fonts, sounds, or generated-service output opportunistically.
+- Track editable source and manifests, but never commit `.blend1`, caches, generated build output, or unrelated binaries.
+- Keep candidate binary growth deliberate. Prototype quality matters more than asset volume.
+- Imported decoration must not imply collision that does not exist; obvious walk-through structures are a visual failure.
+- The runway character proves skeleton integration only. Do not claim production animation, retargeting, or hand integration without implementing and showing it.
+- The runway terrain shader is not a required foundation and its top-projected cliff detail should not be copied blindly.
 
 ### If external assets are allowed
 
@@ -265,11 +288,13 @@ SKOOSH_VISUAL_QA_DIR=/absolute/control/root/build/visual-bake-off/alien \
 
 Each visual run starts a server, a rendered llvmpipe/Xvfb client, and another client after rendering the lobby. Three simultaneous runs may saturate CPU or memory and produce timing flakes.
 
-Preferred policy:
+Required policy:
 
 - Development may occur in parallel.
-- Run no more than one or two final visual captures simultaneously unless the machine has demonstrated sufficient capacity.
-- If a capture fails under load, rerun it alone before judging the candidate.
+- Final standardized visual captures run serially, one candidate at a time.
+- Final multiplayer acceptance runs should also be isolated when diagnosing a failure.
+- A failed CTF route or missed event capture must be rerun alone before judging it as a candidate defect.
+- Never compare screenshots produced while one candidate was CPU-starved by another candidate's Blender export or llvmpipe capture.
 
 ### Other test behavior
 
@@ -298,19 +323,31 @@ Prioritize broad changes before detail:
 2. Terrain treatment.
 3. Base silhouettes/materials.
 4. Weapon silhouette/materials.
-5. Objective and action effects.
+5. Player/objective/action treatment.
 6. Optional detail only after the full frame is coherent.
 
-A candidate that consistently treats the whole frame is preferable to one highly detailed isolated model surrounded by unchanged prototype art.
+A candidate that consistently treats the whole frame is preferable to one highly detailed isolated model surrounded by unchanged prototype art. Fresh silhouettes and mechanical stories should be approved by the worker's own written critique before UV or micro-surface polish.
 
-### Step 3: Preserve gameplay
+### Step 3: Run two visual iteration loops
+
+Before final validation, each worker must complete at least two off-screen review loops:
+
+1. Capture a broad blockout in the live game.
+2. Inspect equivalent spawn, traversal, combat, and objective states.
+3. Write down the three largest visual failures.
+4. Fix those failures rather than adding unrelated detail.
+5. Capture again and record what improved or remained weak.
+
+The final contact sheet is a third, standardized evidence pass when practical. A worker that only captures after declaring itself finished has not demonstrated a reliable visual iteration process.
+
+### Step 4: Preserve gameplay
 
 - Do not alter authoritative rules or ownership.
 - Do not change collision merely to fit a decorative mesh unless behavior remains demonstrably identical.
 - Keep visual effects client-side and event-driven where appropriate.
 - Avoid broad refactors unrelated to presentation.
 
-### Step 4: Validate
+### Step 5: Validate
 
 From that worker's worktree:
 
@@ -328,7 +365,7 @@ SKOOSH_TEST_LOG_DIR="$PWD/.tmp/bakeoff-multiplayer" \
 
 Finally, produce the assigned off-screen visual-QA capture.
 
-### Step 5: Package the candidate
+### Step 6: Package the candidate
 
 Provide:
 
@@ -337,12 +374,16 @@ Provide:
 - Three nominated hero screenshots from the standardized run.
 - A concise direction brief containing:
   - Five defining adjectives.
+  - Why this could be mistaken for a different game rather than a SKOOSH reskin.
+  - Paths to both intermediate iteration captures and the final capture.
   - Palette/material logic.
   - What changed.
   - What remains placeholder.
   - Expected production path.
-  - Asset/license notes.
+  - Asset/license notes and binary/source inventory.
   - Compatibility/performance concerns.
+  - Any visual geometry that intentionally differs from authoritative collision.
+  - Character, animation, or retargeting claims that remain unproven.
 - Test results and log paths.
 
 Do not hand-select screenshots from a separate prettier scene. Hero images must come from the real lobby or live multiplayer capture flow. An additional concept image may be included only if clearly labeled and excluded from scoring.
@@ -440,19 +481,30 @@ Read AGENTS.md, docs/CHECKPOINT.md, docs/VISUAL_QA.md,
 and `docs/plans/VISUAL_BAKE_OFF.md` completely before editing. Treat existing
 runway assets as technical examples, not a required visual style.
 
-Create a coherent runnable visual prototype for your assigned direction. Address
-world atmosphere, terrain treatment, base architecture, first-person weapon,
-at least one major action effect, and objective presentation. Do not alter
-authoritative gameplay/network ownership or redesign rules. Use Compatibility-
-safe techniques. Do not launch graphical clients on the desktop; use the
+Create a coherent runnable visual prototype for your assigned direction. It
+should plausibly look like a different game running on SKOOSH's simulation, not
+a reskin of the runway assets. You may replace every visible asset and broadly
+re-engineer client-side presentation: scene hierarchy, generators, render
+terrain, shaders, materials, models, rigs, animation, VFX, camera treatment,
+and UI theme. Remain within Godot 4.4+, typed GDScript, the Compatibility
+renderer, native clients, and authoritative gameplay ownership.
+
+Address world atmosphere, terrain treatment, base architecture, first-person
+weapon, player/objective treatment, and at least one major action effect. Build
+at least one fresh Blender-authored focal asset. Do not alter authoritative
+rules, competitive collision routes, or network ownership. Do not download
+third-party assets. Do not launch graphical clients on the desktop; use the
 Xvfb visual-QA flow.
 
 You are competing on direction quality, readability, shareability, motion feel,
 and realistic production feasibility—not raw quantity of changes. Start by
-stating five defining adjectives and a small plan. Finish with a committed
-candidate, passing ground-jet and multiplayer tests, a standardized contact
-sheet, three nominated captures, and a concise direction brief. Record the
-final commit SHA, commands, outputs, shortcuts, and risks.
+stating five defining adjectives and a small plan. Perform at least two live
+capture-and-critique loops before final validation, fixing the three largest
+visual failures after each review. Finish with a committed candidate, passing
+ground-jet and multiplayer tests, a serially produced standardized contact
+sheet, three nominated captures, iteration evidence, an asset/source manifest,
+and a concise direction brief. Record the final commit SHA, commands, outputs,
+shortcuts, collision discrepancies, unsupported production claims, and risks.
 
 Do not edit the control worktree, merge another candidate, or clean unrelated
 files.
@@ -467,8 +519,10 @@ files.
 - [ ] Workers receive equal scope and budget.
 - [ ] All candidates run `test_ground_jet.sh`.
 - [ ] All candidates run `test_multiplayer_demo.sh` on unique ports.
+- [ ] Every candidate records at least two capture-and-critique iteration loops.
+- [ ] Final standardized captures are run serially without competing Blender/llvmpipe load.
 - [ ] All candidates produce off-screen standardized visual captures.
-- [ ] Each candidate provides three hero screenshots and a brief.
+- [ ] Each candidate provides three hero screenshots, an asset inventory, and a brief.
 - [ ] Overseer normalizes and presents the comparison.
 - [ ] User chooses the direction.
 - [ ] Winner is refined on a fresh branch rather than blindly merging all prototypes.
