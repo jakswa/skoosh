@@ -13,6 +13,7 @@ class_name SkooshDiscLauncher
 @onready var input := player.get_node("Input") as SkooshNetworkInput
 @onready var muzzle_origin := $MuzzleOrigin as Node3D
 @onready var muzzle_flash := $MuzzleOrigin/MuzzleFlash as MeshInstance3D
+@onready var pressure_ring := $MuzzleOrigin/PressureRing as MeshInstance3D
 @onready var muzzle_light := $MuzzleLight as OmniLight3D
 
 var last_fire_tick := -100000
@@ -30,6 +31,8 @@ func _process(delta: float) -> void:
 	var flash_fraction := clampf(_muzzle_time / 0.08, 0.0, 1.0)
 	muzzle_flash.visible = flash_fraction > 0.0
 	muzzle_flash.scale = Vector3(1.0, 1.0, 3.0) * lerpf(0.4, 1.25, flash_fraction)
+	pressure_ring.visible = flash_fraction > 0.0
+	pressure_ring.scale = Vector3.ONE * lerpf(2.8, 0.45, flash_fraction)
 	muzzle_light.light_energy = 4.8 if _muzzle_time > 0.0 else 0.0
 
 
@@ -212,31 +215,82 @@ func _present_disc_impact(
 	if not projectile_id.is_empty():
 		despawn_projectile(projectile_id)
 	var arena := player.get_parent().get_parent()
-	var effect := MeshInstance3D.new()
+	var effect := Node3D.new()
 	effect.name = "DiscImpact"
-	var mesh := SphereMesh.new()
-	mesh.radius = 0.45
-	mesh.height = 0.9
-	mesh.radial_segments = 12
-	mesh.rings = 6
-	effect.mesh = mesh
 	var color := Color("#ffbc55") if source_team == 0 else Color("#56d9ff")
 	if hit_enemy:
 		color = Color("#fff08a")
+	arena.get_node("Effects").add_child(effect)
+	effect.global_position = position
+
+	var core := MeshInstance3D.new()
+	var core_mesh := SphereMesh.new()
+	core_mesh.radius = 0.18
+	core_mesh.height = 0.36
+	core_mesh.radial_segments = 12
+	core_mesh.rings = 6
+	core.mesh = core_mesh
+	var core_material := _impact_material(Color(color, 0.72), 4.2)
+	core.material_override = core_material
+	core.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	effect.add_child(core)
+
+	var pressure_ring := MeshInstance3D.new()
+	var ring_mesh := TorusMesh.new()
+	ring_mesh.inner_radius = 0.73
+	ring_mesh.outer_radius = 0.79
+	ring_mesh.rings = 28
+	ring_mesh.ring_segments = 6
+	pressure_ring.mesh = ring_mesh
+	pressure_ring.material_override = _impact_material(Color("#8fffd5"), 3.8)
+	pressure_ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	effect.add_child(pressure_ring)
+
+	var fragment_material := _impact_material(color.lerp(Color.WHITE, 0.35), 2.6)
+	var fragments: Array[MeshInstance3D] = []
+	for index in 10:
+		var fragment := MeshInstance3D.new()
+		var fragment_mesh := BoxMesh.new()
+		fragment_mesh.size = Vector3(0.08, 0.045, 0.42 + float(index % 3) * 0.12)
+		fragment.mesh = fragment_mesh
+		fragment.material_override = fragment_material
+		fragment.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		var angle := TAU * float(index) / 10.0
+		fragment.rotation = Vector3(angle * 0.17, angle, angle * 0.31)
+		fragment.position = Vector3(cos(angle), 0.18 + 0.05 * float(index % 2), sin(angle)) * 0.28
+		effect.add_child(fragment)
+		fragments.append(fragment)
+
+	var impact_light := OmniLight3D.new()
+	impact_light.light_color = color
+	impact_light.light_energy = 7.0
+	impact_light.omni_range = 7.5
+	impact_light.shadow_enabled = false
+	effect.add_child(impact_light)
+
+	var tween := effect.create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(core, "scale", Vector3.ONE * 3.2, 0.26).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(core_material, "albedo_color", Color(color, 0.0), 0.26)
+	tween.tween_property(pressure_ring, "scale", Vector3.ONE * 3.8, 0.34).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
+	tween.tween_property(pressure_ring.material_override, "albedo_color", Color(0.56, 1.0, 0.84, 0.0), 0.34)
+	tween.tween_property(fragment_material, "albedo_color", Color(color, 0.0), 0.42)
+	tween.tween_property(impact_light, "light_energy", 0.0, 0.22)
+	for index in fragments.size():
+		var angle := TAU * float(index) / float(fragments.size())
+		var destination := Vector3(cos(angle) * 3.8, 1.1 + float(index % 3) * 0.45, sin(angle) * 3.8)
+		tween.tween_property(fragments[index], "position", destination, 0.42).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.chain().tween_callback(effect.queue_free)
+	if hit_enemy and input.is_multiplayer_authority():
+		player.hud.flash_hit()
+
+
+func _impact_material(color: Color, energy: float) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
 	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	material.albedo_color = color
 	material.emission_enabled = true
 	material.emission = color
-	material.emission_energy_multiplier = 3.0
-	effect.material_override = material
-	arena.get_node("Effects").add_child(effect)
-	effect.global_position = position
-	var tween := effect.create_tween()
-	tween.set_parallel(true)
-	tween.tween_property(effect, "scale", Vector3.ONE * 5.5, 0.24)
-	tween.tween_property(material, "albedo_color", Color(color, 0.0), 0.24)
-	tween.chain().tween_callback(effect.queue_free)
-	if hit_enemy and input.is_multiplayer_authority():
-		player.hud.flash_hit()
+	material.emission_energy_multiplier = energy
+	return material

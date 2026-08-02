@@ -9,3 +9,5 @@ fly.toml
 *.blend1
 .env
 .tmp/
+__pycache__/
+*.pyc

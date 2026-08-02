@@ -5,6 +5,7 @@ class_name SkooshNetworkFlag
 
 @onready var banner := $Banner as MeshInstance3D
 @onready var glow := $Glow as OmniLight3D
+@onready var beacon_ring := $BeaconRing as MeshInstance3D
 
 var _base_position := Vector3.ZERO
 var _carried := false
@@ -20,12 +21,13 @@ func present(world_position: Vector3, carried: bool, active: bool = true) -> voi
 	_carried = carried
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if not visible:
 		return
 	var bob := 0.0 if _carried else sin(Time.get_ticks_msec() * 0.004) * 0.12
 	global_position = _base_position + Vector3.UP * bob
 	banner.rotation.y = sin(Time.get_ticks_msec() * 0.003) * 0.12
+	beacon_ring.rotate_y(delta * (1.2 if _carried else 0.45))
 
 
 func _apply_team_color() -> void:
@@ -37,4 +39,5 @@ func _apply_team_color() -> void:
 	material.emission_energy_multiplier = 1.35
 	material.roughness = 0.58
 	banner.material_override = material
+	beacon_ring.material_override = material
 	glow.light_color = color

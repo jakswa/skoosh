@@ -268,20 +268,16 @@ func _update_team_presentation() -> void:
 	if not is_node_ready():
 		return
 	_presented_team = team
-	var color := Color("#ff594d") if team == 0 else Color("#36bfff")
+	var color := Color("#c84a3d") if team == 0 else Color("#3b8fbd")
 	if team < 0:
 		color = Color("#d8e0d2")
 	name_label.text = "SYNCING" if team < 0 else callsign_for_peer(peer_id)
 	name_label.modulate = color.lightened(0.25)
 	var material := StandardMaterial3D.new()
 	material.albedo_color = color
-	material.emission_enabled = true
-	material.emission = color
-	material.emission_energy_multiplier = 0.32
-	material.roughness = 0.68
+	material.roughness = 0.82
 	const TEAM_ARMOR_PARTS: Array[StringName] = [
-		&"Pelvis shell", &"Chest plate", &"Helmet",
-		&"Upper arm L", &"Upper arm R", &"Thigh L", &"Thigh R",
+		&"Helmet", &"Upper arm L", &"Upper arm R",
 		&"Jet pod L", &"Jet pod R",
 	]
 	for child in world_model.find_children("*", "MeshInstance3D", true, false):

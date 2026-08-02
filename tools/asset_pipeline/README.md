@@ -77,6 +77,16 @@ Current source policy for these small experiments is to track `.blend` source di
 
 Asset provenance and source/runtime statistics are recorded under `assets/manifests/`.
 
+## Kestrel Basin bake-off assets
+
+The alpine-expeditionary candidate generates its induction launcher, matching relay disc, and shared braced relay station from one repository-local Blender script:
+
+```bash
+TMPDIR="$PWD/.tmp" blender --background --python tools/asset_pipeline/create_alpine_expedition_assets.py
+```
+
+Editable launcher and station `.blend` files are retained. The runtime GLBs use graphite, worn ceramic, expedition-orange hardware, narrow team markings, and neutral mint relay materials without external textures. Provenance and binary sizes are recorded in `assets/manifests/kestrel_basin_assets.json`.
+
 ## Forward+ qualification decal
 
 The renderer experiment uses one neutral landing-zone decal to demonstrate projected decals without anchoring a future direction to team-specific source art:

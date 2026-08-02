@@ -1,0 +1,51 @@
+{
+  "asset_name": "Kestrel Basin expeditionary visual set",
+  "category": "hero weapon, projectile, relay-station architecture, terrain shader",
+  "status": "visual bake-off prototype",
+  "creator": "Project-local agent-authored generation",
+  "source_url": null,
+  "acquisition_date": "2026-08-02",
+  "price_usd": 0,
+  "license": "Original project work; no external asset dependencies",
+  "commercial_use": true,
+  "redistribution": "May be redistributed with the project and game exports",
+  "attribution_required": false,
+  "ai_generated_service": null,
+  "tools": [
+    "Blender 5.2.0 LTS background Python",
+    "Godot 4.4.1 Forward+ renderer"
+  ],
+  "source_files": [
+    "tools/asset_pipeline/blender_asset_utils.py",
+    "tools/asset_pipeline/create_alpine_expedition_assets.py",
+    "assets/source/weapons/kestrel_induction_launcher.blend",
+    "assets/source/environment/kestrel_relay_station.blend",
+    "assets/materials/terrain/alpine_hardpack.gdshader"
+  ],
+  "runtime_files": [
+    "assets/models/weapons/kestrel_induction_launcher.glb",
+    "assets/models/weapons/kestrel_relay_disc.glb",
+    "assets/models/environment/kestrel_relay_station.glb",
+    "assets/materials/terrain/alpine_hardpack.gdshader"
+  ],
+  "runtime_statistics": {
+    "launcher_source_bytes": 127958,
+    "launcher_glb_bytes": 277136,
+    "projectile_glb_bytes": 41360,
+    "station_source_bytes": 129163,
+    "station_glb_bytes": 502420,
+    "external_textures": 0
+  },
+  "integration": {
+    "launcher": "Articulated DiscRotor and ChargeCore nodes retain the existing recoil/recharge presentation contract",
+    "projectile": "Matching relay disc is exported by the same deterministic generator",
+    "station": "One shared GLB is instanced for both teams; only narrow markings receive runtime team variants",
+    "terrain": "Analytic world-space wind scoring, crust variation, slope rock break, and contour strata use no texture assets"
+  },
+  "known_limitations": [
+    "Station gantries, floodlight rails, braces, and survey mast are presentation-only; authoritative collision remains the existing 14 x 2 x 14 box.",
+    "The retained runway suit is a placeholder skeletal integration proof, not production character art.",
+    "The prototype has no hand rig or authored launcher-hand attachment.",
+    "Generated Blender exports do not yet include production LOD authoring or baked wear textures."
+  ]
+}

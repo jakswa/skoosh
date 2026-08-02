@@ -170,9 +170,9 @@ func _process(delta: float) -> void:
 	]
 	var carrying: bool = arena.player_carries_enemy_flag(player)
 	_objective.text = (
-		"FLAG SECURED // RETURN TO YOUR PLATFORM"
+		"RELAY KEY SECURED // RETURN TO YOUR STATION"
 		if carrying
-		else "ENEMY FLAG: %s     //     OUR FLAG: %s" % [
+		else "ENEMY RELAY: %s     //     OUR RELAY: %s" % [
 			arena.get_flag_status(1 if player.team == 0 else 0),
 			arena.get_flag_status(player.team),
 		]
@@ -182,7 +182,7 @@ func _process(delta: float) -> void:
 	)
 	var reload_fraction: float = player.weapon.get_reload_fraction()
 	_reload_bar.value = reload_fraction * 100.0
-	_weapon_status.text = "DISC LAUNCHER  //  %s\n105 IMPACT  /  SPLASH 5.8m" % [
+	_weapon_status.text = "INDUCTION DISC  //  %s\n105 IMPACT  /  SPLASH 5.8m" % [
 		"READY" if reload_fraction >= 1.0 else "CHARGING"
 	]
 	_round_notice.visible = arena.round_over
@@ -214,7 +214,7 @@ func _build() -> void:
 	_damage_shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_damage_shade)
 
-	var score_panel := _panel(Color(0.015, 0.045, 0.065, 0.9), Color(0.2, 0.75, 0.7, 0.6))
+	var score_panel := _panel(Color(0.025, 0.03, 0.031, 0.92), Color(0.28, 0.64, 0.55, 0.62))
 	score_panel.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	score_panel.position = Vector2(-335, 14)
 	score_panel.size = Vector2(670, 78)
@@ -229,7 +229,7 @@ func _build() -> void:
 	_objective.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	score_layout.add_child(_objective)
 
-	var stats_panel := _panel(Color(0.015, 0.045, 0.065, 0.88), Color(0.18, 0.65, 0.62, 0.45))
+	var stats_panel := _panel(Color(0.025, 0.03, 0.031, 0.9), Color(0.3, 0.46, 0.43, 0.62))
 	stats_panel.position = Vector2(22, 22)
 	stats_panel.size = Vector2(265, 152)
 	add_child(stats_panel)
@@ -243,7 +243,7 @@ func _build() -> void:
 	_energy_bar = _bar(Color("#58e0d4"))
 	stats_layout.add_child(_energy_bar)
 
-	var weapon_panel := _panel(Color(0.015, 0.045, 0.065, 0.88), Color(0.38, 0.94, 0.62, 0.55))
+	var weapon_panel := _panel(Color(0.025, 0.03, 0.031, 0.9), Color(0.38, 0.78, 0.62, 0.62))
 	weapon_panel.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	weapon_panel.position = Vector2(-318, -104)
 	weapon_panel.size = Vector2(296, 78)
@@ -314,7 +314,7 @@ func _build() -> void:
 
 
 func _build_voice_panel() -> void:
-	_voice_panel = _panel(Color(0.01, 0.035, 0.055, 0.96), Color(0.37, 0.95, 0.74, 0.88))
+	_voice_panel = _panel(Color(0.02, 0.025, 0.026, 0.97), Color(0.37, 0.78, 0.62, 0.88))
 	_voice_panel.position = Vector2(24, 210)
 	_voice_panel.size = Vector2(350, 270)
 	_voice_panel.visible = false
@@ -379,10 +379,10 @@ func _panel(background: Color, border: Color) -> PanelContainer:
 	style.bg_color = background
 	style.border_color = border
 	style.set_border_width_all(1)
-	style.corner_radius_top_left = 4
-	style.corner_radius_top_right = 4
-	style.corner_radius_bottom_left = 4
-	style.corner_radius_bottom_right = 4
+	style.corner_radius_top_left = 1
+	style.corner_radius_top_right = 1
+	style.corner_radius_bottom_left = 1
+	style.corner_radius_bottom_right = 1
 	style.content_margin_left = 14.0
 	style.content_margin_top = 10.0
 	style.content_margin_right = 14.0

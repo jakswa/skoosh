@@ -1,9 +1,6 @@
 extends StaticBody3D
 
-const RUNWAY_TERRAIN_SHADER := preload("res://assets/materials/terrain/runway_terrain.gdshader")
-const RUNWAY_DETAIL_ALBEDO := preload("res://assets/textures/terrain/runway/runway_detail_albedo.png")
-const RUNWAY_DETAIL_NORMAL := preload("res://assets/textures/terrain/runway/runway_detail_normal.png")
-const RUNWAY_DETAIL_ROUGHNESS := preload("res://assets/textures/terrain/runway/runway_detail_roughness.png")
+const ALPINE_TERRAIN_SHADER := preload("res://assets/materials/terrain/alpine_hardpack.gdshader")
 
 ## Deterministic, single-mesh alpine basin. The same height function is used for
 ## rendering, collision, course placement, and out-of-bounds checks.
@@ -150,26 +147,23 @@ func generate() -> void:
 	terrain_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 
 	var material := ShaderMaterial.new()
-	material.shader = RUNWAY_TERRAIN_SHADER
-	material.set_shader_parameter("detail_albedo", RUNWAY_DETAIL_ALBEDO)
-	material.set_shader_parameter("detail_normal", RUNWAY_DETAIL_NORMAL)
-	material.set_shader_parameter("detail_roughness", RUNWAY_DETAIL_ROUGHNESS)
+	material.shader = ALPINE_TERRAIN_SHADER
 	terrain_mesh.surface_set_material(0, material)
 	_mesh_instance.mesh = terrain_mesh
 	_collision_shape.shape = terrain_mesh.create_trimesh_shape()
 
 
 func _terrain_color(height: float, normal_y: float) -> Color:
-	var valley := Color("#163f47")
-	var slope := Color("#356356")
-	var stone := Color("#7d806e")
-	var snow := Color("#d6d0b3")
-	var rock := Color("#303b48")
-	var color := valley.lerp(slope, smoothstep(-8.0, 12.0, height))
-	color = color.lerp(stone, smoothstep(12.0, 28.0, height))
-	color = color.lerp(snow, smoothstep(27.0, 46.0, height))
-	var steepness := smoothstep(0.9, 0.5, normal_y)
-	color = color.lerp(rock, steepness * 0.82)
-	# Four-meter value bands remain readable at speed without adding textures.
-	var contour_band := int(floor((height + 64.0) / 4.0)) & 1
-	return color.darkened(0.065 * contour_band)
+	var basin_ice := Color("#a8b8bd")
+	var hardpack := Color("#c6d2d3")
+	var sun_crust := Color("#d8dfdd")
+	var slate := Color("#262e32")
+	var high_slate := Color("#41484a")
+	var color := basin_ice.lerp(hardpack, smoothstep(-8.0, 15.0, height))
+	color = color.lerp(sun_crust, smoothstep(18.0, 43.0, height))
+	var steepness := smoothstep(0.92, 0.56, normal_y)
+	var rock_color := slate.lerp(high_slate, smoothstep(12.0, 42.0, height))
+	color = color.lerp(rock_color, steepness * 0.96)
+	# Tight elevation strata expose grade changes before a skier reaches them.
+	var contour_band := int(floor((height + 64.0) / 3.25)) & 1
+	return color.darkened(0.045 * contour_band)
