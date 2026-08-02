@@ -76,3 +76,13 @@ This launches only the review scene. The same rig is also installed as the curre
 Current source policy for these small experiments is to track `.blend` source directly and exclude Blender `.blend1` backups. Reconsider Git LFS if production source files or texture sets become materially larger.
 
 Asset provenance and source/runtime statistics are recorded under `assets/manifests/`.
+
+## Forward+ qualification decal
+
+The renderer experiment uses one neutral landing-zone decal to demonstrate projected decals without anchoring a future direction to team-specific source art:
+
+```bash
+python tools/asset_pipeline/create_forward_plus_showcase_textures.py
+```
+
+This writes `assets/textures/environment/forward_plus_base_decal.png`. RED and BLUE tint the same texture at runtime. See `docs/plans/FORWARD_PLUS_EVALUATION.md` for the lean, balanced, and showcase feature profiles.

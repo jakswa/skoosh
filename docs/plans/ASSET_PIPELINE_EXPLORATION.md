@@ -1,6 +1,6 @@
 # SKOOSH Asset Pipeline Exploration
 
-**Status:** Runway complete for a free-first visual bake-off. Weapon, terrain, base architecture, VFX integration, and skeletal import paths now have repository-local examples. Resume the bake-off only after the user gives the explicit go-ahead.
+**Status:** Runway complete for a free-first visual bake-off. Weapon, terrain, base architecture, VFX integration, skeletal import, and Forward+ presentation paths have repository-local examples. The user approved Forward+ with the balanced profile; this document's Compatibility results remain historical runway evidence.
 
 ## 1. Purpose
 
@@ -24,7 +24,7 @@ The Solar Nomad launcher experiment has moved the project beyond a model-import 
 - Agents can generate and substantially redesign original hard-surface assets in Blender.
 - Editable source, deterministic generation, UVs, PBR maps, articulated nodes, optimized GLBs, import settings, and provenance are retained.
 - User feedback can be incorporated through rapid model regeneration rather than destructive scene edits.
-- Godot materials react to real scene lighting in the Compatibility renderer.
+- Godot materials react to real scene lighting in both the original Compatibility runway and the adopted Forward+ renderer.
 - Gameplay-responsive recoil, disc removal, recharge, muzzle presentation, and a shared projectile source are functional.
 - Authoritative multiplayer, ground movement, and standardized off-screen capture validate successfully.
 - A textured terrain shader and optimized shared base kit now prove world-asset integration without changing collision.
@@ -54,7 +54,7 @@ Launcher-specific design debt and continuation criteria are documented in `SOLAR
 5. Should effects be built in Godot, adapted from packs, or use a hybrid approach?
 6. What source formats, folder layout, import settings, and version-control policy should the project standardize?
 7. What is the realistic cost per visual direction and for the eventual winner?
-8. What quality level can the available machine and Compatibility renderer sustain at 60 FPS?
+8. What quality level can the available machine and adopted Forward+ profiles sustain at 60 FPS?
 
 ## 3. Expected likely outcome
 
@@ -70,11 +70,11 @@ This hypothesis must be tested rather than assumed.
 
 ## 4. Project constraints
 
-- Godot 4.4+ with the Compatibility renderer.
+- Godot 4.4+ with Forward+; balanced is the default feature profile and lean is the low-spec profile.
 - Native desktop clients and Linux headless server.
 - The server remains authoritative over gameplay; assets are presentation only.
 - Existing deterministic terrain and gameplay collision should remain stable during pipeline experiments.
-- Off-screen visual review must use `tools/capture_visual_qa.sh`.
+- Off-screen Forward+ visual review must use `tools/capture_visual_qa_private_wayland.sh`; Xvfb remains available only for historical Compatibility checks.
 - Required gameplay validation remains:
 
 ```bash
@@ -403,7 +403,7 @@ Remove the hold only when:
 - [x] Round 1 target is coherent direction prototypes, using a free-first/local-only asset policy.
 - [x] Blender model-production paths have completed successful Godot imports.
 - [x] Real weapon and base models demonstrate meaningful improvement over primitives.
-- [x] A terrain texture/material path works in the Compatibility renderer.
+- [x] A terrain texture/material path works in Compatibility and the adopted Forward+ renderer.
 - [x] A representative firing/projectile/impact VFX chain works in live multiplayer.
 - [x] Licensing and manifests are understood for repository-authored Round 1 work.
 - [x] Small `.blend` source and runtime assets are tracked directly; `.blend1` backups are excluded. Git LFS remains a later scale decision.

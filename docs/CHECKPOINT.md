@@ -2,12 +2,12 @@
 
 **Checkpoint date:** 2026-07-31  
 **Status:** First playable movement/time-trial MVP plus an initial authoritative multiplayer/combat vertical slice; human multiplayer playtest and impairment testing remain.  
-**Direction decision:** Proper multiplayer is a destination. Native desktop clients will use an authoritative dedicated-server model; browser support is no longer a destination. Research recommends staying with Godot 4.4+ and ENet unless a measured movement-prediction spike fails.  
+**Direction decision:** Proper multiplayer is a destination. Native desktop clients use an authoritative dedicated-server model; browser support is no longer a destination. Godot 4.4+, ENet, and Forward+ with the balanced presentation profile are the current baseline.
 **Purpose:** Record where the project is, the first playtest impressions, and the likely cost of expanding it. This is context, not an instruction to address the feedback immediately.
 
 ## 1. What exists now
 
-SKOOSH is a self-contained Godot 4.x first-person movement toy using GDScript and the Compatibility renderer.
+SKOOSH is a self-contained Godot 4.x first-person movement toy using typed GDScript and the Forward+ renderer. The balanced profile enables decals, clustered team lights, SSAO, and restrained volumetric fog; expensive showcase features remain off by default.
 
 The current build includes:
 
@@ -58,7 +58,7 @@ Likely work:
 
 - Increase value and hue separation between valleys, traversable slopes, steep rock, and high ground.
 - Reduce the current pale/cyan wash from the interaction of vertex colors, fog, ambient light, and sun.
-- Add a Compatibility-safe terrain shader or more deliberate vertex-color bands.
+- Improve the existing terrain shader or use more deliberate vertex-color bands; bake-off candidates may use Forward+ features within their recorded feature budget.
 - Use slope/height contour accents, restrained procedural texture variation, or broad directional markings rather than downloaded textures.
 - Improve gate-to-gate route communication independently of terrain appearance.
 

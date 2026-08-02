@@ -20,6 +20,15 @@ Override the engine path or port when needed:
 GODOT_BIN=/path/to/Godot SKOOSH_PORT=9078 ./tools/run_multiplayer_demo.sh
 ```
 
+SKOOSH uses Forward+ with the balanced presentation profile by default. Compare its feature tiers with:
+
+```bash
+SKOOSH_RENDERER_PROFILE=lean ./tools/run_multiplayer_demo.sh
+SKOOSH_RENDERER_PROFILE=showcase ./tools/run_multiplayer_demo.sh
+```
+
+See [`docs/plans/FORWARD_PLUS_EVALUATION.md`](docs/plans/FORWARD_PLUS_EVALUATION.md) for renderer evidence, limitations, and the adopted feature policy.
+
 Connect two local clients to any direct host with:
 
 ```bash
@@ -68,7 +77,7 @@ Clients are balanced between RED and BLUE. Take the opposing flag and return to 
 
 The multiplayer test takes about 51 seconds and validates two-team spawning, cross-peer global voice relay, combat, death/respawn, ski/jet movement, a flag capture, win state, and round restart.
 
-For off-screen visual and UX review, run `./tools/capture_visual_qa.sh`. It renders the lobby and a live bot-driven match on private Xvfb displays, so it does not open desktop windows or capture the host mouse. See [`docs/VISUAL_QA.md`](docs/VISUAL_QA.md).
+For off-screen visual and UX review, Compatibility uses `./tools/capture_visual_qa.sh`; Forward+ uses `./tools/capture_visual_qa_private_wayland.sh` with a private headless Weston compositor. Neither opens desktop windows or captures the host mouse. See [`docs/VISUAL_QA.md`](docs/VISUAL_QA.md).
 
 The original solo time-trial remains available as `res://scenes/main.tscn`; the multiplayer CTF scene is the project entry point.
 

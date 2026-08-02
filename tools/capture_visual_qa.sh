@@ -7,6 +7,7 @@ OUTPUT_DIR="${SKOOSH_VISUAL_QA_DIR:-$ROOT/build/visual-qa/current}"
 LOG_DIR="$OUTPUT_DIR/logs"
 PORT="${SKOOSH_VISUAL_QA_PORT:-29077}"
 TEST_SECONDS="${SKOOSH_VISUAL_QA_SECONDS:-20}"
+CONNECT_ATTEMPTS="${SKOOSH_VISUAL_QA_CONNECT_ATTEMPTS:-100}"
 SERVER_SECONDS=$((TEST_SECONDS + 10))
 
 if [[ ! -x "$GODOT_BIN" ]]; then
@@ -22,9 +23,17 @@ mkdir -p "$LOG_DIR"
 rm -f "$OUTPUT_DIR"/*.png "$LOG_DIR"/*.log
 
 pids=()
+terminate_tree() {
+  local pid="$1"
+  local child
+  while read -r child; do
+    [[ -n "$child" ]] && terminate_tree "$child"
+  done < <(pgrep -P "$pid" 2>/dev/null || true)
+  kill "$pid" 2>/dev/null || true
+}
 cleanup() {
   for pid in "${pids[@]:-}"; do
-    kill "$pid" 2>/dev/null || true
+    terminate_tree "$pid"
   done
 }
 trap cleanup EXIT INT TERM
@@ -53,7 +62,7 @@ pids+=("$qa_pid")
 # Xvfb and llvmpipe startup time varies. Wait for this client to connect first
 # so it is consistently RED, the acceptance bot's active flag-running team.
 qa_connected=false
-for _attempt in {1..100}; do
+for ((_attempt = 0; _attempt < CONNECT_ATTEMPTS; _attempt++)); do
   if grep -q "NETWORK client connected" "$LOG_DIR/qa-client.log"; then
     qa_connected=true
     break

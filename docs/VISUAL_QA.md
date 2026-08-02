@@ -4,11 +4,19 @@ SKOOSH has an off-screen capture flow for visual and UX iteration. It renders th
 
 ## Run
 
+Compatibility renderer:
+
 ```bash
 ./tools/capture_visual_qa.sh
 ```
 
-The runner starts rendered Godot processes on disposable Xvfb displays with TCP disabled. It does not open windows on the desktop display, take desktop screenshots, move the host pointer, or capture host keyboard focus. Multiplayer input comes from the existing acceptance bot.
+Forward+ or a GPU-backed renderer comparison:
+
+```bash
+./tools/capture_visual_qa_private_wayland.sh
+```
+
+The Compatibility runner starts rendered Godot processes on disposable Xvfb displays with TCP disabled. Xvfb cannot provide the Vulkan presentation queue required by Forward+. The Forward+ runner instead starts a private headless Weston compositor for each rendered process; it requires the `weston` executable or an explicit `WESTON_BIN` path and keeps sockets/wrappers under the repository's ignored `.tmp/` directory. Both paths avoid the desktop display, desktop screenshots, pointer movement, and host keyboard focus. Multiplayer input comes from the existing acceptance bot.
 
 Captures and logs are written to the ignored directory:
 
@@ -29,6 +37,16 @@ SKOOSH_VISUAL_QA_PORT=29078 \
 SKOOSH_VISUAL_QA_SECONDS=24 \
 ./tools/capture_visual_qa.sh
 ```
+
+The private-Wayland runner additionally accepts:
+
+```bash
+SKOOSH_RENDERING_METHOD=forward_plus \
+SKOOSH_RENDERER_PROFILE=balanced \
+./tools/capture_visual_qa_private_wayland.sh
+```
+
+When profiling renderer throughput, `SKOOSH_GPU_PROFILE=1` disables VSync and the frame cap and prints one-second project FPS samples. This is diagnostic evidence, not a substitute for testing representative minimum-spec hardware.
 
 ## Review Checklist
 

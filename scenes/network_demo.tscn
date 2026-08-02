@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3]
+[gd_scene load_steps=23 format=3]
 
 [ext_resource type="Script" path="res://scripts/network_main.gd" id="1_main"]
 [ext_resource type="Script" path="res://scripts/terrain.gd" id="2_terrain"]
@@ -8,6 +8,8 @@
 [ext_resource type="Script" path="res://scripts/visual_qa_capture.gd" id="6_visual_qa"]
 [ext_resource type="PackedScene" path="res://assets/models/environment/runway_base_kit.glb" id="7_base_kit"]
 [ext_resource type="Script" path="res://scripts/team_base_visual.gd" id="8_base_visual"]
+[ext_resource type="Texture2D" path="res://assets/textures/environment/forward_plus_base_decal.png" id="9_base_decal"]
+[ext_resource type="Script" path="res://scripts/renderer_feature_profile.gd" id="10_renderer_profile"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial"]
 sky_top_color = Color(0.015, 0.075, 0.18, 1)
@@ -32,8 +34,30 @@ tonemap_mode = 2
 fog_enabled = true
 fog_light_color = Color(0.26, 0.43, 0.45, 1)
 fog_light_energy = 0.36
-fog_density = 0.00082
-fog_sky_affect = 0.32
+fog_density = 0.00048
+fog_sky_affect = 0.22
+ssr_enabled = false
+ssr_max_steps = 48
+ssao_enabled = false
+ssao_radius = 1.8
+ssao_intensity = 2.2
+ssao_power = 1.35
+ssil_enabled = false
+ssil_radius = 3.5
+ssil_intensity = 0.85
+sdfgi_enabled = false
+sdfgi_use_occlusion = true
+sdfgi_read_sky_light = true
+sdfgi_bounce_feedback = 0.45
+volumetric_fog_enabled = false
+volumetric_fog_density = 0.008
+volumetric_fog_albedo = Color(0.64, 0.78, 0.8, 1)
+volumetric_fog_emission = Color(0.015, 0.035, 0.04, 1)
+volumetric_fog_emission_energy = 0.3
+volumetric_fog_length = 240.0
+volumetric_fog_detail_spread = 2.2
+volumetric_fog_ambient_inject = 0.45
+volumetric_fog_sky_affect = 0.42
 
 [sub_resource type="BoxShape3D" id="PlatformShape"]
 size = Vector3(14, 2, 14)
@@ -58,6 +82,18 @@ emission_enabled = true
 emission = Color(0.025, 0.55, 1, 1)
 emission_energy_multiplier = 2.6
 roughness = 0.48
+
+[sub_resource type="FogMaterial" id="RedBaseFog"]
+density = 0.055
+albedo = Color(0.75, 0.09, 0.035, 1)
+emission = Color(0.16, 0.008, 0.002, 1)
+edge_fade = 0.55
+
+[sub_resource type="FogMaterial" id="BlueBaseFog"]
+density = 0.055
+albedo = Color(0.025, 0.32, 0.75, 1)
+emission = Color(0.002, 0.045, 0.16, 1)
+edge_fade = 0.55
 
 [sub_resource type="CylinderMesh" id="FlagPoleMesh"]
 top_radius = 0.055
@@ -168,6 +204,48 @@ material_override = SubResource("RedGlowMaterial")
 mesh = SubResource("BaseRingMesh")
 cast_shadow = 0
 
+[node name="LandingDecal" type="Decal" parent="CompactArena/RedPlatform"]
+position = Vector3(0, -1.8, 0)
+size = Vector3(18, 8, 18)
+texture_albedo = ExtResource("9_base_decal")
+modulate = Color(1, 0.11, 0.045, 0.78)
+upper_fade = 0.15
+lower_fade = 0.15
+
+[node name="Atmosphere" type="FogVolume" parent="CompactArena/RedPlatform"]
+position = Vector3(0, 2.2, 0)
+size = Vector3(20, 8, 20)
+shape = 3
+material = SubResource("RedBaseFog")
+
+[node name="FillNorth" type="OmniLight3D" parent="CompactArena/RedPlatform"]
+position = Vector3(0, 2.2, -5.5)
+light_color = Color(1, 0.12, 0.04, 1)
+light_energy = 2.6
+omni_range = 9.0
+shadow_enabled = false
+
+[node name="FillSouth" type="OmniLight3D" parent="CompactArena/RedPlatform"]
+position = Vector3(0, 2.2, 5.5)
+light_color = Color(1, 0.12, 0.04, 1)
+light_energy = 2.6
+omni_range = 9.0
+shadow_enabled = false
+
+[node name="FillWest" type="OmniLight3D" parent="CompactArena/RedPlatform"]
+position = Vector3(-5.5, 2.2, 0)
+light_color = Color(1, 0.12, 0.04, 1)
+light_energy = 2.6
+omni_range = 9.0
+shadow_enabled = false
+
+[node name="FillEast" type="OmniLight3D" parent="CompactArena/RedPlatform"]
+position = Vector3(5.5, 2.2, 0)
+light_color = Color(1, 0.12, 0.04, 1)
+light_energy = 2.6
+omni_range = 9.0
+shadow_enabled = false
+
 [node name="BluePlatform" type="StaticBody3D" parent="CompactArena"]
 collision_layer = 1
 collision_mask = 0
@@ -184,6 +262,48 @@ position = Vector3(0, 1.06, 0)
 material_override = SubResource("BlueGlowMaterial")
 mesh = SubResource("BaseRingMesh")
 cast_shadow = 0
+
+[node name="LandingDecal" type="Decal" parent="CompactArena/BluePlatform"]
+position = Vector3(0, -1.8, 0)
+size = Vector3(18, 8, 18)
+texture_albedo = ExtResource("9_base_decal")
+modulate = Color(0.035, 0.58, 1, 0.78)
+upper_fade = 0.15
+lower_fade = 0.15
+
+[node name="Atmosphere" type="FogVolume" parent="CompactArena/BluePlatform"]
+position = Vector3(0, 2.2, 0)
+size = Vector3(20, 8, 20)
+shape = 3
+material = SubResource("BlueBaseFog")
+
+[node name="FillNorth" type="OmniLight3D" parent="CompactArena/BluePlatform"]
+position = Vector3(0, 2.2, -5.5)
+light_color = Color(0.025, 0.56, 1, 1)
+light_energy = 2.6
+omni_range = 9.0
+shadow_enabled = false
+
+[node name="FillSouth" type="OmniLight3D" parent="CompactArena/BluePlatform"]
+position = Vector3(0, 2.2, 5.5)
+light_color = Color(0.025, 0.56, 1, 1)
+light_energy = 2.6
+omni_range = 9.0
+shadow_enabled = false
+
+[node name="FillWest" type="OmniLight3D" parent="CompactArena/BluePlatform"]
+position = Vector3(-5.5, 2.2, 0)
+light_color = Color(0.025, 0.56, 1, 1)
+light_energy = 2.6
+omni_range = 9.0
+shadow_enabled = false
+
+[node name="FillEast" type="OmniLight3D" parent="CompactArena/BluePlatform"]
+position = Vector3(5.5, 2.2, 0)
+light_color = Color(0.025, 0.56, 1, 1)
+light_energy = 2.6
+omni_range = 9.0
+shadow_enabled = false
 
 [node name="RedFlag" type="Node3D" parent="CompactArena"]
 script = ExtResource("5_flag")
@@ -236,3 +356,8 @@ replication_config = SubResource("GameReplicationConfig")
 
 [node name="VisualQACapture" type="Node" parent="."]
 script = ExtResource("6_visual_qa")
+
+[node name="RendererFeatureProfile" type="Node" parent="."]
+script = ExtResource("10_renderer_profile")
+world_environment_path = NodePath("../WorldEnvironment")
+local_volume_paths = Array[NodePath]([NodePath("../CompactArena/RedPlatform/Atmosphere"), NodePath("../CompactArena/BluePlatform/Atmosphere")])

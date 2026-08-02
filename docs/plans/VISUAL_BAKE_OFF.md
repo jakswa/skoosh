@@ -1,6 +1,6 @@
 # SKOOSH Visual Direction Bake-Off
 
-> **READY FOR USER GO-AHEAD:** The technical runway in `ASSET_PIPELINE_EXPLORATION.md` is complete. Do not spawn workers until the current pipeline work is consolidated into one recorded baseline commit and the user explicitly starts the bake-off.
+> **READY TO SPAWN:** The user approved Forward+ with the balanced profile after live playtesting. Record the final pushed baseline commit, create all three worktrees from that exact SHA, and wait for the user's explicit instruction to fire the bake-off.
 
 **Status:** Launch-ready overseer plan. It creates isolated worktrees, spawns three equally scoped visual workers, collects standardized captures, and presents the results for a human decision.
 
@@ -14,7 +14,7 @@ Explore three substantially different visual directions against the same playabl
 
 The bake-off should answer:
 
-> Which direction makes SKOOSH most readable, distinctive, exciting in motion, and worth sharing, while remaining feasible for a small project using Godot's Compatibility renderer?
+> Which direction makes SKOOSH most readable, distinctive, exciting in motion, and worth sharing, while remaining feasible for a small project using Godot Forward+?
 
 This is a direction-finding exercise, not three production art passes. Each worker should make a coherent, runnable visual prototype and produce comparable screenshots. The user chooses the winner.
 
@@ -24,7 +24,7 @@ Each candidate has permission to feel like a different game built around the sam
 
 Workers have complete creative freedom over visible design and broad engineering freedom over the presentation layer. They may replace every visible asset, composition, material, shader, VFX system, animation approach, UI theme, scene hierarchy, generator, and client-side presentation script. They do not need to preserve the Solar Nomad launcher, runway terrain, base kit, mannequin, palette, proportions, or fiction.
 
-Engineering freedom remains inside the project invariants: Godot 4.4+, typed GDScript, the Compatibility renderer, native clients, and authoritative gameplay ownership. Candidates may radically re-engineer presentation, but must not move movement results, energy, combat, objectives, or score to clients. The same gameplay and collision routes should remain comparable even when their render shells are completely replaced.
+Engineering freedom remains inside the project invariants: Godot 4.4+, typed GDScript, the Forward+ renderer, native clients, and authoritative gameplay ownership. Candidates may radically re-engineer presentation, but must not move movement results, energy, combat, objectives, or score to clients. The same gameplay and collision routes should remain comparable even when their render shells are completely replaced.
 
 The desired outcome is three screenshots that could plausibly be mistaken for three separate games—not three palette swaps—while all three still run the same match underneath.
 
@@ -36,6 +36,7 @@ The overseer and all workers must read:
 - `docs/CHECKPOINT.md`
 - `docs/VISUAL_QA.md`
 - `docs/plans/ASSET_PIPELINE_EXPLORATION.md`
+- `docs/plans/FORWARD_PLUS_EVALUATION.md`
 - `tools/asset_pipeline/README.md`
 - This plan
 
@@ -43,7 +44,7 @@ The overseer and all workers must read:
 
 Relevant constraints:
 
-- Godot 4.4+, typed GDScript, Compatibility renderer.
+- Godot 4.4+, typed GDScript, Forward+ renderer; balanced is the shared baseline and lean is the low-spec profile.
 - Native clients and Linux headless server; no browser target.
 - The server remains authoritative over movement results, energy, combat, objectives, and score.
 - Multiplayer entry point: `scenes/network_demo.tscn`.
@@ -104,7 +105,7 @@ Each candidate must address:
 - Collision or terrain-topology changes that materially alter competitive routes.
 - Full production character pipelines; a candidate may still replace and animate the visible character prototype.
 - Account systems, matchmaking, or unrelated product work.
-- Replacing Godot or abandoning the Compatibility renderer.
+- Replacing Godot or changing the project-wide desktop renderer independently inside one candidate.
 
 Large presentation-layer refactors are allowed. Render terrain, architecture, player silhouettes, camera presentation, and effects may be replaced completely as long as presentation remains separable from simulation. Visual rigs, effects, and animation must not become authoritative collision or gameplay state.
 
@@ -193,6 +194,8 @@ Round 1 guardrails:
 - Imported decoration must not imply collision that does not exist; obvious walk-through structures are a visual failure.
 - The runway character proves skeleton integration only. Do not claim production animation, retargeting, or hand integration without implementing and showing it.
 - The runway terrain shader is not a required foundation and its top-projected cliff detail should not be copied blindly.
+- Balanced is the common renderer profile. A candidate may enable TAA, SSR, SSIL, or SDFGI only when the direction visibly benefits, and must record the feature, cost, and lean-profile fallback.
+- Do not mistake performance on the host Radeon 7900 XT for minimum-spec proof. Avoid expensive features that add no visible value in standardized captures.
 
 ### If external assets are allowed
 
@@ -229,7 +232,8 @@ The overseer should:
 3. Create each branch/worktree from that exact SHA.
 4. Give each worker ownership of only its assigned worktree.
 5. Prohibit workers from merging, rebasing onto one another, or editing the control worktree.
-6. Record each candidate's final commit SHA beside its captures.
+6. Require every worker to keep scratch files, logs, captures, generated intermediates, and tool writes inside its assigned worktree. Use `$PWD/.tmp/` for temporary state and `$PWD/build/` for durable ignored evidence; do not use `/tmp` or another worktree.
+7. Record each candidate's final commit SHA beside its captures.
 
 Workers should commit their candidate so the result remains inspectable after their session. Follow the repository co-author trailer requirement when committing.
 
@@ -245,48 +249,52 @@ The tools are usable in parallel only when unique ports and output/log directori
 | Broadcast sport | `29102` | `19102` |
 | Retro alien-industrial | `29103` | `19103` |
 
-The overseer should choose a shared ignored collection root in the control repository, for example:
+Each worker keeps output in its own assigned worktree so current-directory-only harnesses never write across worktree boundaries:
 
 ```text
-build/visual-bake-off/
-  alpine/
-  sport/
-  alien/
+$PWD/.tmp/visual-bake-off/       # disposable scratch/log state
+$PWD/build/visual-bake-off/      # ignored captures and comparison evidence
 ```
 
-Each worker writes only to its own subdirectory.
+The overseer reads or copies final evidence only after workers exit. Workers must not write into a shared control-worktree collection directory.
 
 ### Visual-QA commands
 
 Alpine:
 
 ```bash
+mkdir -p "$PWD/.tmp/visual-bake-off"
+TMPDIR="$PWD/.tmp" \
 SKOOSH_VISUAL_QA_PORT=29101 \
-SKOOSH_VISUAL_QA_DIR=/absolute/control/root/build/visual-bake-off/alpine \
-./tools/capture_visual_qa.sh
+SKOOSH_VISUAL_QA_DIR="$PWD/build/visual-bake-off/alpine" \
+./tools/capture_visual_qa_private_wayland.sh
 ```
 
 Sport:
 
 ```bash
+mkdir -p "$PWD/.tmp/visual-bake-off"
+TMPDIR="$PWD/.tmp" \
 SKOOSH_VISUAL_QA_PORT=29102 \
-SKOOSH_VISUAL_QA_DIR=/absolute/control/root/build/visual-bake-off/sport \
-./tools/capture_visual_qa.sh
+SKOOSH_VISUAL_QA_DIR="$PWD/build/visual-bake-off/sport" \
+./tools/capture_visual_qa_private_wayland.sh
 ```
 
 Alien:
 
 ```bash
+mkdir -p "$PWD/.tmp/visual-bake-off"
+TMPDIR="$PWD/.tmp" \
 SKOOSH_VISUAL_QA_PORT=29103 \
-SKOOSH_VISUAL_QA_DIR=/absolute/control/root/build/visual-bake-off/alien \
-./tools/capture_visual_qa.sh
+SKOOSH_VISUAL_QA_DIR="$PWD/build/visual-bake-off/alien" \
+./tools/capture_visual_qa_private_wayland.sh
 ```
 
-`xvfb-run -a` allocates private displays automatically. These captures must remain off-screen and must not use the desktop display.
+The private-Wayland runner creates a headless Weston compositor inside `$PWD/.tmp`; these captures must remain off-screen and must not use the desktop display.
 
 ### Resource caution
 
-Each visual run starts a server, a rendered llvmpipe/Xvfb client, and another client after rendering the lobby. Three simultaneous runs may saturate CPU or memory and produce timing flakes.
+Each visual run starts a server, a GPU-backed Forward+/Weston client, and another client after rendering the lobby. Three simultaneous runs may saturate CPU, GPU, or memory and produce timing flakes.
 
 Required policy:
 
@@ -294,13 +302,13 @@ Required policy:
 - Final standardized visual captures run serially, one candidate at a time.
 - Final multiplayer acceptance runs should also be isolated when diagnosing a failure.
 - A failed CTF route or missed event capture must be rerun alone before judging it as a candidate defect.
-- Never compare screenshots produced while one candidate was CPU-starved by another candidate's Blender export or llvmpipe capture.
+- Never compare screenshots produced while one candidate was CPU/GPU-starved by another candidate's Blender export or Forward+ capture.
 
 ### Other test behavior
 
 - `tools/test_ground_jet.sh`: safe to run in parallel.
 - `tools/test_multiplayer_demo.sh`: requires unique `SKOOSH_TEST_PORT` and `SKOOSH_TEST_LOG_DIR`.
-- `tools/test_oob_recovery.sh`: not parallel-safe because its port is hardcoded and its default temporary log is shared. The overseer must run it sequentially, preferably on the winner or all final candidates one at a time.
+- `tools/test_oob_recovery.sh`: set `TMPDIR="$PWD/.tmp"` so its log remains worktree-local. It does not need a multiplayer port.
 - Interactive demo runners also require unique ports/log directories, but graphical desktop clients must not be launched unless the user explicitly requests them.
 
 ## 9. Worker workflow
@@ -381,7 +389,7 @@ Provide:
   - What remains placeholder.
   - Expected production path.
   - Asset/license notes and binary/source inventory.
-  - Compatibility/performance concerns.
+  - Forward+ feature use, fallback strategy, and performance concerns.
   - Any visual geometry that intentionally differs from authoritative collision.
   - Character, animation, or retargeting claims that remain unproven.
 - Test results and log paths.
@@ -421,7 +429,7 @@ Suggested scoring, used as decision support rather than an automatic verdict:
 | Shareability | 20% | Would a screenshot or short clip make someone curious to play? |
 | Motion and action feel | 15% | Do jetting, skiing, firing, impacts, and capture feel responsive and satisfying? |
 | Production feasibility | 10% | Can a small project extend this direction without an unrealistic content burden? |
-| Technical preservation | 5% | Does it retain Compatibility support, performance, tests, and authority boundaries? |
+| Technical preservation | 5% | Does it retain Forward+ profile discipline, performance, tests, and authority boundaries? |
 
 Automatic concerns to call out separately:
 
@@ -473,12 +481,13 @@ Work only in this assigned worktree: <WORKTREE>.
 Baseline commit: <SHA>.
 Assigned visual-QA port: <VISUAL_PORT>.
 Assigned multiplayer-test port: <TEST_PORT>.
-Assigned shared capture directory: <CAPTURE_DIR>.
+Assigned worktree-local capture directory: <WORKTREE>/build/visual-bake-off/<CANDIDATE>.
 Asset policy: <POLICY>.
 
 Read AGENTS.md, docs/CHECKPOINT.md, docs/VISUAL_QA.md,
-`docs/plans/ASSET_PIPELINE_EXPLORATION.md`, `tools/asset_pipeline/README.md`,
-and `docs/plans/VISUAL_BAKE_OFF.md` completely before editing. Treat existing
+`docs/plans/ASSET_PIPELINE_EXPLORATION.md`,
+`docs/plans/FORWARD_PLUS_EVALUATION.md`, `tools/asset_pipeline/README.md`, and
+`docs/plans/VISUAL_BAKE_OFF.md` completely before editing. Treat existing
 runway assets as technical examples, not a required visual style.
 
 Create a coherent runnable visual prototype for your assigned direction. It
@@ -486,15 +495,17 @@ should plausibly look like a different game running on SKOOSH's simulation, not
 a reskin of the runway assets. You may replace every visible asset and broadly
 re-engineer client-side presentation: scene hierarchy, generators, render
 terrain, shaders, materials, models, rigs, animation, VFX, camera treatment,
-and UI theme. Remain within Godot 4.4+, typed GDScript, the Compatibility
-renderer, native clients, and authoritative gameplay ownership.
+and UI theme. Remain within Godot 4.4+, typed GDScript, the Forward+ renderer,
+native clients, and authoritative gameplay ownership.
 
 Address world atmosphere, terrain treatment, base architecture, first-person
 weapon, player/objective treatment, and at least one major action effect. Build
 at least one fresh Blender-authored focal asset. Do not alter authoritative
 rules, competitive collision routes, or network ownership. Do not download
 third-party assets. Do not launch graphical clients on the desktop; use the
-Xvfb visual-QA flow.
+private-Wayland Forward+ visual-QA flow. Keep every write inside your assigned
+worktree: temporary files under `$PWD/.tmp/` and captures under `$PWD/build/`.
+Do not write to `/tmp`, the control worktree, or another candidate worktree.
 
 You are competing on direction quality, readability, shareability, motion feel,
 and realistic production feasibility—not raw quantity of changes. Start by
@@ -520,7 +531,7 @@ files.
 - [ ] All candidates run `test_ground_jet.sh`.
 - [ ] All candidates run `test_multiplayer_demo.sh` on unique ports.
 - [ ] Every candidate records at least two capture-and-critique iteration loops.
-- [ ] Final standardized captures are run serially without competing Blender/llvmpipe load.
+- [ ] Final standardized captures are run serially without competing Blender/Forward+ GPU load.
 - [ ] All candidates produce off-screen standardized visual captures.
 - [ ] Each candidate provides three hero screenshots, an asset inventory, and a brief.
 - [ ] Overseer normalizes and presents the comparison.
