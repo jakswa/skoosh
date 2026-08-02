@@ -203,8 +203,8 @@ mesh = SubResource("LegMesh")
 [node name="NameLabel" type="Label3D" parent="."]
 position = Vector3(0, 2.72, 0)
 text = "SYNCING"
-font_size = 20
-outline_size = 4
+font_size = 15
+outline_size = 3
 modulate = Color(0.85, 1, 1, 1)
 pixel_size = 0.003
 billboard = 1

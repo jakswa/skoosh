@@ -219,12 +219,10 @@ func _update_team_presentation() -> void:
 	if not is_node_ready():
 		return
 	_presented_team = team
-	var team_name := "RED" if team == 0 else "BLUE"
 	var color := Color("#ff594d") if team == 0 else Color("#36bfff")
 	if team < 0:
-		team_name = "SYNCING"
 		color = Color("#d8e0d2")
-	name_label.text = "%s // %s" % [team_name, callsign_for_peer(peer_id)]
+	name_label.text = "SYNCING" if team < 0 else callsign_for_peer(peer_id)
 	name_label.modulate = color.lightened(0.25)
 	var material := StandardMaterial3D.new()
 	material.albedo_color = color
