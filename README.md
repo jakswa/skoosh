@@ -48,7 +48,7 @@ See [`docs/PLAYTESTING_AND_DISTRIBUTION.md`](docs/PLAYTESTING_AND_DISTRIBUTION.m
 - Space: ski
 - Shift or right mouse: jet; at low grounded speed this includes a fuel-costed upward pop
 - Left mouse: disc launcher
-- V, then number keys: team voice commands
+- V, then number keys: voice commands; press T or G in the menu for TEAM or GLOBAL comms
 - F3: network telemetry
 - R: authoritative respawn
 - Esc: release mouse
@@ -66,7 +66,7 @@ Clients are balanced between RED and BLUE. Take the opposing flag and return to 
 ./tools/test_multiplayer_demo.sh       # about 51 seconds
 ```
 
-The multiplayer test takes about 51 seconds and validates two-team spawning, combat, death/respawn, ski/jet movement, a flag capture, win state, and round restart.
+The multiplayer test takes about 51 seconds and validates two-team spawning, cross-peer global voice relay, combat, death/respawn, ski/jet movement, a flag capture, win state, and round restart.
 
 For off-screen visual and UX review, run `./tools/capture_visual_qa.sh`. It renders the lobby and a live bot-driven match on private Xvfb displays, so it does not open desktop windows or capture the host mouse. See [`docs/VISUAL_QA.md`](docs/VISUAL_QA.md).
 
@@ -74,4 +74,4 @@ The original solo time-trial remains available as `res://scenes/main.tscn`; the 
 
 ## Current network boundary
 
-The server owns movement results, energy, disc-launcher cadence and projectile impacts, splash damage, teams, flags, score, voice-command rate limits, and rounds. Clients predict disc visuals, while the server discards requested transforms and reconstructs each accepted launch from its current muzzle and aim. See [`docs/COMBAT_NETWORKING_ROADMAP.md`](docs/COMBAT_NETWORKING_ROADMAP.md) and [`docs/CHECKPOINT.md`](docs/CHECKPOINT.md).
+The server owns movement results, energy, disc-launcher cadence and projectile impacts, splash damage, teams, flags, score, team/global voice routing and rate limits, and rounds. Clients predict disc visuals, while the server discards requested transforms and reconstructs each accepted launch from its current muzzle and aim. See [`docs/COMBAT_NETWORKING_ROADMAP.md`](docs/COMBAT_NETWORKING_ROADMAP.md) and [`docs/CHECKPOINT.md`](docs/CHECKPOINT.md).

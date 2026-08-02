@@ -1,5 +1,6 @@
 extends Node3D
 
+const VoiceCommandLibrary = preload("res://scripts/voice_command_library.gd")
 const DEFAULT_PORT := 9077
 const MAX_CLIENTS := 16
 const TEAM_RED := 0
@@ -18,20 +19,8 @@ const ARENA_CENTER := Vector2(0.0, -207.0)
 const BASE_SEPARATION := 48.0
 const OOB_RECOVERY_SAFE_FRAMES := 3
 const VOICE_COMMAND_COOLDOWN_TICKS := 60
-const VOICE_COMMANDS := [
-	{"category": "SOCIAL", "label": "HELLO"},
-	{"category": "SOCIAL", "label": "GOODBYE"},
-	{"category": "SOCIAL", "label": "THANKS"},
-	{"category": "SOCIAL", "label": "SHAZBOT"},
-	{"category": "OBJECTIVE", "label": "DEFEND OUR STANDARD"},
-	{"category": "OBJECTIVE", "label": "PUSH THE FAR PLATFORM"},
-	{"category": "OBJECTIVE", "label": "RECOVER OUR STANDARD"},
-	{"category": "OBJECTIVE", "label": "COVER MY RETURN"},
-	{"category": "STATUS", "label": "YES"},
-	{"category": "STATUS", "label": "NO"},
-	{"category": "STATUS", "label": "I NEED SUPPORT"},
-	{"category": "STATUS", "label": "ALL CLEAR"},
-]
+const VOICE_CHANNEL_COOLDOWN_TICKS := 30
+const VOICE_COMMANDS := VoiceCommandLibrary.COMMANDS
 
 @export var player_scene: PackedScene
 
@@ -89,6 +78,7 @@ var _oob_recovery_safe_frames: Dictionary = {}
 var _last_voice_command_tick: Dictionary = {}
 var _last_voice_request_tick: Dictionary = {}
 var _last_team_voice_tick: Dictionary = {}
+var _last_global_voice_tick := -100000
 
 
 func _ready() -> void:
@@ -408,27 +398,37 @@ func get_voice_commands() -> Array:
 	return VOICE_COMMANDS
 
 
-func send_voice_command(command_id: int) -> void:
+func send_voice_command(command_id: int, scope: int = VoiceCommandLibrary.SCOPE_TEAM) -> void:
 	if multiplayer.is_server():
-		_broadcast_voice_command(multiplayer.get_unique_id(), command_id)
+		_broadcast_voice_command(multiplayer.get_unique_id(), command_id, scope)
 	else:
-		_request_voice_command.rpc_id(1, command_id)
+		_request_voice_command.rpc_id(1, command_id, scope)
 
 
 @rpc("any_peer", "reliable", "call_remote")
-func _request_voice_command(command_id: int) -> void:
-	if not multiplayer.is_server():
+func _request_voice_command(command_id: int, scope: int) -> void:
+	if (
+		not multiplayer.is_server()
+		or command_id < 0
+		or command_id >= VOICE_COMMANDS.size()
+		or scope not in [VoiceCommandLibrary.SCOPE_TEAM, VoiceCommandLibrary.SCOPE_GLOBAL]
+	):
 		return
 	var sender := multiplayer.get_remote_sender_id()
 	var previous_request_tick := int(_last_voice_request_tick.get(sender, -100000))
 	if NetworkTime.tick - previous_request_tick < 15:
 		return
 	_last_voice_request_tick[sender] = NetworkTime.tick
-	_broadcast_voice_command(sender, command_id)
+	_broadcast_voice_command(sender, command_id, scope)
 
 
-func _broadcast_voice_command(speaker_peer_id: int, command_id: int) -> void:
-	if not multiplayer.is_server() or command_id < 0 or command_id >= VOICE_COMMANDS.size():
+func _broadcast_voice_command(speaker_peer_id: int, command_id: int, scope: int) -> void:
+	if (
+		not multiplayer.is_server()
+		or command_id < 0
+		or command_id >= VOICE_COMMANDS.size()
+		or scope not in [VoiceCommandLibrary.SCOPE_TEAM, VoiceCommandLibrary.SCOPE_GLOBAL]
+	):
 		return
 	var speaker := avatars.get(speaker_peer_id) as SkooshNetworkPlayer
 	if speaker == null:
@@ -436,30 +436,50 @@ func _broadcast_voice_command(speaker_peer_id: int, command_id: int) -> void:
 	var previous_tick := int(_last_voice_command_tick.get(speaker_peer_id, -100000))
 	if NetworkTime.tick - previous_tick < VOICE_COMMAND_COOLDOWN_TICKS:
 		return
-	var previous_team_tick := int(_last_team_voice_tick.get(speaker.team, -100000))
-	if NetworkTime.tick - previous_team_tick < 30:
-		return
+	if scope == VoiceCommandLibrary.SCOPE_GLOBAL:
+		if NetworkTime.tick - _last_global_voice_tick < VOICE_CHANNEL_COOLDOWN_TICKS:
+			return
+		_last_global_voice_tick = NetworkTime.tick
+	else:
+		var previous_team_tick := int(_last_team_voice_tick.get(speaker.team, -100000))
+		if NetworkTime.tick - previous_team_tick < VOICE_CHANNEL_COOLDOWN_TICKS:
+			return
+		_last_team_voice_tick[speaker.team] = NetworkTime.tick
 	_last_voice_command_tick[speaker_peer_id] = NetworkTime.tick
-	_last_team_voice_tick[speaker.team] = NetworkTime.tick
 	_voice_commands_relayed += 1
 	for avatar_variant in avatars.values():
 		var listener := avatar_variant as SkooshNetworkPlayer
-		if listener != null and listener.team == speaker.team:
-			_receive_voice_command.rpc_id(listener.peer_id, speaker_peer_id, command_id)
-	print("VOICE speaker=%d team=%s command=%s" % [
-		speaker_peer_id, get_team_name(speaker.team), VOICE_COMMANDS[command_id]["label"]
+		if (
+			listener != null
+			and (scope == VoiceCommandLibrary.SCOPE_GLOBAL or listener.team == speaker.team)
+		):
+			_receive_voice_command.rpc_id(listener.peer_id, speaker_peer_id, command_id, scope)
+	print("VOICE speaker=%d team=%s scope=%s voice=%s command=%s" % [
+		speaker_peer_id,
+		get_team_name(speaker.team),
+		VoiceCommandLibrary.scope_name(scope),
+		VoiceCommandLibrary.pack_name_for_peer(speaker_peer_id),
+		VOICE_COMMANDS[command_id]["label"],
 	])
 
 
 @rpc("authority", "reliable", "call_remote")
-func _receive_voice_command(speaker_peer_id: int, command_id: int) -> void:
-	if command_id < 0 or command_id >= VOICE_COMMANDS.size():
+func _receive_voice_command(speaker_peer_id: int, command_id: int, scope: int) -> void:
+	if (
+		command_id < 0
+		or command_id >= VOICE_COMMANDS.size()
+		or scope not in [VoiceCommandLibrary.SCOPE_TEAM, VoiceCommandLibrary.SCOPE_GLOBAL]
+	):
 		return
 	var local_player := avatars.get(multiplayer.get_unique_id()) as SkooshNetworkPlayer
 	if local_player != null:
-		local_player.hud.play_voice_command(speaker_peer_id, command_id)
-		print("VOICE received listener=%d speaker=%d command=%s" % [
-			local_player.peer_id, speaker_peer_id, VOICE_COMMANDS[command_id]["label"]
+		local_player.hud.play_voice_command(speaker_peer_id, command_id, scope)
+		print("VOICE received listener=%d speaker=%d scope=%s voice=%s command=%s" % [
+			local_player.peer_id,
+			speaker_peer_id,
+			VoiceCommandLibrary.scope_name(scope),
+			VoiceCommandLibrary.pack_name_for_peer(speaker_peer_id),
+			VOICE_COMMANDS[command_id]["label"],
 		])
 
 

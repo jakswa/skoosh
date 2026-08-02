@@ -58,11 +58,16 @@ if grep -Eq "ERROR:|SCRIPT ERROR|rejected" "$LOG_DIR"/*.log; then
   status=1
 fi
 for client in 1 2; do
-  if ! grep -q "VOICE received" "$LOG_DIR/client-$client.log"; then
-    echo "Client $client did not receive a team voice command. Logs: $LOG_DIR" >&2
+  if ! grep -q "VOICE received.*scope=GLOBAL" "$LOG_DIR/client-$client.log"; then
+    echo "Client $client did not receive a global voice command. Logs: $LOG_DIR" >&2
     status=1
   fi
 done
+if ! perl -ne '$relayed = 1 if /VOICE received listener=(\d+) speaker=(\d+)/ && $1 != $2; END { exit($relayed ? 0 : 1) }' \
+  "$LOG_DIR"/client-*.log; then
+  echo "No client received a voice command from another peer. Logs: $LOG_DIR" >&2
+  status=1
+fi
 if [[ $status -ne 0 ]]; then
   echo "Multiplayer acceptance failed. Client logs: $LOG_DIR" >&2
   exit "$status"

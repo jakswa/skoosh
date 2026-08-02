@@ -16,7 +16,7 @@ This starts a headless authoritative server and two graphical clients. Override 
 GODOT_BIN=/path/to/Godot SKOOSH_PORT=9078 ./tools/run_multiplayer_demo.sh
 ```
 
-Logs are written under the ignored `.tmp/skoosh-network` directory. Ctrl-C in the launching terminal stops the whole group.
+Logs are written under the ignored `.tmp/skoosh-network` directory. Ctrl-C in the launching terminal stops the whole group. The two clients are assigned to opposing teams, so TEAM voice commands are intentionally private; press G in the open V menu to send a GLOBAL command that both clients can hear.
 
 To run the processes separately:
 

@@ -34,5 +34,6 @@ pids+=("$!")
 
 echo "SKOOSH network lab running on UDP $PORT"
 echo "Logs: $LOG_DIR"
+echo "Clients are opponents: TEAM comms stay local; choose GLOBAL with G in the V menu."
 echo "Close both client windows or press Ctrl-C here to stop the server."
 wait "${pids[1]}" "${pids[2]}" || true

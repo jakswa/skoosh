@@ -1,20 +1,7 @@
 extends CanvasLayer
 class_name SkooshNetworkHUD
 
-const VOICE_STREAMS := [
-	preload("res://audio/voice/hello.wav"),
-	preload("res://audio/voice/goodbye.wav"),
-	preload("res://audio/voice/thanks.wav"),
-	preload("res://audio/voice/shazbot.wav"),
-	preload("res://audio/voice/defend_our_standard.wav"),
-	preload("res://audio/voice/push_far_platform.wav"),
-	preload("res://audio/voice/recover_our_standard.wav"),
-	preload("res://audio/voice/cover_my_return.wav"),
-	preload("res://audio/voice/yes.wav"),
-	preload("res://audio/voice/no.wav"),
-	preload("res://audio/voice/need_support.wav"),
-	preload("res://audio/voice/all_clear.wav"),
-]
+const VoiceCommandLibrary = preload("res://scripts/voice_command_library.gd")
 
 var player: SkooshNetworkPlayer
 var _stats: Label
@@ -41,6 +28,7 @@ var _damage_time := 0.0
 var _voice_toast_time := 0.0
 var _last_health := 100
 var _voice_category := -1
+var _voice_scope := VoiceCommandLibrary.SCOPE_TEAM
 var _debug_visible := false
 
 
@@ -64,17 +52,19 @@ func flash_shot() -> void:
 	_shot_time = 0.1
 
 
-func play_voice_command(speaker_peer_id: int, command_id: int) -> void:
-	if player == null or command_id < 0 or command_id >= VOICE_STREAMS.size():
+func play_voice_command(speaker_peer_id: int, command_id: int, scope: int) -> void:
+	if player == null or command_id < 0 or command_id >= VoiceCommandLibrary.COMMANDS.size():
 		return
-	var arena := player.get_parent().get_parent()
-	var commands: Array = arena.get_voice_commands()
-	var command: Dictionary = commands[command_id]
+	var stream := VoiceCommandLibrary.stream_for_peer(speaker_peer_id, command_id)
+	if stream == null:
+		return
+	var command: Dictionary = VoiceCommandLibrary.COMMANDS[command_id]
 	var callsign := SkooshNetworkPlayer.callsign_for_peer(speaker_peer_id)
-	_voice_toast.text = "%s // %s" % [callsign, command["label"]]
+	var scope_name := VoiceCommandLibrary.scope_name(scope)
+	_voice_toast.text = "[%s] %s // %s" % [scope_name, callsign, command["label"]]
 	_voice_toast.visible = true
 	_voice_toast_time = 2.4
-	_voice_audio.stream = VOICE_STREAMS[command_id]
+	_voice_audio.stream = stream
 	_voice_audio.play()
 
 
@@ -118,6 +108,16 @@ func _unhandled_input(event: InputEvent) -> void:
 	var key_event := event as InputEventKey
 	if not key_event.pressed or key_event.echo:
 		return
+	if key_event.physical_keycode == KEY_G:
+		_voice_scope = VoiceCommandLibrary.SCOPE_GLOBAL
+		_update_voice_menu()
+		get_viewport().set_input_as_handled()
+		return
+	if key_event.physical_keycode == KEY_T:
+		_voice_scope = VoiceCommandLibrary.SCOPE_TEAM
+		_update_voice_menu()
+		get_viewport().set_input_as_handled()
+		return
 	var selection := _number_key_index(key_event.physical_keycode)
 	if selection < 0:
 		if key_event.keycode == KEY_ESCAPE:
@@ -131,7 +131,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		if selection < 4:
 			var command_id := _voice_category * 4 + selection
 			var arena := player.get_parent().get_parent()
-			arena.send_voice_command(command_id)
+			arena.send_voice_command(command_id, _voice_scope)
 			set_voice_menu_visible(false)
 	get_viewport().set_input_as_handled()
 
@@ -170,9 +170,9 @@ func _process(delta: float) -> void:
 	]
 	var carrying: bool = arena.player_carries_enemy_flag(player)
 	_objective.text = (
-		"STANDARD SECURED // RETURN TO YOUR PLATFORM"
+		"FLAG SECURED // RETURN TO YOUR PLATFORM"
 		if carrying
-		else "ENEMY STANDARD: %s     //     OUR STANDARD: %s" % [
+		else "ENEMY FLAG: %s     //     OUR FLAG: %s" % [
 			arena.get_flag_status(1 if player.team == 0 else 0),
 			arena.get_flag_status(player.team),
 		]
@@ -333,7 +333,7 @@ func _build_voice_panel() -> void:
 	_voice_entries.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	layout.add_child(_voice_entries)
 	var hint := _label(13, Color(0.62, 0.76, 0.74, 0.92))
-	hint.text = "NUMBER KEY TO SELECT  //  V TO CLOSE"
+	hint.text = "T TEAM  //  G GLOBAL  //  V CLOSE"
 	layout.add_child(hint)
 	_update_voice_menu()
 
@@ -341,14 +341,15 @@ func _build_voice_panel() -> void:
 func _update_voice_menu() -> void:
 	if _voice_title == null:
 		return
+	var scope_name := VoiceCommandLibrary.scope_name(_voice_scope)
 	if _voice_category < 0:
-		_voice_title.text = "TEAM COMMS // SELECT CHANNEL"
+		_voice_title.text = "%s COMMS // SELECT CHANNEL" % scope_name
 		_voice_entries.text = "1   SOCIAL\n2   OBJECTIVE\n3   STATUS"
 		return
 	var arena := player.get_parent().get_parent() if player != null else null
 	var commands: Array = arena.get_voice_commands() if arena != null else []
 	var category_names := ["SOCIAL", "OBJECTIVE", "STATUS"]
-	_voice_title.text = "TEAM COMMS // %s" % category_names[_voice_category]
+	_voice_title.text = "%s COMMS // %s" % [scope_name, category_names[_voice_category]]
 	var lines: Array[String] = []
 	for index in 4:
 		var command_id := _voice_category * 4 + index

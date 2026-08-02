@@ -1,6 +1,8 @@
 extends BaseNetInput
 class_name SkooshNetworkInput
 
+const VoiceCommandLibrary = preload("res://scripts/voice_command_library.gd")
+
 @export var mouse_sensitivity: float = 0.0023
 
 var movement := Vector2.ZERO
@@ -66,7 +68,7 @@ func _gather_bot() -> void:
 		_bot_voice_sent = true
 		var voice_arena := get_parent().get_parent().get_parent()
 		if voice_arena.has_method("send_voice_command"):
-			voice_arena.send_voice_command(0)
+			voice_arena.send_voice_command(0, VoiceCommandLibrary.SCOPE_GLOBAL)
 	if visual_qa_lock:
 		movement = Vector2.ZERO
 		ski = false
