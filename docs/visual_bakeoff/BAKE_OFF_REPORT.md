@@ -64,7 +64,7 @@ STRATOS's first final multiplayer run completed combat, voice, movement, jetting
 - Asset contract: PASS, one skeleton, 24 skinned meshes, six `MomentumLean` tracks, five consolidated base material meshes.
 - Ground jet: PASS, `8.20 m/s` pop, `6.50` energy, `0.20 m/s` high-speed exclusion.
 - Multiplayer: PASS, four kills/deaths, four damaging disc impacts, global voice relay, jet use, and three captures/rounds.
-- Final hybrid Forward+ sheet: deferred. The first attempt exposed and led to a fix for a weapon-child initialization-order error; subsequent private-Wayland launches stalled on this host before renderer initialization and were terminated rather than allowed to block consolidation. Candidate Forward+ evidence remains valid, but the consolidated frame still needs a fresh graphical review.
+- Final hybrid Forward+ sheet: PASS, 11 live states on Vulkan. The earlier pre-renderer stall came from forcing Godot's libdecor fallback to use an empty plugin directory; the repaired runner now completes under private Weston and retains compositor logs for future diagnosis.
 
 ## Decision
 

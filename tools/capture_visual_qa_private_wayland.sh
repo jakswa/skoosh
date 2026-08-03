@@ -17,7 +17,8 @@ if [[ -z "$WESTON_BIN" || ! -x "$WESTON_BIN" ]]; then
 fi
 
 SCRATCH_ROOT="${SKOOSH_TMP_DIR:-$ROOT/.tmp}"
-mkdir -p "$SCRATCH_ROOT"
+WESTON_LOG_DIR="${SKOOSH_VISUAL_QA_DIR:-$ROOT/build/visual-qa/current}/logs"
+mkdir -p "$SCRATCH_ROOT" "$WESTON_LOG_DIR"
 WRAPPER_DIR="$(mktemp -d "$SCRATCH_ROOT/forward-wrapper.XXXXXX")"
 GODOT_WRAPPER="$WRAPPER_DIR/godot-forward-plus"
 cleanup() {
@@ -41,7 +42,6 @@ done
 
 runtime_dir="\$(mktemp -d "$SCRATCH_ROOT/wayland.XXXXXX")"
 chmod 700 "\$runtime_dir"
-mkdir "\$runtime_dir/no-libdecor-plugins"
 socket="skoosh-forward-\$\$"
 weston_log="\$runtime_dir/weston.log"
 weston_pid=""
@@ -49,6 +49,9 @@ cleanup_render() {
   if [[ -n "\$weston_pid" ]]; then
     kill "\$weston_pid" 2>/dev/null || true
     wait "\$weston_pid" 2>/dev/null || true
+  fi
+  if [[ -f "\$weston_log" ]]; then
+    cp "\$weston_log" "$WESTON_LOG_DIR/weston-\$\$.log"
   fi
   rm -rf "\$runtime_dir"
 }
@@ -100,7 +103,7 @@ fi
 
 set +e
 env DISPLAY= XDG_RUNTIME_DIR="\$runtime_dir" WAYLAND_DISPLAY="\$socket" \
-  XDG_SESSION_TYPE=wayland LIBDECOR_PLUGIN_DIR="\$runtime_dir/no-libdecor-plugins" \
+  XDG_SESSION_TYPE=wayland \
   "$REAL_GODOT_BIN" --display-driver wayland --rendering-method "$RENDERING_METHOD" \
   --audio-driver Dummy "\${profile_args[@]}" "\${run_args[@]}"
 status=\$?

@@ -16,7 +16,7 @@ Forward+ or a GPU-backed renderer comparison:
 ./tools/capture_visual_qa_private_wayland.sh
 ```
 
-The Compatibility runner starts rendered Godot processes on disposable Xvfb displays with TCP disabled. Xvfb cannot provide the Vulkan presentation queue required by Forward+. The Forward+ runner instead starts a private headless Weston compositor for each rendered process; it requires the `weston` executable or an explicit `WESTON_BIN` path and keeps sockets/wrappers under the repository's ignored `.tmp/` directory. Both paths avoid the desktop display, desktop screenshots, pointer movement, and host keyboard focus. Multiplayer input comes from the existing acceptance bot.
+The Compatibility runner starts rendered Godot processes on disposable Xvfb displays with TCP disabled. Xvfb cannot provide the Vulkan presentation queue required by Forward+. The Forward+ runner instead starts a private headless Weston compositor for each rendered process; it requires the `weston` executable or an explicit `WESTON_BIN` path and keeps sockets/wrappers under the repository's ignored `.tmp/` directory. Do not disable libdecor plugins for this path: Godot 4.4 uses libdecor when the kiosk compositor does not advertise server-side decorations. Both paths avoid the desktop display, desktop screenshots, pointer movement, and host keyboard focus. Multiplayer input comes from the existing acceptance bot.
 
 Captures and logs are written to the ignored directory:
 
@@ -25,6 +25,8 @@ build/visual-qa/current/
 build/visual-qa/current/contact-sheet.png
 build/visual-qa/current/logs/
 ```
+
+The private-Wayland path retains a `weston-<pid>.log` for each rendered process alongside the Godot logs.
 
 The suite captures the lobby plus real first-person states around spawn, combat, traversal, flag carry, round result, and late match. Elimination is also event-captured if the rendered player dies. Event-driven images are included only when the match reaches that state. The command fails if the rendered client exits unsuccessfully or fewer than five images are produced.
 
