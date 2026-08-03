@@ -40,7 +40,7 @@ Linux can also connect directly with:
 
 The current macOS build is ad-hoc signed but not Apple-notarized, so Gatekeeper may require right-clicking the app and selecting **Open**.
 
-See [`docs/PLAYTESTING_AND_DISTRIBUTION.md`](docs/PLAYTESTING_AND_DISTRIBUTION.md) for complete source/release client workflows. Give server operators [`docs/SERVER_DEPLOYMENT.md`](docs/SERVER_DEPLOYMENT.md), which covers Git and prebuilt-binary installs, systemd, UDP forwarding, updates, and verification.
+See [`docs/PLAYTESTING_AND_DISTRIBUTION.md`](docs/PLAYTESTING_AND_DISTRIBUTION.md) for source and release workflows, and [`docs/SERVER_DEPLOYMENT.md`](docs/SERVER_DEPLOYMENT.md) for server setup and operation.
 
 ### Controls
 
