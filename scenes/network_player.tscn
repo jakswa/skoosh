@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://scripts/network_player.gd" id="1_player"]
 [ext_resource type="Script" path="res://scripts/network_player_input.gd" id="2_input"]
@@ -8,17 +8,14 @@
 [ext_resource type="Script" path="res://addons/netfox/tick-interpolator.gd" id="6_interpolator"]
 [ext_resource type="PackedScene" path="res://scenes/disc_projectile.tscn" id="7_projectile"]
 [ext_resource type="PackedScene" path="res://assets/models/weapons/kestrel_induction_launcher.glb" id="8_launcher_model"]
-[ext_resource type="PackedScene" path="res://assets/models/characters/runway_suit_rig.glb" id="9_suit_model"]
+[ext_resource type="PackedScene" path="res://assets/models/characters/vector_expedition_runner.glb" id="9_suit_model"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape_player"]
 radius = 0.48
 height = 2.2
 
-[sub_resource type="SphereMesh" id="MuzzleFlashMesh"]
-radius = 0.05
-height = 0.1
-radial_segments = 12
-rings = 6
+[sub_resource type="BoxMesh" id="MuzzleFlashMesh"]
+size = Vector3(0.3, 0.12, 0.035)
 
 [sub_resource type="StandardMaterial3D" id="MuzzleFlashMaterial"]
 shading_mode = 0
@@ -26,12 +23,6 @@ albedo_color = Color(0.72, 1, 0.86, 1)
 emission_enabled = true
 emission = Color(0.16, 1, 0.52, 1)
 emission_energy_multiplier = 5.0
-
-[sub_resource type="TorusMesh" id="MuzzleRingMesh"]
-inner_radius = 0.08
-outer_radius = 0.12
-rings = 18
-ring_segments = 6
 
 [sub_resource type="SceneReplicationConfig" id="ReplicationConfig"]
 properties/0/path = NodePath(".:health")
@@ -80,7 +71,7 @@ shape = SubResource("CapsuleShape_player")
 
 [node name="WorldModel" type="Node3D" parent="."]
 
-[node name="RunwaySuitRig" parent="WorldModel" instance=ExtResource("9_suit_model")]
+[node name="VectorRunnerRig" parent="WorldModel" instance=ExtResource("9_suit_model")]
 rotation = Vector3(0, 3.14159, 0)
 
 [node name="NameLabel" type="Label3D" parent="."]
@@ -108,8 +99,8 @@ visible = false
 position = Vector3(0.5, -0.36, -0.7)
 rotation_degrees = Vector3(-4, -3, -1)
 
-[node name="KestrelInductionLauncher" parent="Head/Camera3D/ViewGun" instance=ExtResource("8_launcher_model")]
-scale = Vector3(0.82, 0.82, 0.82)
+[node name="KestrelAerofoilDiscLauncher" parent="Head/Camera3D/ViewGun" instance=ExtResource("8_launcher_model")]
+scale = Vector3(0.76, 0.76, 0.76)
 
 [node name="DiscLauncher" type="Node3D" parent="Head"]
 position = Vector3(0, 0, -0.18)
@@ -123,13 +114,6 @@ position = Vector3(0.48, -0.28, -1.25)
 visible = false
 material_override = SubResource("MuzzleFlashMaterial")
 mesh = SubResource("MuzzleFlashMesh")
-cast_shadow = 0
-
-[node name="PressureRing" type="MeshInstance3D" parent="Head/DiscLauncher/MuzzleOrigin"]
-visible = false
-rotation_degrees = Vector3(90, 0, 0)
-material_override = SubResource("MuzzleFlashMaterial")
-mesh = SubResource("MuzzleRingMesh")
 cast_shadow = 0
 
 [node name="MuzzleLight" type="OmniLight3D" parent="Head/DiscLauncher"]

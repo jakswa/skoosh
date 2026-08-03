@@ -1,10 +1,10 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/disc_projectile.gd" id="1_projectile"]
 [ext_resource type="PackedScene" path="res://assets/models/weapons/kestrel_relay_disc.glb" id="2_disc_visual"]
 
 [sub_resource type="BoxMesh" id="TrailMesh"]
-size = Vector3(0.055, 0.055, 2.3)
+size = Vector3(0.05, 0.035, 1.4)
 
 [sub_resource type="StandardMaterial3D" id="TrailMaterial"]
 transparency = 1
@@ -14,30 +14,18 @@ emission_enabled = true
 emission = Color(0.16, 1, 0.68, 1)
 emission_energy_multiplier = 3.2
 
-[sub_resource type="TorusMesh" id="PulseRingMesh"]
-inner_radius = 0.19
-outer_radius = 0.23
-rings = 20
-ring_segments = 6
-
 [node name="DiscProjectile" type="Node3D"]
 script = ExtResource("1_projectile")
 
 [node name="Trail" type="MeshInstance3D" parent="."]
-position = Vector3(0, 0, 1.15)
+position = Vector3(0, 0, 0.7)
 material_override = SubResource("TrailMaterial")
 mesh = SubResource("TrailMesh")
 cast_shadow = 0
 
 [node name="DiscVisual" parent="." instance=ExtResource("2_disc_visual")]
-rotation_degrees = Vector3(90, 0, 0)
+rotation_degrees = Vector3(72, 0, 0)
 scale = Vector3(1, 1, 1)
-
-[node name="PulseRing" type="MeshInstance3D" parent="."]
-rotation_degrees = Vector3(90, 0, 0)
-material_override = SubResource("TrailMaterial")
-mesh = SubResource("PulseRingMesh")
-cast_shadow = 0
 
 [node name="Glow" type="OmniLight3D" parent="."]
 light_color = Color(0.22, 1, 0.65, 1)

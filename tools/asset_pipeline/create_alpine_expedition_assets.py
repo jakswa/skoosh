@@ -1,4 +1,4 @@
-"""Build the Kestrel Basin launcher, projectile, and relay-station shell.
+"""Build the selected Kestrel/Stratos/Khepri hybrid visual assets.
 
 Run from the repository root:
     blender --background --python tools/asset_pipeline/create_alpine_expedition_assets.py
@@ -119,117 +119,91 @@ def weapon_materials() -> dict[str, bpy.types.Material]:
 
 def build_launcher() -> None:
     mats = weapon_materials()
-    root = bpy.data.objects.new("KestrelInductionLauncher", None)
+    root = bpy.data.objects.new("KestrelAerofoilDiscLauncher", None)
     bpy.context.collection.objects.link(root)
 
-    parts: list[bpy.types.Object] = []
-    parts.append(
+    parts: list[bpy.types.Object] = [
         loft(
-            "Load frame",
+            "Aerodynamic load frame",
             [
-                (-0.58, 0.24, -0.02, 0.17),
-                (-0.22, 0.28, 0.0, 0.2),
-                (0.34, 0.22, 0.015, 0.16),
-                (0.82, 0.12, 0.02, 0.1),
-                (1.08, 0.075, 0.015, 0.065),
+                (-0.50, 0.13, -0.01, 0.11),
+                (-0.18, 0.19, 0.02, 0.14),
+                (0.28, 0.14, 0.025, 0.10),
+                (0.84, 0.055, 0.08, 0.05),
+                (1.02, 0.035, 0.11, 0.03),
             ],
             mats["graphite"],
-        )
-    )
+        ),
+        box("Lower receiver bridge", (0.0, -0.20, 0.01), (0.34, 0.18, 0.09), mats["steel"], 0.018),
+        box(
+            "Reinforced field grip",
+            (0.05, -0.34, -0.24),
+            (0.14, 0.20, 0.40),
+            mats["graphite"],
+            0.026,
+            rotation=(math.radians(-16.0), 0.0, math.radians(-3.0)),
+        ),
+        box("Grip ceramic slab", (0.057, -0.365, -0.235), (0.09, 0.21, 0.20), mats["ceramic"], 0.015),
+        box("Rear balance foil", (0.0, -0.53, 0.03), (0.42, 0.13, 0.10), mats["ceramic"], 0.026),
+        box("Rear expedition latch", (0.0, -0.61, 0.04), (0.18, 0.04, 0.07), mats["hazard"], 0.01),
+        # A rectangular launch gate replaces every barrel, lens, iris, and nozzle cue.
+        box("Upper launch gate", (0.0, 1.03, 0.18), (0.30, 0.055, 0.025), mats["mint"], 0.004),
+        box("Lower launch gate", (0.0, 1.03, 0.06), (0.30, 0.055, 0.025), mats["steel"], 0.004),
+    ]
     for side in (-1.0, 1.0):
-        shell = loft(
-            f"Ceramic weather shroud {side:+.0f}",
+        foil = loft(
+            f"Glacier aerofoil {side:+.0f}",
             [
-                (-0.46, 0.08, 0.12, 0.07),
-                (-0.05, 0.095, 0.15, 0.08),
-                (0.42, 0.065, 0.13, 0.055),
+                (-0.43, 0.055, 0.14, 0.045),
+                (-0.03, 0.075, 0.16, 0.055),
+                (0.46, 0.05, 0.14, 0.04),
+                (0.97, 0.025, 0.12, 0.025),
             ],
             mats["ceramic"],
         )
-        shell.location.x = side * 0.19
-        parts.append(shell)
-        parts.append(
-            box(
-                f"Induction spar {side:+.0f}",
-                (side * 0.205, 0.55, 0.01),
-                (0.075, 0.92, 0.09),
-                mats["steel"],
-                0.014,
-                rotation=(0.0, side * math.radians(2.5), 0.0),
-            )
-        )
-        parts.append(
-            box(
-                f"Ceramic spar guard {side:+.0f}",
-                (side * 0.265, 0.5, 0.08),
-                (0.07, 0.72, 0.11),
-                mats["ceramic"],
-                0.014,
-            )
-        )
-        parts.append(
-            box(
-                f"Hazard witness {side:+.0f}",
-                (side * 0.304, 0.38, 0.11),
-                (0.015, 0.26, 0.035),
-                mats["hazard"],
-                0.003,
-            )
+        foil.location.x = side * 0.16
+        parts.append(foil)
+        parts.extend(
+            [
+                box(
+                    f"Disc carrier rail {side:+.0f}",
+                    (side * 0.16, 0.31, 0.12),
+                    (0.035, 1.02, 0.045),
+                    mats["steel"],
+                    0.006,
+                ),
+                box(
+                    f"Expedition index {side:+.0f}",
+                    (side * 0.22, 0.10, 0.215),
+                    (0.025, 0.67, 0.018),
+                    mats["hazard"],
+                    0.004,
+                    rotation=(0.0, 0.0, math.radians(side * 3.0)),
+                ),
+                box(
+                    f"Rectangular accelerator {side:+.0f}",
+                    (side * 0.16, 0.96, 0.12),
+                    (0.055, 0.18, 0.055),
+                    mats["steel"],
+                    0.006,
+                ),
+            ]
         )
 
-    parts.extend(
-        [
-            box(
-                "Reinforced field grip",
-                (0.08, -0.28, -0.28),
-                (0.17, 0.22, 0.46),
-                mats["graphite"],
-                0.025,
-                rotation=(math.radians(-14.0), 0.0, math.radians(-3.0)),
-            ),
-            box(
-                "Grip ceramic slab",
-                (0.08, -0.29, -0.29),
-                (0.115, 0.18, 0.30),
-                mats["ceramic"],
-                0.018,
-                rotation=(math.radians(-14.0), 0.0, math.radians(-3.0)),
-            ),
-            box("Rear balance pack", (0.0, -0.56, 0.0), (0.38, 0.2, 0.22), mats["steel"], 0.035),
-            box("Pack hazard latch", (0.0, -0.67, 0.02), (0.24, 0.035, 0.09), mats["hazard"], 0.006),
-            cylinder(
-                "Muzzle induction lens",
-                (0.0, 1.13, 0.015),
-                0.082,
-                0.025,
-                mats["mint"],
-                28,
-                0.003,
-                rotation=(math.radians(90.0), 0.0, 0.0),
-            ),
-            torus(
-                "Muzzle clamp",
-                (0.0, 1.11, 0.015),
-                0.105,
-                0.022,
-                mats["steel"],
-                rotation=(math.radians(90.0), 0.0, 0.0),
-            ),
-        ]
-    )
-
+    seat = (0.0, -0.18, 0.20)
     rotor = bpy.data.objects.new("DiscRotor", None)
-    rotor.location = (-0.13, -0.08, 0.26)
+    rotor.location = seat
     rotor.parent = root
     bpy.context.collection.objects.link(rotor)
     charge = bpy.data.objects.new("ChargeCore", None)
-    charge.location = (-0.13, -0.08, 0.27)
-    charge.parent = rotor
+    charge.location = seat
+    charge.parent = root
     bpy.context.collection.objects.link(charge)
     disc_parts = [
-        torus("Seated steel disc", (-0.13, -0.08, 0.29), 0.13, 0.026, mats["steel"]),
-        cylinder("Seated relay core", (-0.13, -0.08, 0.29), 0.098, 0.025, mats["mint"], 32, 0.003),
-        cylinder("Disc axle", (-0.13, -0.08, 0.305), 0.028, 0.05, mats["hazard"], 16, 0.003),
+        torus("Seated steel disc", seat, 0.13, 0.026, mats["steel"]),
+        cylinder("Seated relay core", seat, 0.098, 0.025, mats["mint"], 32, 0.003),
+        cylinder("Disc axle", (seat[0], seat[1], seat[2] + 0.015), 0.028, 0.05, mats["hazard"], 16, 0.003),
+        box("Disc rotation index", (0.105, -0.18, 0.228), (0.045, 0.025, 0.018), mats["hazard"], 0.004),
     ]
     for part in disc_parts:
         parent_keep_transform(part, charge)
@@ -237,7 +211,7 @@ def build_launcher() -> None:
         angle = math.radians(angle_degrees)
         clamp = box(
             f"Rotor clamp {index + 1}",
-            (-0.13 + math.cos(angle) * 0.17, -0.08 + math.sin(angle) * 0.17, 0.25),
+            (math.cos(angle) * 0.17, -0.18 + math.sin(angle) * 0.17, 0.18),
             (0.07, 0.035, 0.055),
             mats["hazard"],
             0.007,
@@ -245,10 +219,15 @@ def build_launcher() -> None:
         )
         parent_keep_transform(clamp, rotor)
 
-    muzzle_socket = bpy.data.objects.new("MuzzleSocket", None)
-    muzzle_socket.location = (0.0, 1.17, 0.015)
-    muzzle_socket.parent = root
-    bpy.context.collection.objects.link(muzzle_socket)
+    for name, location in (
+        ("DiscSeatSocket", seat),
+        ("FeedMidSocket", (0.0, 0.34, 0.12)),
+        ("MuzzleSocket", (0.0, 1.06, 0.12)),
+    ):
+        socket = bpy.data.objects.new(name, None)
+        socket.location = location
+        socket.parent = root
+        bpy.context.collection.objects.link(socket)
     for part in parts:
         parent_keep_transform(part, root)
 
@@ -261,6 +240,7 @@ def build_disc() -> None:
         torus("Disc armature", (0, 0, 0), 0.13, 0.028, mats["steel"]),
         cylinder("Relay charge", (0, 0, 0), 0.098, 0.024, mats["mint"], 32, 0.003),
         cylinder("Hazard axle", (0, 0, 0.015), 0.027, 0.052, mats["hazard"], 16, 0.003),
+        box("Rotation index", (0.105, 0.0, 0.027), (0.045, 0.025, 0.018), mats["hazard"], 0.004),
     ]
     for part in parts:
         parent_keep_transform(part, root)
@@ -287,31 +267,46 @@ def build_station() -> None:
         cylinder("Relay bearing", (0, 0, -3.7), 2.2, 7.4, graphite, 16, 0.12),
         cylinder("Bearing collar", (0, 0, -0.9), 3.1, 0.45, ceramic, 20, 0.08),
         cylinder("Objective socket", (0, 0, 1.11), 2.1, 0.18, graphite, 24, 0.04),
-        torus("Objective mint trace", (0, 0, 1.23), 1.55, 0.045, mint),
     ]
-    # Two high signal gantries outside the authoritative deck box frame the base
-    # without implying cover on the playable surface.
-    for y_side in (-1.0, 1.0):
-        y = y_side * 7.35
-        parts.extend(
-            [
-                box(f"Gantry foot left {y_side:+.0f}", (-5.25, y, 2.25), (0.65, 0.65, 4.5), graphite, 0.08),
-                box(f"Gantry foot right {y_side:+.0f}", (5.25, y, 2.25), (0.65, 0.65, 4.5), graphite, 0.08),
-                box(f"Gantry header {y_side:+.0f}", (0, y, 4.35), (11.0, 0.55, 0.55), ceramic, 0.09),
-                box(f"Team signal bar {y_side:+.0f}", (0, y - y_side * 0.3, 4.38), (7.0, 0.07, 0.18), team, 0.015),
-                box(f"Floodlight rail {y_side:+.0f}", (0, y - y_side * 0.34, 3.86), (3.2, 0.09, 0.11), mint, 0.012),
-            ]
+    # Three paired phase vanes carry Khepri's monumental triune silhouette into
+    # the practical daytime relay. Roots remain beyond the authoritative box.
+    for anchor_index, angle_degrees in enumerate((30.0, 150.0, 270.0)):
+        angle = math.radians(angle_degrees)
+        radial = (math.cos(angle), math.sin(angle))
+        tangent = (-radial[1], radial[0])
+        parts.append(
+            box(
+                f"Objective triune trace {anchor_index + 1}",
+                (radial[0] * 1.35, radial[1] * 1.35, 1.26),
+                (0.11, 2.5, 0.035),
+                mint,
+                0.008,
+                rotation=(0.0, 0.0, angle + math.radians(90.0)),
+            )
         )
-        for x_side in (-1.0, 1.0):
-            parts.append(
-                box(
-                    f"Wind brace {x_side:+.0f} {y_side:+.0f}",
-                    (x_side * 3.4, y_side * 3.55, -1.65),
-                    (0.48, 7.2, 0.48),
-                    ceramic,
-                    0.07,
-                    rotation=(math.radians(y_side * 28.0), 0.0, math.radians(-x_side * 8.0)),
-                )
+        for side in (-1.0, 1.0):
+            x = radial[0] * 8.15 + tangent[0] * side * 1.05
+            y = radial[1] * 8.15 + tangent[1] * side * 1.05
+            rotation = (math.radians(side * 11.0), math.radians(-10.0), angle)
+            parts.extend(
+                [
+                    box(
+                        f"Phase vane {anchor_index + 1} {side:+.0f}",
+                        (x, y, 3.25),
+                        (0.62, 1.05, 5.3),
+                        ceramic,
+                        0.09,
+                        rotation=rotation,
+                    ),
+                    box(
+                        f"Team signal {anchor_index + 1} {side:+.0f}",
+                        (x - radial[0] * 0.32, y - radial[1] * 0.32, 3.35),
+                        (0.09, 0.62, 2.6),
+                        team,
+                        0.015,
+                        rotation=rotation,
+                    ),
+                ]
             )
     for x_side in (-1.0, 1.0):
         parts.extend(
@@ -339,23 +334,7 @@ def build_station() -> None:
                     ),
                 ]
             )
-    # A narrow neutral mast provides the expedition silhouette and objective bearing.
-    parts.extend(
-        [
-            cylinder("Survey mast", (0, 5.9, 4.2), 0.09, 6.3, graphite, 12, 0.02),
-            cylinder(
-                "Survey crossbar",
-                (0, 5.9, 6.9),
-                0.07,
-                2.4,
-                ceramic,
-                12,
-                0.015,
-                rotation=(0.0, math.radians(90.0), 0.0),
-            ),
-            box("Mint range finder", (0, 5.86, 7.0), (0.65, 0.16, 0.24), mint, 0.025),
-        ]
-    )
+    parts.append(box("Mint range finder", (0, 5.86, 2.7), (0.65, 0.16, 0.24), mint, 0.025))
     for part in parts:
         parent_keep_transform(part, root)
 

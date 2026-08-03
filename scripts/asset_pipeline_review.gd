@@ -1,7 +1,7 @@
 extends Node3D
 
-@onready var suit := $RunwaySuitRig
-@onready var animation_player := $RunwaySuitRig/AnimationPlayer as AnimationPlayer
+@onready var suit := $VectorRunnerRig
+@onready var animation_player := $VectorRunnerRig/AnimationPlayer as AnimationPlayer
 
 
 func _ready() -> void:

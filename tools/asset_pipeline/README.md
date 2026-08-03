@@ -77,15 +77,30 @@ Current source policy for these small experiments is to track `.blend` source di
 
 Asset provenance and source/runtime statistics are recorded under `assets/manifests/`.
 
-## Kestrel Basin bake-off assets
+## Selected Kestrel hybrid direction
 
-The alpine-expeditionary candidate generates its induction launcher, matching relay disc, and shared braced relay station from one repository-local Blender script:
+The selected direction keeps Kestrel's daytime palette and practical materials,
+adds STRATOS route grammar and aerofoil equipment, and uses Khepri's triune
+monument/objective vocabulary. Generate the launcher, matching disc, and shared
+relay station with:
 
 ```bash
 TMPDIR="$PWD/.tmp" blender --background --python tools/asset_pipeline/create_alpine_expedition_assets.py
 ```
 
-Editable launcher and station `.blend` files are retained. The runtime GLBs use graphite, worn ceramic, expedition-orange hardware, narrow team markings, and neutral mint relay materials without external textures. Provenance and binary sizes are recorded in `assets/manifests/kestrel_basin_assets.json`.
+Generate the selected remote-player character separately:
+
+```bash
+TMPDIR="$PWD/.tmp" blender --background --python tools/asset_pipeline/create_vector_expedition_runner.py
+```
+
+The launcher has a visible disc seat/feed path and an open rectangular launch
+gate rather than a circular barrel. The Vector Expedition Runner preserves the
+proven bone names and `MomentumLean` contract while replacing the runway
+mannequin's geometry, posture, equipment, and animation. Editable `.blend`
+sources are retained. Provenance is recorded in
+`assets/manifests/kestrel_basin_assets.json` and
+`assets/manifests/vector_expedition_runner.json`.
 
 ## Forward+ qualification decal
 

@@ -15,7 +15,7 @@ class_name SkooshNetworkPlayer
 @onready var head := $Head as Node3D
 @onready var camera := $Head/Camera3D as Camera3D
 @onready var world_model := $WorldModel as Node3D
-@onready var suit_animation := $WorldModel/RunwaySuitRig/AnimationPlayer as AnimationPlayer
+@onready var suit_animation := $WorldModel/VectorRunnerRig/AnimationPlayer as AnimationPlayer
 @onready var name_label := $NameLabel as Label3D
 @onready var input := $Input as SkooshNetworkInput
 @onready var rollback_synchronizer := $RollbackSynchronizer as RollbackSynchronizer
@@ -42,6 +42,9 @@ var _view_gun_rest_position := Vector3.ZERO
 var _view_gun_rest_rotation := Vector3.ZERO
 var _disc_rotor: Node3D
 var _charge_core: Node3D
+var _charge_rest_position := Vector3.ZERO
+var _charge_gate_position := Vector3.ZERO
+var _charge_launch_time := 0.0
 var _weapon_recoil := 0.0
 var _rotor_speed := 0.45
 var _charge_fraction := 1.0
@@ -56,6 +59,12 @@ func _ready() -> void:
 	_view_gun_rest_rotation = view_gun.rotation
 	_disc_rotor = view_gun.find_child("DiscRotor", true, false) as Node3D
 	_charge_core = view_gun.find_child("ChargeCore", true, false) as Node3D
+	if _charge_core != null:
+		_charge_rest_position = _charge_core.position
+		_charge_gate_position = _charge_rest_position
+		var muzzle_socket := view_gun.find_child("MuzzleSocket", true, false) as Node3D
+		if muzzle_socket != null:
+			_charge_gate_position = _charge_core.get_parent_node_3d().to_local(muzzle_socket.global_position)
 	var momentum_lean := suit_animation.get_animation("MomentumLean")
 	if momentum_lean != null:
 		momentum_lean.loop_mode = Animation.LOOP_LINEAR
@@ -149,6 +158,7 @@ func present_weapon_fire() -> void:
 	_weapon_recoil = 1.0
 	_rotor_speed += 16.0
 	_charge_fraction = 0.0
+	_charge_launch_time = 0.12
 
 
 func _update_weapon_presentation(delta: float) -> void:
@@ -170,8 +180,16 @@ func _update_weapon_presentation(delta: float) -> void:
 	if _disc_rotor != null:
 		_disc_rotor.rotate_y(_rotor_speed * delta)
 	if _charge_core != null:
-		var eased_charge := _charge_fraction * _charge_fraction * (3.0 - 2.0 * _charge_fraction)
-		_charge_core.scale = Vector3.ONE * lerpf(0.08, 1.0, eased_charge)
+		if _charge_launch_time > 0.0:
+			_charge_launch_time = maxf(0.0, _charge_launch_time - delta)
+			var launch_fraction := 1.0 - _charge_launch_time / 0.12
+			launch_fraction = launch_fraction * launch_fraction * (3.0 - 2.0 * launch_fraction)
+			_charge_core.position = _charge_rest_position.lerp(_charge_gate_position, launch_fraction)
+			_charge_core.scale = Vector3.ONE * lerpf(1.0, 0.05, smoothstep(0.68, 1.0, launch_fraction))
+		else:
+			_charge_core.position = _charge_rest_position
+			var eased_charge := _charge_fraction * _charge_fraction * (3.0 - 2.0 * _charge_fraction)
+			_charge_core.scale = Vector3.ONE * lerpf(0.08, 1.0, eased_charge)
 
 
 func apply_damage(amount: int, attacker_peer_id: int) -> void:
@@ -273,17 +291,26 @@ func _update_team_presentation() -> void:
 		color = Color("#d8e0d2")
 	name_label.text = "SYNCING" if team < 0 else callsign_for_peer(peer_id)
 	name_label.modulate = color.lightened(0.25)
-	var material := StandardMaterial3D.new()
-	material.albedo_color = color
-	material.roughness = 0.82
-	const TEAM_ARMOR_PARTS: Array[StringName] = [
-		&"Helmet", &"Upper arm L", &"Upper arm R",
-		&"Jet pod L", &"Jet pod R",
+	var primary_material := StandardMaterial3D.new()
+	primary_material.albedo_color = color
+	primary_material.roughness = 0.82
+	var secondary_material := StandardMaterial3D.new()
+	secondary_material.albedo_color = color.darkened(0.28)
+	secondary_material.metallic = 0.18
+	secondary_material.roughness = 0.72
+	const PRIMARY_TEAM_PARTS: Array[StringName] = [
+		&"Pelvis shell", &"Chest plate", &"Helmet",
+	]
+	const SECONDARY_TEAM_PARTS: Array[StringName] = [
+		&"Jet pod L", &"Jet pod R", &"Shoulder fin L", &"Shoulder fin R",
+		&"Thigh signal L", &"Thigh signal R",
 	]
 	for child in world_model.find_children("*", "MeshInstance3D", true, false):
 		var mesh := child as MeshInstance3D
-		if mesh.name in TEAM_ARMOR_PARTS:
-			mesh.material_override = material
+		if mesh.name in PRIMARY_TEAM_PARTS:
+			mesh.material_override = primary_material
+		elif mesh.name in SECONDARY_TEAM_PARTS:
+			mesh.material_override = secondary_material
 
 
 static func callsign_for_peer(id: int) -> String:

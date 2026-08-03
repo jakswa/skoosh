@@ -1,7 +1,7 @@
 {
-  "asset_name": "Kestrel Basin expeditionary visual set",
+  "asset_name": "SKOOSH Kestrel hybrid visual set",
   "category": "hero weapon, projectile, relay-station architecture, terrain shader",
-  "status": "visual bake-off prototype",
+  "status": "selected visual-direction prototype",
   "creator": "Project-local agent-authored generation",
   "source_url": null,
   "acquisition_date": "2026-08-02",
@@ -29,22 +29,22 @@
     "assets/materials/terrain/alpine_hardpack.gdshader"
   ],
   "runtime_statistics": {
-    "launcher_source_bytes": 127958,
-    "launcher_glb_bytes": 277136,
-    "projectile_glb_bytes": 41360,
-    "station_source_bytes": 129163,
-    "station_glb_bytes": 502420,
+    "launcher_source_bytes": 123844,
+    "launcher_glb_bytes": 301780,
+    "projectile_glb_bytes": 55652,
+    "station_source_bytes": 117921,
+    "station_glb_bytes": 488932,
     "external_textures": 0
   },
   "integration": {
-    "launcher": "Articulated DiscRotor and ChargeCore nodes retain the existing recoil/recharge presentation contract",
-    "projectile": "Matching relay disc is exported by the same deterministic generator",
-    "station": "One shared GLB is instanced for both teams; only narrow markings receive runtime team variants",
-    "terrain": "Analytic world-space wind scoring, crust variation, slope rock break, and contour strata use no texture assets"
+    "launcher": "STRATOS-derived aerofoil silhouette uses an open rectangular gate, visible disc feed, and no barrel/nozzle geometry",
+    "projectile": "The seated and flying relay discs share deterministic geometry; authoritative swept-ray physics are unchanged",
+    "station": "Kestrel materials and collision shell support Khepri-derived triune monument vanes and objective language",
+    "terrain": "Kestrel hardpack gains restrained STRATOS contour, route-lane, and timing-mark grammar"
   },
   "known_limitations": [
-    "Station gantries, floodlight rails, braces, and survey mast are presentation-only; authoritative collision remains the existing 14 x 2 x 14 box.",
-    "The retained runway suit is a placeholder skeletal integration proof, not production character art.",
+    "Phase vanes, signal strips, and objective cages are presentation-only; authoritative collision remains the existing 14 x 2 x 14 box.",
+    "The Vector Expedition Runner is a direction prototype with rigid skinning and one locomotion loop.",
     "The prototype has no hand rig or authored launcher-hand attachment.",
     "Generated Blender exports do not yet include production LOD authoring or baked wear textures."
   ]

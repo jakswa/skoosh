@@ -321,3 +321,18 @@ Still pending:
 - Human combat, voice-cast, radio-treatment, and audio-level playtesting.
 - Artificial latency, jitter, and loss qualification for launch timing and remote projectile presentation.
 - Projectile correction/age metrics, scale testing, and production command budgets beyond the current per-speaker voice cooldown.
+
+## 15. Selected visual direction
+
+The three-way visual bake-off completed from shared baseline `593f763`. The
+selected direction uses Kestrel's daytime alpine atmosphere and practical
+material hierarchy, STRATOS route grammar and aerofoil equipment silhouette,
+and Khepri triune monument/objective language. The implementation remains on
+`feature/voice-disc-ux` by explicit user request.
+
+The former runway mannequin is replaced by the Blender-authored Vector
+Expedition Runner while preserving the presentation-only `MomentumLean`
+contract. The launcher now exposes a seated disc and open launch gate; the
+flying visual is disc-shaped while authoritative swept-ray projectile behavior
+is intentionally unchanged. See `docs/VISUAL_DIRECTION.md` and
+`docs/visual_bakeoff/BAKE_OFF_REPORT.md`.

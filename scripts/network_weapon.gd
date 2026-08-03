@@ -13,7 +13,6 @@ class_name SkooshDiscLauncher
 @onready var input := player.get_node("Input") as SkooshNetworkInput
 @onready var muzzle_origin := $MuzzleOrigin as Node3D
 @onready var muzzle_flash := $MuzzleOrigin/MuzzleFlash as MeshInstance3D
-@onready var pressure_ring := $MuzzleOrigin/PressureRing as MeshInstance3D
 @onready var muzzle_light := $MuzzleLight as OmniLight3D
 
 var last_fire_tick := -100000
@@ -23,6 +22,15 @@ var _last_request_tick_by_peer: Dictionary = {}
 
 
 func _ready() -> void:
+	# Child _ready runs before the player's @onready cache is populated, so use
+	# the stable scene path rather than player.view_gun here.
+	var view_gun := player.get_node("Head/Camera3D/ViewGun") as Node3D
+	var authored_socket := view_gun.find_child("MuzzleSocket", true, false) as Node3D
+	if authored_socket != null:
+		# Copy the rest-pose authored socket into the fixed gameplay origin. View
+		# recoil remains cosmetic and cannot move authoritative launches.
+		muzzle_origin.global_position = authored_socket.global_position
+		muzzle_light.global_position = authored_socket.global_position
 	NetworkTime.on_tick.connect(_network_tick)
 
 
@@ -30,9 +38,11 @@ func _process(delta: float) -> void:
 	_muzzle_time = maxf(0.0, _muzzle_time - delta)
 	var flash_fraction := clampf(_muzzle_time / 0.08, 0.0, 1.0)
 	muzzle_flash.visible = flash_fraction > 0.0
-	muzzle_flash.scale = Vector3(1.0, 1.0, 3.0) * lerpf(0.4, 1.25, flash_fraction)
-	pressure_ring.visible = flash_fraction > 0.0
-	pressure_ring.scale = Vector3.ONE * lerpf(2.8, 0.45, flash_fraction)
+	muzzle_flash.scale = Vector3(
+		lerpf(1.5, 0.65, flash_fraction),
+		lerpf(1.8, 0.8, flash_fraction),
+		lerpf(2.8, 0.5, flash_fraction)
+	)
 	muzzle_light.light_energy = 4.8 if _muzzle_time > 0.0 else 0.0
 
 

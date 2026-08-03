@@ -1,6 +1,6 @@
 [gd_scene load_steps=9 format=3]
 
-[ext_resource type="PackedScene" path="res://assets/models/characters/runway_suit_rig.glb" id="1_suit"]
+[ext_resource type="PackedScene" path="res://assets/models/characters/vector_expedition_runner.glb" id="1_suit"]
 [ext_resource type="Script" path="res://scripts/asset_pipeline_review.gd" id="2_script"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial"]
@@ -66,12 +66,12 @@ position = Vector3(0, -0.11, 0)
 mesh = SubResource("PlinthMesh")
 material_override = SubResource("PlinthMaterial")
 
-[node name="RunwaySuitRig" parent="." instance=ExtResource("1_suit")]
+[node name="VectorRunnerRig" parent="." instance=ExtResource("1_suit")]
 
 [node name="ReviewLabel" type="Label" parent="."]
 offset_left = 24.0
 offset_top = 24.0
 offset_right = 700.0
 offset_bottom = 88.0
-text = "PIPELINE PROOF // SKINNED MANNEQUIN\nSkeleton3D + MomentumLean animation + turntable"
+text = "VECTOR EXPEDITION RUNNER\nAthletic relay rig + MomentumLean animation + turntable"
 label_settings = SubResource("LabelSettings")

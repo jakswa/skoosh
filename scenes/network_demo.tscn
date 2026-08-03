@@ -337,34 +337,30 @@ shadow_enabled = false
 script = ExtResource("5_flag")
 team = 0
 
-[node name="Pole" type="MeshInstance3D" parent="CompactArena/RedFlag"]
-position = Vector3(0, 1.4, 0)
-material_override = SubResource("PoleMaterial")
-mesh = SubResource("FlagPoleMesh")
-
 [node name="Banner" type="MeshInstance3D" parent="CompactArena/RedFlag"]
-position = Vector3(0, 2.2, 0)
-rotation_degrees = Vector3(0, 0, 45)
+position = Vector3(0, 2.05, 0)
+rotation_degrees = Vector3(45, 0, 45)
 mesh = SubResource("FlagBannerMesh")
 
-[node name="Core" type="MeshInstance3D" parent="CompactArena/RedFlag"]
-position = Vector3(0, 1.42, 0)
-material_override = SubResource("ObjectiveMetalMaterial")
-mesh = SubResource("FlagCoreMesh")
-
-[node name="BeaconRing" type="MeshInstance3D" parent="CompactArena/RedFlag"]
-position = Vector3(0, 2.2, 0)
+[node name="OrbitA" type="MeshInstance3D" parent="CompactArena/RedFlag"]
+position = Vector3(0, 2.05, 0)
 rotation_degrees = Vector3(90, 0, 0)
 mesh = SubResource("FlagBeaconMesh")
 cast_shadow = 0
 
-[node name="Aerial" type="MeshInstance3D" parent="CompactArena/RedFlag"]
-position = Vector3(0, 3.06, 0)
-material_override = SubResource("ObjectiveMetalMaterial")
-mesh = SubResource("FlagAerialMesh")
+[node name="OrbitB" type="MeshInstance3D" parent="CompactArena/RedFlag"]
+position = Vector3(0, 2.05, 0)
+mesh = SubResource("FlagBeaconMesh")
+cast_shadow = 0
+
+[node name="OrbitC" type="MeshInstance3D" parent="CompactArena/RedFlag"]
+position = Vector3(0, 2.05, 0)
+rotation_degrees = Vector3(0, 0, 90)
+mesh = SubResource("FlagBeaconMesh")
+cast_shadow = 0
 
 [node name="Glow" type="OmniLight3D" parent="CompactArena/RedFlag"]
-position = Vector3(0, 1.5, 0)
+position = Vector3(0, 2.05, 0)
 omni_range = 7.0
 light_energy = 1.8
 shadow_enabled = false
@@ -373,34 +369,30 @@ shadow_enabled = false
 script = ExtResource("5_flag")
 team = 1
 
-[node name="Pole" type="MeshInstance3D" parent="CompactArena/BlueFlag"]
-position = Vector3(0, 1.4, 0)
-material_override = SubResource("PoleMaterial")
-mesh = SubResource("FlagPoleMesh")
-
 [node name="Banner" type="MeshInstance3D" parent="CompactArena/BlueFlag"]
-position = Vector3(0, 2.2, 0)
-rotation_degrees = Vector3(0, 0, 45)
+position = Vector3(0, 2.05, 0)
+rotation_degrees = Vector3(45, 0, 45)
 mesh = SubResource("FlagBannerMesh")
 
-[node name="Core" type="MeshInstance3D" parent="CompactArena/BlueFlag"]
-position = Vector3(0, 1.42, 0)
-material_override = SubResource("ObjectiveMetalMaterial")
-mesh = SubResource("FlagCoreMesh")
-
-[node name="BeaconRing" type="MeshInstance3D" parent="CompactArena/BlueFlag"]
-position = Vector3(0, 2.2, 0)
+[node name="OrbitA" type="MeshInstance3D" parent="CompactArena/BlueFlag"]
+position = Vector3(0, 2.05, 0)
 rotation_degrees = Vector3(90, 0, 0)
 mesh = SubResource("FlagBeaconMesh")
 cast_shadow = 0
 
-[node name="Aerial" type="MeshInstance3D" parent="CompactArena/BlueFlag"]
-position = Vector3(0, 3.06, 0)
-material_override = SubResource("ObjectiveMetalMaterial")
-mesh = SubResource("FlagAerialMesh")
+[node name="OrbitB" type="MeshInstance3D" parent="CompactArena/BlueFlag"]
+position = Vector3(0, 2.05, 0)
+mesh = SubResource("FlagBeaconMesh")
+cast_shadow = 0
+
+[node name="OrbitC" type="MeshInstance3D" parent="CompactArena/BlueFlag"]
+position = Vector3(0, 2.05, 0)
+rotation_degrees = Vector3(0, 0, 90)
+mesh = SubResource("FlagBeaconMesh")
+cast_shadow = 0
 
 [node name="Glow" type="OmniLight3D" parent="CompactArena/BlueFlag"]
-position = Vector3(0, 1.5, 0)
+position = Vector3(0, 2.05, 0)
 omni_range = 7.0
 light_energy = 1.8
 shadow_enabled = false

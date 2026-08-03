@@ -1,8 +1,8 @@
 # SKOOSH Visual Direction Bake-Off
 
-> **READY TO SPAWN:** The user approved Forward+ with the balanced profile after live playtesting. Record the final pushed baseline commit, create all three worktrees from that exact SHA, and wait for the user's explicit instruction to fire the bake-off.
+> **COMPLETED:** Three candidates were produced from baseline `593f763`, reviewed, and consolidated on `feature/voice-disc-ux`. See `docs/visual_bakeoff/BAKE_OFF_REPORT.md` and `docs/VISUAL_DIRECTION.md`.
 
-**Status:** Launch-ready overseer plan. It creates isolated worktrees, spawns three equally scoped visual workers, collects standardized captures, and presents the results for a human decision.
+**Status:** Historical completed bake-off plan. Kestrel daylight is the selected foundation, with specific STRATOS and Khepri elements retained.
 
 ## 1. Goal
 
@@ -523,17 +523,17 @@ files.
 
 ## 15. Completion checklist
 
-- [ ] Overseer records one baseline commit.
-- [ ] Asset policy is chosen and identical for all candidates.
-- [ ] Three isolated branches/worktrees are created.
-- [ ] Unique ports and output/log directories are assigned.
-- [ ] Workers receive equal scope and budget.
-- [ ] All candidates run `test_ground_jet.sh`.
-- [ ] All candidates run `test_multiplayer_demo.sh` on unique ports.
-- [ ] Every candidate records at least two capture-and-critique iteration loops.
-- [ ] Final standardized captures are run serially without competing Blender/Forward+ GPU load.
-- [ ] All candidates produce off-screen standardized visual captures.
-- [ ] Each candidate provides three hero screenshots, an asset inventory, and a brief.
-- [ ] Overseer normalizes and presents the comparison.
-- [ ] User chooses the direction.
-- [ ] Winner is refined on a fresh branch rather than blindly merging all prototypes.
+- [x] Overseer records one baseline commit.
+- [x] Asset policy is chosen and identical for all candidates.
+- [x] Three isolated branches/worktrees are created.
+- [x] Unique ports and output/log directories are assigned.
+- [x] Workers receive equal scope and budget.
+- [x] All candidates run `test_ground_jet.sh`.
+- [x] All candidates run `test_multiplayer_demo.sh` on unique ports.
+- [x] Every candidate records at least two capture-and-critique iteration loops.
+- [x] Final standardized captures are run serially without competing Blender/Forward+ GPU load.
+- [x] All candidates produce off-screen standardized visual captures.
+- [x] Each candidate provides three hero screenshots, an asset inventory, and a brief.
+- [x] Overseer normalizes and presents the comparison.
+- [x] User chooses the direction.
+- [x] Selected elements are deliberately consolidated rather than merging all prototypes.

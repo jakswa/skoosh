@@ -1,0 +1,33 @@
+{
+  "asset_name": "Vector Expedition Runner",
+  "category": "rigged multiplayer character",
+  "status": "selected visual-direction prototype",
+  "creator": "Project-local agent-authored generation",
+  "source_url": null,
+  "license": "Original project work; no external asset dependencies",
+  "commercial_use": true,
+  "redistribution": "May be redistributed with the project and game exports",
+  "attribution_required": false,
+  "tools": [
+    "Blender background Python",
+    "Godot 4.4.1 Forward+ renderer"
+  ],
+  "source_files": [
+    "tools/asset_pipeline/create_vector_expedition_runner.py",
+    "assets/source/characters/vector_expedition_runner.blend"
+  ],
+  "runtime_files": [
+    "assets/models/characters/vector_expedition_runner.glb"
+  ],
+  "integration": {
+    "skeleton": "Preserves the proven Root/Pelvis/Spine/Head/arm/leg bone names",
+    "animation": "MomentumLean is root-motion-free and presentation-only",
+    "team_roles": "Named primary and secondary shell parts receive runtime team variants",
+    "collision": "No imported collision; the existing authoritative capsule is unchanged"
+  },
+  "known_limitations": [
+    "Rigid one-bone skinning is suitable for this low-poly prototype, not final organic deformation.",
+    "Only MomentumLean is authored; carry, fire, airborne, and elimination animation remain future work.",
+    "The local first-person player still has no visible body or hands."
+  ]
+}

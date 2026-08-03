@@ -1,6 +1,6 @@
 # SKOOSH Asset Pipeline Exploration
 
-**Status:** Runway complete for a free-first visual bake-off. Weapon, terrain, base architecture, VFX integration, skeletal import, and Forward+ presentation paths have repository-local examples. The user approved Forward+ with the balanced profile; this document's Compatibility results remain historical runway evidence.
+**Status:** Exploration complete and exercised by the visual bake-off. The selected hybrid now includes a purpose-built disc launcher/projectile, terrain/base language, and a replacement rigged character. See `docs/VISUAL_DIRECTION.md`.
 
 ## 1. Purpose
 
@@ -33,12 +33,10 @@ The Solar Nomad launcher experiment has moved the project beyond a model-import 
 
 **Still needed**
 
-- Hero-asset concepting and mechanical storytelling must precede detailed modeling; the launcher remains bulky and somewhat janky.
-- The flying projectile does not yet read clearly as the disc seated in the launcher.
-- The reload animation does not explain how a top-mounted disc reaches the forward projectile origin.
-- Authored sockets must replace duplicated hand-positioned Godot attachment transforms.
+- Hand integration and a production reload animation remain after the selected launcher's visible seat/feed/gate pass.
+- The disc remains authoritative swept-ray physics with a disc-shaped presentation; physical disc-volume collision is deferred.
 - UV layout, normals, trim/texture strategy, and surface finish need a higher-quality manual/art-directed pass.
-- Production character design, hand integration, retargeting, and a complete animation set remain unproven despite the skeletal import spike.
+- The Vector Expedition Runner establishes a selected silhouette and improved locomotion loop; production deformation, hand integration, retargeting, and a complete animation set remain unproven.
 - Production VFX language and terrain treatment remain direction work rather than pipeline blockers.
 - Licensed/CC0 and AI-3D sourcing paths have not yet been compared against local Blender generation; Round 1 intentionally does not require them.
 - Small binary source assets are tracked directly; Git LFS remains a later scale decision.

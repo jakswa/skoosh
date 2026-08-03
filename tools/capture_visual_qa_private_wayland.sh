@@ -75,8 +75,9 @@ if [[ ! -S "\$runtime_dir/\$socket" ]]; then
   cat "\$weston_log" >&2 || true
   exit 1
 fi
-# The socket appears before Weston has advertised all required globals.
-sleep 0.5
+# The socket appears before relocated/newer Weston builds have advertised all
+# required globals. Give shell and wl_shm registration time to settle.
+sleep 2.0
 
 profile_args=()
 run_args=("\$@")
