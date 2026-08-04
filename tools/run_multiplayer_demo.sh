@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GODOT_BIN="${GODOT_BIN:-/tmp/godot-skoosh/Godot_v4.4.1-stable_linux.x86_64}"
 PORT="${SKOOSH_PORT:-9077}"
-LOG_DIR="${SKOOSH_LOG_DIR:-/tmp/skoosh-network}"
+LOG_DIR="${SKOOSH_LOG_DIR:-$ROOT/.tmp/skoosh-network}"
 mkdir -p "$LOG_DIR"
 
 if [[ ! -x "$GODOT_BIN" ]]; then
@@ -34,5 +34,6 @@ pids+=("$!")
 
 echo "SKOOSH network lab running on UDP $PORT"
 echo "Logs: $LOG_DIR"
+echo "Clients are opponents: TEAM comms stay local; choose GLOBAL with G in the V menu."
 echo "Close both client windows or press Ctrl-C here to stop the server."
 wait "${pids[1]}" "${pids[2]}" || true

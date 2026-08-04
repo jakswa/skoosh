@@ -15,6 +15,12 @@ signal join_requested(address: String, port: int)
 func _ready() -> void:
 	host_button.pressed.connect(func(): server_requested.emit(roundi(port_input.value)))
 	join_button.pressed.connect(func(): join_requested.emit(address_input.text.strip_edges(), roundi(port_input.value)))
+	address_input.text_submitted.connect(func(_text: String): _request_join())
+	address_input.grab_focus()
+
+
+func _request_join() -> void:
+	join_requested.emit(address_input.text.strip_edges(), roundi(port_input.value))
 
 
 func set_status(message: String, connected: bool = false) -> void:

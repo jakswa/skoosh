@@ -7,7 +7,7 @@ CLIENT_BIN="${SKOOSH_CLIENT_BIN:-$GODOT_BIN}"
 PORT="${SKOOSH_TEST_PORT:-19077}"
 TEST_SECONDS="${SKOOSH_TEST_SECONDS:-50}"
 CLIENT_TEST_SECONDS=$((TEST_SECONDS + 1))
-LOG_DIR="${SKOOSH_TEST_LOG_DIR:-/tmp/skoosh-network-test}"
+LOG_DIR="${SKOOSH_TEST_LOG_DIR:-$ROOT/.tmp/skoosh-network-test}"
 rm -rf "$LOG_DIR"
 mkdir -p "$LOG_DIR"
 
@@ -20,7 +20,8 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 "$GODOT_BIN" --headless --path "$ROOT" -- --server --port="$PORT" \
-  --test-seconds="$TEST_SECONDS" --require-combat --require-movement --require-ctf >"$LOG_DIR/server.log" 2>&1 &
+  --test-seconds="$TEST_SECONDS" --require-combat --require-movement --require-ctf \
+  --require-voice --require-character-variants >"$LOG_DIR/server.log" 2>&1 &
 server_pid=$!
 pids+=("$server_pid")
 sleep 1
@@ -32,7 +33,8 @@ fi
 
 for client in 1 2; do
   "${client_command[@]}" -- --join=127.0.0.1 --port="$PORT" \
-    --bot --test-seconds="$CLIENT_TEST_SECONDS" >"$LOG_DIR/client-$client.log" 2>&1 &
+    --bot --test-seconds="$CLIENT_TEST_SECONDS" --require-character-variants \
+    >"$LOG_DIR/client-$client.log" 2>&1 &
   pids+=("$!")
 done
 
@@ -42,10 +44,31 @@ status=$?
 set -e
 
 for pid in "${pids[@]:1}"; do
-  wait "$pid" 2>/dev/null || true
+  set +e
+  wait "$pid" 2>/dev/null
+  client_status=$?
+  set -e
+  if [[ $client_status -ne 0 ]]; then
+    status=$client_status
+  fi
 done
 
 cat "$LOG_DIR/server.log"
+if grep -Eq "ERROR:|SCRIPT ERROR|rejected" "$LOG_DIR"/*.log; then
+  echo "Multiplayer acceptance logged an error or rejected launch. Logs: $LOG_DIR" >&2
+  status=1
+fi
+for client in 1 2; do
+  if ! grep -q "VOICE received.*scope=GLOBAL" "$LOG_DIR/client-$client.log"; then
+    echo "Client $client did not receive a global voice command. Logs: $LOG_DIR" >&2
+    status=1
+  fi
+done
+if ! perl -ne '$relayed = 1 if /VOICE received listener=(\d+) speaker=(\d+)/ && $1 != $2; END { exit($relayed ? 0 : 1) }' \
+  "$LOG_DIR"/client-*.log; then
+  echo "No client received a voice command from another peer. Logs: $LOG_DIR" >&2
+  status=1
+fi
 if [[ $status -ne 0 ]]; then
   echo "Multiplayer acceptance failed. Client logs: $LOG_DIR" >&2
   exit "$status"

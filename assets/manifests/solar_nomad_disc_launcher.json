@@ -1,0 +1,41 @@
+{
+  "asset_name": "Solar Nomad Disc Launcher and Disc",
+  "category": "first-person weapon and projectile model",
+  "status": "asset-pipeline vertical-slice experiment",
+  "creator": "SKOOSH project",
+  "external_source": null,
+  "external_license": null,
+  "external_cost_usd": 0,
+  "created_with": {
+    "tool": "Blender",
+    "version": "5.2.0 LTS",
+    "generator": "tools/asset_pipeline/create_solar_nomad_launcher.py"
+  },
+  "source_files": [
+    "assets/source/weapons/solar_nomad_disc_launcher.blend",
+    "assets/textures/weapons/solar_nomad/",
+    "tools/asset_pipeline/create_solar_nomad_launcher.py"
+  ],
+  "runtime_files": [
+    "assets/models/weapons/solar_nomad_disc_launcher.glb",
+    "assets/models/weapons/solar_nomad_disc.glb"
+  ],
+  "materials": 6,
+  "texture_maps": 6,
+  "texture_resolution": "512x512",
+  "editable_source_meshes": 23,
+  "editable_source_vertices": 1972,
+  "editable_source_polygons": 1764,
+  "launcher_runtime_meshes": 11,
+  "launcher_runtime_nodes": 15,
+  "disc_runtime_meshes": 3,
+  "disc_runtime_nodes": 4,
+  "notes": [
+    "Locally authored geometry and deterministic procedural PBR maps only.",
+    "No downloaded models, textures, generation services, or paid assets were used.",
+    "The editable source retains named parts, bevel modifiers, UVs, DiscRotor, ChargeCore, and MuzzleSocket.",
+    "The runtime launcher preserves articulated groups while consolidating static geometry by material and parent group.",
+    "The projectile GLB is exported from the same charge geometry that visibly seats in the launcher.",
+    "The authoritative projectile converges from a modeled muzzle position toward the center reticle."
+  ]
+}

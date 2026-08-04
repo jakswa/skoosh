@@ -1,5 +1,7 @@
 extends StaticBody3D
 
+const ALPINE_TERRAIN_SHADER := preload("res://assets/materials/terrain/alpine_hardpack.gdshader")
+
 ## Deterministic, single-mesh alpine basin. The same height function is used for
 ## rendering, collision, course placement, and out-of-bounds checks.
 
@@ -144,24 +146,24 @@ func generate() -> void:
 	var terrain_mesh := ArrayMesh.new()
 	terrain_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 
-	var material := StandardMaterial3D.new()
-	material.vertex_color_use_as_albedo = true
-	material.roughness = 0.93
-	material.metallic = 0.0
-	material.cull_mode = BaseMaterial3D.CULL_BACK
+	var material := ShaderMaterial.new()
+	material.shader = ALPINE_TERRAIN_SHADER
 	terrain_mesh.surface_set_material(0, material)
 	_mesh_instance.mesh = terrain_mesh
 	_collision_shape.shape = terrain_mesh.create_trimesh_shape()
 
 
 func _terrain_color(height: float, normal_y: float) -> Color:
-	var valley := Color("#227d78")
-	var slope := Color("#527f6e")
-	var stone := Color("#829889")
-	var snow := Color("#c5d5ca")
-	var rock := Color("#4c5960")
-	var color := valley.lerp(slope, smoothstep(-8.0, 12.0, height))
-	color = color.lerp(stone, smoothstep(12.0, 28.0, height))
-	color = color.lerp(snow, smoothstep(27.0, 46.0, height))
-	var steepness := smoothstep(0.84, 0.45, normal_y)
-	return color.lerp(rock, steepness * 0.72)
+	var basin_ice := Color("#a8b8bd")
+	var hardpack := Color("#c6d2d3")
+	var sun_crust := Color("#d8dfdd")
+	var slate := Color("#262e32")
+	var high_slate := Color("#41484a")
+	var color := basin_ice.lerp(hardpack, smoothstep(-8.0, 15.0, height))
+	color = color.lerp(sun_crust, smoothstep(18.0, 43.0, height))
+	var steepness := smoothstep(0.92, 0.56, normal_y)
+	var rock_color := slate.lerp(high_slate, smoothstep(12.0, 42.0, height))
+	color = color.lerp(rock_color, steepness * 0.96)
+	# Tight elevation strata expose grade changes before a skier reaches them.
+	var contour_band := int(floor((height + 64.0) / 3.25)) & 1
+	return color.darkened(0.045 * contour_band)

@@ -134,11 +134,33 @@ func _save_projectile(projectile: Node, id: String, data: Dictionary = {}):
 	_projectiles[id] = projectile
 	projectile.name += " " + id
 	projectile.set_multiplayer_authority(get_multiplayer_authority())
+	projectile.tree_exiting.connect(_forget_projectile.bind(id, projectile), CONNECT_ONE_SHOT)
 	
 	if data.is_empty():
 		data = _get_data(projectile)
 	
 	_projectile_data[id] = data
+
+func get_projectile_id(projectile: Node) -> String:
+	for id: String in _projectiles:
+		if _projectiles[id] == projectile:
+			return id
+	return ""
+
+func despawn_projectile(id: String):
+	if not _projectiles.has(id):
+		return
+	var projectile := _projectiles[id] as Node
+	_projectiles.erase(id)
+	_projectile_data.erase(id)
+	if is_instance_valid(projectile):
+		projectile.queue_free()
+
+func _forget_projectile(id: String, projectile: Node):
+	if _projectiles.get(id) != projectile:
+		return
+	_projectiles.erase(id)
+	_projectile_data.erase(id)
 
 func _before_tick_loop():
 	# Reconcile projectiles

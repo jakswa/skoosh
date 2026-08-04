@@ -1,22 +1,53 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/network_lobby.gd" id="1_lobby"]
 
 [sub_resource type="StyleBoxFlat" id="PanelStyle"]
-bg_color = Color(0.02, 0.065, 0.11, 0.94)
+bg_color = Color(0.027, 0.032, 0.033, 0.98)
+border_width_left = 3
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.31, 0.72, 0.58, 0.78)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 34.0
+content_margin_top = 28.0
+content_margin_right = 34.0
+content_margin_bottom = 28.0
+
+[sub_resource type="StyleBoxFlat" id="ButtonStyle"]
+bg_color = Color(0.07, 0.085, 0.082, 1)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0.22, 0.8, 0.82, 0.7)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
-content_margin_left = 24.0
-content_margin_top = 20.0
-content_margin_right = 24.0
-content_margin_bottom = 20.0
+border_color = Color(0.25, 0.72, 0.62, 0.6)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="ButtonHoverStyle"]
+bg_color = Color(0.08, 0.31, 0.29, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.42, 1, 0.75, 0.95)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="FieldStyle"]
+bg_color = Color(0.015, 0.02, 0.021, 0.97)
+border_width_bottom = 1
+border_color = Color(0.25, 0.7, 0.64, 0.65)
+content_margin_left = 10.0
+content_margin_right = 10.0
 
 [node name="NetworkLobby" type="CanvasLayer"]
 layer = 100
@@ -28,7 +59,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.01, 0.025, 0.045, 0.68)
+color = Color(0.055, 0.065, 0.07, 0.96)
 mouse_filter = 2
 
 [node name="Panel" type="PanelContainer" parent="."]
@@ -37,31 +68,44 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -300.0
-offset_top = -180.0
-offset_right = 300.0
-offset_bottom = 180.0
+offset_left = -360.0
+offset_top = -220.0
+offset_right = 360.0
+offset_bottom = 220.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("PanelStyle")
 
 [node name="Layout" type="VBoxContainer" parent="Panel"]
 layout_mode = 2
-theme_override_constants/separation = 16
+theme_override_constants/separation = 15
+
+[node name="Kicker" type="Label" parent="Panel/Layout"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.67, 0.32, 1)
+theme_override_font_sizes/font_size = 13
+text = "ALPINE EXPEDITION 14 // RELAY CHANNEL 01"
+horizontal_alignment = 1
 
 [node name="Title" type="Label" parent="Panel/Layout"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.36, 0.96, 0.93, 1)
-theme_override_font_sizes/font_size = 38
-text = "SKOOSH // CTF LAB"
+theme_override_colors/font_color = Color(0.45, 1, 0.78, 1)
+theme_override_font_sizes/font_size = 46
+text = "KESTREL BASIN"
 horizontal_alignment = 1
 
 [node name="Subtitle" type="Label" parent="Panel/Layout"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.84, 0.91, 0.88, 1)
-theme_override_font_sizes/font_size = 16
-text = "AUTHORITATIVE ENET / ROLLBACK SKIING / COMPACT CTF"
+theme_override_font_sizes/font_size = 17
+text = "FORWARD RELAY  //  HIGH-ALTITUDE SIGNAL CONTEST"
 horizontal_alignment = 1
+
+[node name="Divider" type="ColorRect" parent="Panel/Layout"]
+custom_minimum_size = Vector2(0, 2)
+layout_mode = 2
+color = Color(0.25, 0.85, 0.67, 0.62)
+mouse_filter = 2
 
 [node name="AddressRow" type="HBoxContainer" parent="Panel/Layout"]
 layout_mode = 2
@@ -74,6 +118,8 @@ text = "ADDRESS"
 [node name="Address" type="LineEdit" parent="Panel/Layout/AddressRow"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("FieldStyle")
 text = "127.0.0.1"
 
 [node name="PortLabel" type="Label" parent="Panel/Layout/AddressRow"]
@@ -83,6 +129,7 @@ text = "UDP PORT"
 [node name="Port" type="SpinBox" parent="Panel/Layout/AddressRow"]
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
+theme_override_font_sizes/font_size = 16
 min_value = 1024.0
 max_value = 65535.0
 value = 9077.0
@@ -93,24 +140,41 @@ alignment = 1
 theme_override_constants/separation = 12
 
 [node name="Host" type="Button" parent="Panel/Layout/Buttons"]
-custom_minimum_size = Vector2(220, 46)
+custom_minimum_size = Vector2(280, 52)
 layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.94, 0.87, 1)
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("ButtonStyle")
+theme_override_styles/hover = SubResource("ButtonHoverStyle")
+theme_override_styles/pressed = SubResource("ButtonHoverStyle")
 text = "START SERVER"
 
 [node name="Join" type="Button" parent="Panel/Layout/Buttons"]
-custom_minimum_size = Vector2(220, 46)
+custom_minimum_size = Vector2(280, 52)
 layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.94, 0.87, 1)
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("ButtonStyle")
+theme_override_styles/hover = SubResource("ButtonHoverStyle")
+theme_override_styles/pressed = SubResource("ButtonHoverStyle")
 text = "JOIN SERVER"
+
+[node name="Features" type="Label" parent="Panel/Layout"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.58, 0.75, 0.72, 1)
+theme_override_font_sizes/font_size = 13
+text = "HARDPACK SKI  /  JET  /  INDUCTION DISC  /  RELAY KEY"
+horizontal_alignment = 1
 
 [node name="Status" type="Label" parent="Panel/Layout"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.98, 0.82, 0.43, 1)
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 15
 text = "READY"
 horizontal_alignment = 1
 
 [node name="Note" type="Label" parent="Panel/Layout"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.68, 0.76, 0.77, 1)
-text = "A server is authority only and does not own a player.\nUse tools/run_multiplayer_demo.sh for one server + two clients."
+text = "Dedicated servers own the match and do not spawn a local suit.\nFor a full local session, launch one server and two clients."
 horizontal_alignment = 1

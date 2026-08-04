@@ -1,0 +1,51 @@
+{
+  "asset_name": "SKOOSH Kestrel hybrid visual set",
+  "category": "hero weapon, projectile, relay-station architecture, terrain shader",
+  "status": "selected visual-direction prototype",
+  "creator": "Project-local agent-authored generation",
+  "source_url": null,
+  "acquisition_date": "2026-08-02",
+  "price_usd": 0,
+  "license": "Original project work; no external asset dependencies",
+  "commercial_use": true,
+  "redistribution": "May be redistributed with the project and game exports",
+  "attribution_required": false,
+  "ai_generated_service": null,
+  "tools": [
+    "Blender 5.2.0 LTS background Python",
+    "Godot 4.4.1 Forward+ renderer"
+  ],
+  "source_files": [
+    "tools/asset_pipeline/blender_asset_utils.py",
+    "tools/asset_pipeline/create_alpine_expedition_assets.py",
+    "assets/source/weapons/kestrel_induction_launcher.blend",
+    "assets/source/environment/kestrel_relay_station.blend",
+    "assets/materials/terrain/alpine_hardpack.gdshader"
+  ],
+  "runtime_files": [
+    "assets/models/weapons/kestrel_induction_launcher.glb",
+    "assets/models/weapons/kestrel_relay_disc.glb",
+    "assets/models/environment/kestrel_relay_station.glb",
+    "assets/materials/terrain/alpine_hardpack.gdshader"
+  ],
+  "runtime_statistics": {
+    "launcher_source_bytes": 123844,
+    "launcher_glb_bytes": 301780,
+    "projectile_glb_bytes": 55652,
+    "station_source_bytes": 117921,
+    "station_glb_bytes": 488932,
+    "external_textures": 0
+  },
+  "integration": {
+    "launcher": "STRATOS-derived aerofoil silhouette uses an open rectangular gate, visible disc feed, and no barrel/nozzle geometry",
+    "projectile": "The seated and flying relay discs share deterministic geometry; authoritative swept-ray physics are unchanged",
+    "station": "Kestrel materials and collision shell support Khepri-derived triune monument vanes and objective language",
+    "terrain": "Kestrel hardpack gains restrained STRATOS contour, route-lane, and timing-mark grammar"
+  },
+  "known_limitations": [
+    "Phase vanes, signal strips, and objective cages are presentation-only; authoritative collision remains the existing 14 x 2 x 14 box.",
+    "The Vector Expedition Runner is a direction prototype with rigid skinning and one locomotion loop.",
+    "The prototype has no hand rig or authored launcher-hand attachment.",
+    "Generated Blender exports do not yet include production LOD authoring or baked wear textures."
+  ]
+}

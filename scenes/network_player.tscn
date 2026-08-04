@@ -1,4 +1,4 @@
-[gd_scene load_steps=22 format=3]
+[gd_scene load_steps=25 format=3]
 
 [ext_resource type="Script" path="res://scripts/network_player.gd" id="1_player"]
 [ext_resource type="Script" path="res://scripts/network_player_input.gd" id="2_input"]
@@ -6,83 +6,77 @@
 [ext_resource type="Script" path="res://scripts/network_hud.gd" id="4_hud"]
 [ext_resource type="Script" path="res://addons/netfox/rollback/rollback-synchronizer.gd" id="5_rollback"]
 [ext_resource type="Script" path="res://addons/netfox/tick-interpolator.gd" id="6_interpolator"]
+[ext_resource type="PackedScene" path="res://scenes/disc_projectile.tscn" id="7_projectile"]
+[ext_resource type="PackedScene" path="res://assets/models/weapons/kestrel_induction_launcher.glb" id="8_launcher_model"]
+[ext_resource type="Script" path="res://scripts/grenade_launcher.gd" id="10_grenade_weapon"]
+[ext_resource type="PackedScene" path="res://scenes/grenade_projectile.tscn" id="11_grenade_projectile"]
+[ext_resource type="Script" path="res://scripts/hitscan_weapon.gd" id="12_hitscan_weapon"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape_player"]
 radius = 0.48
 height = 2.2
 
-[sub_resource type="CapsuleMesh" id="BodyMesh"]
-radius = 0.43
-height = 1.55
-radial_segments = 12
-rings = 4
+[sub_resource type="BoxMesh" id="MuzzleFlashMesh"]
+size = Vector3(0.3, 0.12, 0.035)
 
-[sub_resource type="BoxMesh" id="ChestMesh"]
-size = Vector3(0.92, 0.72, 0.56)
+[sub_resource type="StandardMaterial3D" id="MuzzleFlashMaterial"]
+shading_mode = 0
+albedo_color = Color(0.72, 1, 0.86, 1)
+emission_enabled = true
+emission = Color(0.16, 1, 0.52, 1)
+emission_energy_multiplier = 5.0
 
-[sub_resource type="BoxMesh" id="ShoulderMesh"]
-size = Vector3(0.3, 0.32, 0.5)
+[sub_resource type="StandardMaterial3D" id="GrenadeMuzzleMaterial"]
+shading_mode = 0
+albedo_color = Color(1, 0.48, 0.18, 1)
+emission_enabled = true
+emission = Color(1, 0.16, 0.035, 1)
+emission_energy_multiplier = 5.0
 
-[sub_resource type="SphereMesh" id="HelmetMesh"]
-radius = 0.34
-height = 0.68
-radial_segments = 12
-rings = 6
+[sub_resource type="BoxMesh" id="ProxyBoxMesh"]
+size = Vector3(1, 1, 1)
 
-[sub_resource type="BoxMesh" id="VisorMesh"]
-size = Vector3(0.48, 0.16, 0.08)
-
-[sub_resource type="BoxMesh" id="BackpackMesh"]
-size = Vector3(0.64, 0.72, 0.3)
-
-[sub_resource type="CylinderMesh" id="JetPodMesh"]
-top_radius = 0.12
-bottom_radius = 0.15
-height = 0.7
+[sub_resource type="CylinderMesh" id="ProxyCanisterMesh"]
+top_radius = 0.5
+bottom_radius = 0.5
+height = 1.0
 radial_segments = 8
 rings = 1
 
-[sub_resource type="CylinderMesh" id="LegMesh"]
-top_radius = 0.13
-bottom_radius = 0.16
-height = 0.58
-radial_segments = 8
-rings = 1
+[sub_resource type="PrismMesh" id="ProxyAerofoilMesh"]
+left_to_right = 0.72
+size = Vector3(1, 1, 1)
 
-[sub_resource type="StandardMaterial3D" id="DarkArmorMaterial"]
-albedo_color = Color(0.025, 0.065, 0.085, 1)
-metallic = 0.35
+[sub_resource type="StandardMaterial3D" id="GraphiteMaterial"]
+albedo_color = Color(0.075, 0.095, 0.102, 1)
+metallic = 0.32
+roughness = 0.58
+
+[sub_resource type="StandardMaterial3D" id="CeramicMaterial"]
+albedo_color = Color(0.72, 0.72, 0.66, 1)
+metallic = 0.08
+roughness = 0.74
+
+[sub_resource type="StandardMaterial3D" id="MintMaterial"]
+albedo_color = Color(0.45, 0.95, 0.69, 1)
+emission_enabled = true
+emission = Color(0.18, 0.82, 0.5, 1)
+emission_energy_multiplier = 1.8
+roughness = 0.46
+
+[sub_resource type="StandardMaterial3D" id="OrangeMaterial"]
+albedo_color = Color(1, 0.43, 0.17, 1)
+emission_enabled = true
+emission = Color(0.86, 0.19, 0.035, 1)
+emission_energy_multiplier = 1.65
+roughness = 0.5
+
+[sub_resource type="StandardMaterial3D" id="LilacMaterial"]
+albedo_color = Color(0.72, 0.57, 0.95, 1)
+emission_enabled = true
+emission = Color(0.45, 0.25, 0.82, 1)
+emission_energy_multiplier = 1.7
 roughness = 0.48
-
-[sub_resource type="StandardMaterial3D" id="VisorMaterial"]
-albedo_color = Color(0.12, 0.9, 0.86, 1)
-emission_enabled = true
-emission = Color(0.04, 0.92, 0.86, 1)
-emission_energy_multiplier = 2.2
-metallic = 0.55
-roughness = 0.2
-
-[sub_resource type="BoxMesh" id="GunMesh"]
-size = Vector3(0.18, 0.14, 0.68)
-
-[sub_resource type="CylinderMesh" id="GunBarrelMesh"]
-top_radius = 0.045
-bottom_radius = 0.06
-height = 0.58
-radial_segments = 8
-rings = 1
-
-[sub_resource type="StandardMaterial3D" id="GunMaterial"]
-albedo_color = Color(0.025, 0.075, 0.105, 1)
-metallic = 0.45
-roughness = 0.38
-
-[sub_resource type="StandardMaterial3D" id="GunGlowMaterial"]
-albedo_color = Color(0.06, 0.85, 0.84, 1)
-emission_enabled = true
-emission = Color(0.02, 0.86, 0.82, 1)
-emission_energy_multiplier = 2.5
-roughness = 0.25
 
 [sub_resource type="SceneReplicationConfig" id="ReplicationConfig"]
 properties/0/path = NodePath(".:health")
@@ -121,6 +115,10 @@ properties/8/path = NodePath(".:team")
 properties/8/spawn = true
 properties/8/sync = true
 properties/8/watch = true
+properties/9/path = NodePath(".:character_variant")
+properties/9/spawn = true
+properties/9/sync = true
+properties/9/watch = true
 
 [node name="NetworkPlayer" type="CharacterBody3D"]
 script = ExtResource("1_player")
@@ -131,63 +129,177 @@ shape = SubResource("CapsuleShape_player")
 
 [node name="WorldModel" type="Node3D" parent="."]
 
-[node name="BodyMesh" type="MeshInstance3D" parent="WorldModel" groups=["player_team_color"]]
-position = Vector3(0, 1.12, 0)
-mesh = SubResource("BodyMesh")
+[node name="WorldWeaponProxies" type="Node3D" parent="WorldModel"]
 
-[node name="Chest" type="MeshInstance3D" parent="WorldModel" groups=["player_team_color"]]
-position = Vector3(0, 1.38, -0.02)
-mesh = SubResource("ChestMesh")
+[node name="WorldDiscProxy" type="Node3D" parent="WorldModel/WorldWeaponProxies"]
+position = Vector3(0.5, 1.36, -0.46)
+rotation_degrees = Vector3(-8, 0, 0)
 
-[node name="ShoulderLeft" type="MeshInstance3D" parent="WorldModel" groups=["player_team_color"]]
-position = Vector3(-0.53, 1.48, -0.02)
-mesh = SubResource("ShoulderMesh")
+[node name="KestrelAerofoilDiscLauncher" parent="WorldModel/WorldWeaponProxies/WorldDiscProxy" instance=ExtResource("8_launcher_model")]
+scale = Vector3(0.54, 0.54, 0.54)
 
-[node name="ShoulderRight" type="MeshInstance3D" parent="WorldModel" groups=["player_team_color"]]
-position = Vector3(0.53, 1.48, -0.02)
-mesh = SubResource("ShoulderMesh")
+[node name="WorldGrenadeProxy" type="Node3D" parent="WorldModel/WorldWeaponProxies"]
+visible = false
+position = Vector3(0.5, 1.36, -0.46)
+rotation_degrees = Vector3(-8, 0, 0)
+scale = Vector3(0.72, 0.72, 0.72)
 
-[node name="Helmet" type="MeshInstance3D" parent="WorldModel" groups=["player_team_color"]]
-position = Vector3(0, 2.02, 0)
-mesh = SubResource("HelmetMesh")
+[node name="Body" type="MeshInstance3D" parent="WorldModel/WorldWeaponProxies/WorldGrenadeProxy"]
+position = Vector3(0, 0, -0.38)
+scale = Vector3(0.38, 0.22, 0.72)
+material_override = SubResource("GraphiteMaterial")
+mesh = SubResource("ProxyBoxMesh")
+cast_shadow = 0
 
-[node name="Visor" type="MeshInstance3D" parent="WorldModel"]
-position = Vector3(0, 2.04, -0.31)
-material_override = SubResource("VisorMaterial")
-mesh = SubResource("VisorMesh")
+[node name="Canister" type="MeshInstance3D" parent="WorldModel/WorldWeaponProxies/WorldGrenadeProxy"]
+position = Vector3(0, -0.2, -0.38)
+scale = Vector3(0.25, 0.42, 0.25)
+material_override = SubResource("OrangeMaterial")
+mesh = SubResource("ProxyCanisterMesh")
+cast_shadow = 0
 
-[node name="Backpack" type="MeshInstance3D" parent="WorldModel"]
-position = Vector3(0, 1.37, 0.39)
-material_override = SubResource("DarkArmorMaterial")
-mesh = SubResource("BackpackMesh")
+[node name="CanisterClamp" type="MeshInstance3D" parent="WorldModel/WorldWeaponProxies/WorldGrenadeProxy"]
+position = Vector3(0, -0.07, -0.38)
+scale = Vector3(0.43, 0.07, 0.24)
+material_override = SubResource("CeramicMaterial")
+mesh = SubResource("ProxyBoxMesh")
+cast_shadow = 0
 
-[node name="JetLeft" type="MeshInstance3D" parent="WorldModel"]
-position = Vector3(-0.25, 1.02, 0.5)
-material_override = SubResource("DarkArmorMaterial")
-mesh = SubResource("JetPodMesh")
+[node name="RailL" type="MeshInstance3D" parent="WorldModel/WorldWeaponProxies/WorldGrenadeProxy"]
+position = Vector3(-0.2, 0.04, -0.7)
+scale = Vector3(0.055, 0.065, 1.25)
+material_override = SubResource("GraphiteMaterial")
+mesh = SubResource("ProxyBoxMesh")
+cast_shadow = 0
 
-[node name="JetRight" type="MeshInstance3D" parent="WorldModel"]
-position = Vector3(0.25, 1.02, 0.5)
-material_override = SubResource("DarkArmorMaterial")
-mesh = SubResource("JetPodMesh")
+[node name="RailR" type="MeshInstance3D" parent="WorldModel/WorldWeaponProxies/WorldGrenadeProxy"]
+position = Vector3(0.2, 0.04, -0.7)
+scale = Vector3(0.055, 0.065, 1.25)
+material_override = SubResource("GraphiteMaterial")
+mesh = SubResource("ProxyBoxMesh")
+cast_shadow = 0
 
-[node name="LegLeft" type="MeshInstance3D" parent="WorldModel" groups=["player_team_color"]]
-position = Vector3(-0.2, 0.42, 0)
-material_override = SubResource("DarkArmorMaterial")
-mesh = SubResource("LegMesh")
+[node name="OpenGate" type="MeshInstance3D" parent="WorldModel/WorldWeaponProxies/WorldGrenadeProxy"]
+position = Vector3(0, 0.04, -1.3)
+scale = Vector3(0.52, 0.09, 0.1)
+material_override = SubResource("OrangeMaterial")
+mesh = SubResource("ProxyBoxMesh")
+cast_shadow = 0
 
-[node name="LegRight" type="MeshInstance3D" parent="WorldModel" groups=["player_team_color"]]
-position = Vector3(0.2, 0.42, 0)
-material_override = SubResource("DarkArmorMaterial")
-mesh = SubResource("LegMesh")
+[node name="WorldGatlingProxy" type="Node3D" parent="WorldModel/WorldWeaponProxies"]
+visible = false
+position = Vector3(0.5, 1.36, -0.46)
+rotation_degrees = Vector3(-8, 0, 0)
+scale = Vector3(0.72, 0.72, 0.72)
+
+[node name="Receiver" type="MeshInstance3D" parent="WorldModel/WorldWeaponProxies/WorldGatlingProxy"]
+position = Vector3(0, 0, -0.3)
+scale = Vector3(0.4, 0.28, 0.5)
+material_override = SubResource("GraphiteMaterial")
+mesh = SubResource("ProxyBoxMesh")
+cast_shadow = 0
+
+[node name="AerofoilCowling" type="MeshInstance3D" parent="WorldModel/WorldWeaponProxies/WorldGatlingProxy"]
+position = Vector3(0, 0.18, -0.43)
+scale = Vector3(0.5, 0.08, 0.76)
+material_override = SubResource("CeramicMaterial")
+mesh = SubResource("ProxyAerofoilMesh")
+cast_shadow = 0
+
+[node name="WorldGatlingRotor" type="Node3D" parent="WorldModel/WorldWeaponProxies/WorldGatlingProxy"]
+position = Vector3(0, 0, -0.36)
+
+[node name="RailL" type="MeshInstance3D" parent="WorldModel/WorldWeaponProxies/WorldGatlingProxy/WorldGatlingRotor"]
+position = Vector3(-0.14, 0.04, -0.48)
+scale = Vector3(0.065, 0.065, 1.18)
+material_override = SubResource("CeramicMaterial")
+mesh = SubResource("ProxyBoxMesh")
+cast_shadow = 0
+
+[node name="RailR" type="MeshInstance3D" parent="WorldModel/WorldWeaponProxies/WorldGatlingProxy/WorldGatlingRotor"]
+position = Vector3(0.14, 0.04, -0.48)
+scale = Vector3(0.065, 0.065, 1.18)
+material_override = SubResource("CeramicMaterial")
+mesh = SubResource("ProxyBoxMesh")
+cast_shadow = 0
+
+[node name="RailSignal" type="MeshInstance3D" parent="WorldModel/WorldWeaponProxies/WorldGatlingProxy/WorldGatlingRotor"]
+position = Vector3(0, -0.13, -0.48)
+scale = Vector3(0.065, 0.065, 1.18)
+material_override = SubResource("MintMaterial")
+mesh = SubResource("ProxyBoxMesh")
+cast_shadow = 0
+
+[node name="FrontClampH" type="MeshInstance3D" parent="WorldModel/WorldWeaponProxies/WorldGatlingProxy/WorldGatlingRotor"]
+position = Vector3(0, 0, -1.0)
+scale = Vector3(0.4, 0.055, 0.1)
+material_override = SubResource("GraphiteMaterial")
+mesh = SubResource("ProxyBoxMesh")
+cast_shadow = 0
+
+[node name="FrontClampV" type="MeshInstance3D" parent="WorldModel/WorldWeaponProxies/WorldGatlingProxy/WorldGatlingRotor"]
+position = Vector3(0, 0, -1.0)
+scale = Vector3(0.055, 0.35, 0.1)
+material_override = SubResource("GraphiteMaterial")
+mesh = SubResource("ProxyBoxMesh")
+cast_shadow = 0
+
+[node name="WorldSniperProxy" type="Node3D" parent="WorldModel/WorldWeaponProxies"]
+visible = false
+position = Vector3(0.5, 1.36, -0.46)
+rotation_degrees = Vector3(-8, 0, 0)
+scale = Vector3(0.72, 0.72, 0.72)
+
+[node name="Receiver" type="MeshInstance3D" parent="WorldModel/WorldWeaponProxies/WorldSniperProxy"]
+position = Vector3(0, -0.02, -0.42)
+scale = Vector3(0.3, 0.2, 0.78)
+material_override = SubResource("GraphiteMaterial")
+mesh = SubResource("ProxyBoxMesh")
+cast_shadow = 0
+
+[node name="LongAerofoil" type="MeshInstance3D" parent="WorldModel/WorldWeaponProxies/WorldSniperProxy"]
+position = Vector3(-0.02, 0.13, -0.88)
+rotation_degrees = Vector3(0, -4, 0)
+scale = Vector3(0.34, 0.075, 1.7)
+material_override = SubResource("CeramicMaterial")
+mesh = SubResource("ProxyAerofoilMesh")
+cast_shadow = 0
+
+[node name="RangeBlock" type="MeshInstance3D" parent="WorldModel/WorldWeaponProxies/WorldSniperProxy"]
+position = Vector3(-0.13, -0.15, -0.43)
+scale = Vector3(0.2, 0.13, 0.3)
+material_override = SubResource("LilacMaterial")
+mesh = SubResource("ProxyBoxMesh")
+cast_shadow = 0
+
+[node name="FrontRailL" type="MeshInstance3D" parent="WorldModel/WorldWeaponProxies/WorldSniperProxy"]
+position = Vector3(-0.12, 0, -1.28)
+scale = Vector3(0.045, 0.065, 0.82)
+material_override = SubResource("GraphiteMaterial")
+mesh = SubResource("ProxyBoxMesh")
+cast_shadow = 0
+
+[node name="FrontRailR" type="MeshInstance3D" parent="WorldModel/WorldWeaponProxies/WorldSniperProxy"]
+position = Vector3(0.12, 0, -1.28)
+scale = Vector3(0.045, 0.065, 0.82)
+material_override = SubResource("LilacMaterial")
+mesh = SubResource("ProxyBoxMesh")
+cast_shadow = 0
+
+[node name="FrontClamp" type="MeshInstance3D" parent="WorldModel/WorldWeaponProxies/WorldSniperProxy"]
+position = Vector3(0, 0, -1.62)
+scale = Vector3(0.33, 0.08, 0.1)
+material_override = SubResource("LilacMaterial")
+mesh = SubResource("ProxyBoxMesh")
+cast_shadow = 0
 
 [node name="NameLabel" type="Label3D" parent="."]
 position = Vector3(0, 2.72, 0)
 text = "SYNCING"
-font_size = 36
-outline_size = 8
+font_size = 15
+outline_size = 3
 modulate = Color(0.85, 1, 1, 1)
-pixel_size = 0.004
+pixel_size = 0.003
 billboard = 1
 fixed_size = true
 no_depth_test = true
@@ -203,31 +315,273 @@ fov = 80.0
 
 [node name="ViewGun" type="Node3D" parent="Head/Camera3D"]
 visible = false
-position = Vector3(0.32, -0.25, -0.48)
-rotation_degrees = Vector3(-4, 0, 0)
+position = Vector3(0.5, -0.36, -0.7)
+rotation_degrees = Vector3(-4, -3, -1)
 
-[node name="Body" type="MeshInstance3D" parent="Head/Camera3D/ViewGun"]
-material_override = SubResource("GunMaterial")
-mesh = SubResource("GunMesh")
+[node name="ViewDiscProxy" type="Node3D" parent="Head/Camera3D/ViewGun"]
+
+[node name="KestrelAerofoilDiscLauncher" parent="Head/Camera3D/ViewGun/ViewDiscProxy" instance=ExtResource("8_launcher_model")]
+scale = Vector3(0.76, 0.76, 0.76)
+
+[node name="ViewGrenadeProxy" type="Node3D" parent="Head/Camera3D/ViewGun"]
+visible = false
+
+[node name="Body" type="MeshInstance3D" parent="Head/Camera3D/ViewGun/ViewGrenadeProxy"]
+position = Vector3(0, 0, -0.4)
+scale = Vector3(0.38, 0.22, 0.72)
+material_override = SubResource("GraphiteMaterial")
+mesh = SubResource("ProxyBoxMesh")
 cast_shadow = 0
 
-[node name="Barrel" type="MeshInstance3D" parent="Head/Camera3D/ViewGun"]
-position = Vector3(0, 0, -0.48)
-rotation_degrees = Vector3(90, 0, 0)
-material_override = SubResource("GunGlowMaterial")
-mesh = SubResource("GunBarrelMesh")
+[node name="Canister" type="MeshInstance3D" parent="Head/Camera3D/ViewGun/ViewGrenadeProxy"]
+position = Vector3(0, -0.2, -0.38)
+scale = Vector3(0.25, 0.42, 0.25)
+material_override = SubResource("OrangeMaterial")
+mesh = SubResource("ProxyCanisterMesh")
 cast_shadow = 0
 
-[node name="PulseRifle" type="Node3D" parent="Head"]
+[node name="CanisterClamp" type="MeshInstance3D" parent="Head/Camera3D/ViewGun/ViewGrenadeProxy"]
+position = Vector3(0, -0.07, -0.38)
+scale = Vector3(0.43, 0.07, 0.24)
+material_override = SubResource("CeramicMaterial")
+mesh = SubResource("ProxyBoxMesh")
+cast_shadow = 0
+
+[node name="RailL" type="MeshInstance3D" parent="Head/Camera3D/ViewGun/ViewGrenadeProxy"]
+position = Vector3(-0.2, 0.04, -0.7)
+scale = Vector3(0.055, 0.065, 1.25)
+material_override = SubResource("GraphiteMaterial")
+mesh = SubResource("ProxyBoxMesh")
+cast_shadow = 0
+
+[node name="RailR" type="MeshInstance3D" parent="Head/Camera3D/ViewGun/ViewGrenadeProxy"]
+position = Vector3(0.2, 0.04, -0.7)
+scale = Vector3(0.055, 0.065, 1.25)
+material_override = SubResource("GraphiteMaterial")
+mesh = SubResource("ProxyBoxMesh")
+cast_shadow = 0
+
+[node name="AerofoilL" type="MeshInstance3D" parent="Head/Camera3D/ViewGun/ViewGrenadeProxy"]
+position = Vector3(-0.27, 0.11, -0.48)
+rotation_degrees = Vector3(0, -12, 0)
+scale = Vector3(0.2, 0.055, 0.62)
+material_override = SubResource("CeramicMaterial")
+mesh = SubResource("ProxyAerofoilMesh")
+cast_shadow = 0
+
+[node name="AerofoilR" type="MeshInstance3D" parent="Head/Camera3D/ViewGun/ViewGrenadeProxy"]
+position = Vector3(0.27, 0.11, -0.48)
+rotation_degrees = Vector3(0, 12, 0)
+scale = Vector3(0.2, 0.055, 0.62)
+material_override = SubResource("CeramicMaterial")
+mesh = SubResource("ProxyAerofoilMesh")
+cast_shadow = 0
+
+[node name="OpenGate" type="MeshInstance3D" parent="Head/Camera3D/ViewGun/ViewGrenadeProxy"]
+position = Vector3(0, 0.04, -1.3)
+scale = Vector3(0.52, 0.09, 0.1)
+material_override = SubResource("OrangeMaterial")
+mesh = SubResource("ProxyBoxMesh")
+cast_shadow = 0
+
+[node name="ViewGatlingProxy" type="Node3D" parent="Head/Camera3D/ViewGun"]
+visible = false
+
+[node name="Receiver" type="MeshInstance3D" parent="Head/Camera3D/ViewGun/ViewGatlingProxy"]
+position = Vector3(0, 0, -0.3)
+scale = Vector3(0.4, 0.28, 0.5)
+material_override = SubResource("GraphiteMaterial")
+mesh = SubResource("ProxyBoxMesh")
+cast_shadow = 0
+
+[node name="AerofoilCowling" type="MeshInstance3D" parent="Head/Camera3D/ViewGun/ViewGatlingProxy"]
+position = Vector3(0, 0.18, -0.43)
+scale = Vector3(0.5, 0.08, 0.76)
+material_override = SubResource("CeramicMaterial")
+mesh = SubResource("ProxyAerofoilMesh")
+cast_shadow = 0
+
+[node name="MotorGate" type="MeshInstance3D" parent="Head/Camera3D/ViewGun/ViewGatlingProxy"]
+position = Vector3(0, -0.14, -0.36)
+scale = Vector3(0.36, 0.1, 0.2)
+material_override = SubResource("MintMaterial")
+mesh = SubResource("ProxyBoxMesh")
+cast_shadow = 0
+
+[node name="ViewGatlingRotor" type="Node3D" parent="Head/Camera3D/ViewGun/ViewGatlingProxy"]
+position = Vector3(0, 0, -0.36)
+
+[node name="RailL" type="MeshInstance3D" parent="Head/Camera3D/ViewGun/ViewGatlingProxy/ViewGatlingRotor"]
+position = Vector3(-0.14, 0.04, -0.48)
+scale = Vector3(0.065, 0.065, 1.18)
+material_override = SubResource("CeramicMaterial")
+mesh = SubResource("ProxyBoxMesh")
+cast_shadow = 0
+
+[node name="RailR" type="MeshInstance3D" parent="Head/Camera3D/ViewGun/ViewGatlingProxy/ViewGatlingRotor"]
+position = Vector3(0.14, 0.04, -0.48)
+scale = Vector3(0.065, 0.065, 1.18)
+material_override = SubResource("CeramicMaterial")
+mesh = SubResource("ProxyBoxMesh")
+cast_shadow = 0
+
+[node name="RailSignal" type="MeshInstance3D" parent="Head/Camera3D/ViewGun/ViewGatlingProxy/ViewGatlingRotor"]
+position = Vector3(0, -0.13, -0.48)
+scale = Vector3(0.065, 0.065, 1.18)
+material_override = SubResource("MintMaterial")
+mesh = SubResource("ProxyBoxMesh")
+cast_shadow = 0
+
+[node name="RearClampH" type="MeshInstance3D" parent="Head/Camera3D/ViewGun/ViewGatlingProxy/ViewGatlingRotor"]
+position = Vector3(0, 0, -0.12)
+scale = Vector3(0.4, 0.055, 0.1)
+material_override = SubResource("GraphiteMaterial")
+mesh = SubResource("ProxyBoxMesh")
+cast_shadow = 0
+
+[node name="RearClampV" type="MeshInstance3D" parent="Head/Camera3D/ViewGun/ViewGatlingProxy/ViewGatlingRotor"]
+position = Vector3(0, 0, -0.12)
+scale = Vector3(0.055, 0.35, 0.1)
+material_override = SubResource("GraphiteMaterial")
+mesh = SubResource("ProxyBoxMesh")
+cast_shadow = 0
+
+[node name="FrontClampH" type="MeshInstance3D" parent="Head/Camera3D/ViewGun/ViewGatlingProxy/ViewGatlingRotor"]
+position = Vector3(0, 0, -1.0)
+scale = Vector3(0.4, 0.055, 0.1)
+material_override = SubResource("GraphiteMaterial")
+mesh = SubResource("ProxyBoxMesh")
+cast_shadow = 0
+
+[node name="FrontClampV" type="MeshInstance3D" parent="Head/Camera3D/ViewGun/ViewGatlingProxy/ViewGatlingRotor"]
+position = Vector3(0, 0, -1.0)
+scale = Vector3(0.055, 0.35, 0.1)
+material_override = SubResource("GraphiteMaterial")
+mesh = SubResource("ProxyBoxMesh")
+cast_shadow = 0
+
+[node name="ViewSniperProxy" type="Node3D" parent="Head/Camera3D/ViewGun"]
+visible = false
+
+[node name="Receiver" type="MeshInstance3D" parent="Head/Camera3D/ViewGun/ViewSniperProxy"]
+position = Vector3(0, -0.02, -0.42)
+scale = Vector3(0.3, 0.2, 0.78)
+material_override = SubResource("GraphiteMaterial")
+mesh = SubResource("ProxyBoxMesh")
+cast_shadow = 0
+
+[node name="LongAerofoil" type="MeshInstance3D" parent="Head/Camera3D/ViewGun/ViewSniperProxy"]
+position = Vector3(-0.02, 0.13, -0.88)
+rotation_degrees = Vector3(0, -4, 0)
+scale = Vector3(0.34, 0.075, 1.7)
+material_override = SubResource("CeramicMaterial")
+mesh = SubResource("ProxyAerofoilMesh")
+cast_shadow = 0
+
+[node name="RangeBlock" type="MeshInstance3D" parent="Head/Camera3D/ViewGun/ViewSniperProxy"]
+position = Vector3(-0.13, -0.15, -0.43)
+scale = Vector3(0.2, 0.13, 0.3)
+material_override = SubResource("LilacMaterial")
+mesh = SubResource("ProxyBoxMesh")
+cast_shadow = 0
+
+[node name="FrontRailL" type="MeshInstance3D" parent="Head/Camera3D/ViewGun/ViewSniperProxy"]
+position = Vector3(-0.12, 0, -1.28)
+scale = Vector3(0.045, 0.065, 0.82)
+material_override = SubResource("GraphiteMaterial")
+mesh = SubResource("ProxyBoxMesh")
+cast_shadow = 0
+
+[node name="FrontRailR" type="MeshInstance3D" parent="Head/Camera3D/ViewGun/ViewSniperProxy"]
+position = Vector3(0.12, 0, -1.28)
+scale = Vector3(0.045, 0.065, 0.82)
+material_override = SubResource("LilacMaterial")
+mesh = SubResource("ProxyBoxMesh")
+cast_shadow = 0
+
+[node name="RearClamp" type="MeshInstance3D" parent="Head/Camera3D/ViewGun/ViewSniperProxy"]
+position = Vector3(0, 0, -0.78)
+scale = Vector3(0.36, 0.08, 0.11)
+material_override = SubResource("GraphiteMaterial")
+mesh = SubResource("ProxyBoxMesh")
+cast_shadow = 0
+
+[node name="FrontClamp" type="MeshInstance3D" parent="Head/Camera3D/ViewGun/ViewSniperProxy"]
+position = Vector3(0, 0, -1.62)
+scale = Vector3(0.33, 0.08, 0.1)
+material_override = SubResource("LilacMaterial")
+mesh = SubResource("ProxyBoxMesh")
+cast_shadow = 0
+
+[node name="DiscLauncher" type="Node3D" parent="Head"]
 position = Vector3(0, 0, -0.18)
 script = ExtResource("3_weapon")
+projectile_scene = ExtResource("7_projectile")
 
-[node name="MuzzleLight" type="OmniLight3D" parent="Head/PulseRifle"]
-position = Vector3(0, 0, -0.4)
-light_color = Color(0.3, 0.95, 1, 1)
+[node name="MuzzleOrigin" type="Node3D" parent="Head/DiscLauncher"]
+position = Vector3(0.48, -0.28, -1.25)
+
+[node name="MuzzleFlash" type="MeshInstance3D" parent="Head/DiscLauncher/MuzzleOrigin"]
+visible = false
+material_override = SubResource("MuzzleFlashMaterial")
+mesh = SubResource("MuzzleFlashMesh")
+cast_shadow = 0
+
+[node name="MuzzleLight" type="OmniLight3D" parent="Head/DiscLauncher"]
+position = Vector3(0.48, -0.28, -1.25)
+light_color = Color(0.3, 1, 0.58, 1)
 light_energy = 0.0
 omni_range = 4.0
 shadow_enabled = false
+
+[node name="GrenadeLauncher" type="Node3D" parent="Head"]
+position = Vector3(0, 0, -0.18)
+script = ExtResource("10_grenade_weapon")
+projectile_scene = ExtResource("11_grenade_projectile")
+fire_cooldown = 1.1
+projectile_speed = 50.0
+splash_radius = 7.2
+maximum_damage = 90
+minimum_damage = 18
+weapon_slot = 1
+
+[node name="MuzzleOrigin" type="Node3D" parent="Head/GrenadeLauncher"]
+position = Vector3(0.48, -0.28, -1.25)
+
+[node name="MuzzleFlash" type="MeshInstance3D" parent="Head/GrenadeLauncher/MuzzleOrigin"]
+visible = false
+material_override = SubResource("GrenadeMuzzleMaterial")
+mesh = SubResource("MuzzleFlashMesh")
+cast_shadow = 0
+
+[node name="MuzzleLight" type="OmniLight3D" parent="Head/GrenadeLauncher"]
+position = Vector3(0.48, -0.28, -1.25)
+light_color = Color(1, 0.28, 0.08, 1)
+light_energy = 0.0
+omni_range = 5.0
+shadow_enabled = false
+
+[node name="GatlingGun" type="Node3D" parent="Head"]
+position = Vector3(0, 0, -0.18)
+script = ExtResource("12_hitscan_weapon")
+
+[node name="MuzzleOrigin" type="Node3D" parent="Head/GatlingGun"]
+position = Vector3(0.48, -0.28, -1.25)
+
+[node name="SniperRifle" type="Node3D" parent="Head"]
+position = Vector3(0, 0, -0.18)
+script = ExtResource("12_hitscan_weapon")
+weapon_slot = 3
+fire_cooldown = 1.25
+maximum_damage = 70
+minimum_damage = 70
+full_damage_range = 220.0
+maximum_range = 220.0
+spread_degrees = 0.0
+weapon_color = Color(0.784, 0.651, 1, 1)
+
+[node name="MuzzleOrigin" type="Node3D" parent="Head/SniperRifle"]
+position = Vector3(0.48, -0.28, -1.25)
 
 [node name="Input" type="Node" parent="."]
 script = ExtResource("2_input")
@@ -235,8 +589,8 @@ script = ExtResource("2_input")
 [node name="RollbackSynchronizer" type="Node" parent="." node_paths=PackedStringArray("root")]
 script = ExtResource("5_rollback")
 root = NodePath("..")
-state_properties = Array[String]([":transform", ":velocity", ":jet_energy", ":recharge_wait", ":jet_ground_pop_latched", ":ski_held", ":jet_active", ":did_teleport", "Head:transform"])
-input_properties = Array[String](["Input:movement", "Input:ski", "Input:jet", "Input:fire", "Input:reset", "Input:look_delta"])
+state_properties = Array[String]([":transform", ":velocity", ":jet_energy", ":recharge_wait", ":jet_ground_pop_latched", ":ski_held", ":jet_active", ":did_teleport", ":active_weapon_slot", ":weapon_switch_tick", "Head:transform"])
+input_properties = Array[String](["Input:movement", "Input:ski", "Input:jet", "Input:fire", "Input:weapon_slot", "Input:reset", "Input:look_delta"])
 enable_input_broadcast = true
 
 [node name="TickInterpolator" type="Node" parent="." node_paths=PackedStringArray("root")]

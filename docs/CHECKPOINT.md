@@ -2,12 +2,14 @@
 
 **Checkpoint date:** 2026-07-31  
 **Status:** First playable movement/time-trial MVP plus an initial authoritative multiplayer/combat vertical slice; human multiplayer playtest and impairment testing remain.  
-**Direction decision:** Proper multiplayer is a destination. Native desktop clients will use an authoritative dedicated-server model; browser support is no longer a destination. Research recommends staying with Godot 4.4+ and ENet unless a measured movement-prediction spike fails.  
+**Direction decision:** Proper multiplayer is a destination. Native desktop clients use an authoritative dedicated-server model; browser support is no longer a destination. Godot 4.4+, ENet, and Forward+ with the balanced presentation profile are the current baseline.
 **Purpose:** Record where the project is, the first playtest impressions, and the likely cost of expanding it. This is context, not an instruction to address the feedback immediately.
+
+> **Reading note:** This is an append-only project history. Sections 1-12 preserve the original movement-prototype checkpoint; sections 13-15 supersede them with the current multiplayer, disc/voice, and selected visual-direction state.
 
 ## 1. What exists now
 
-SKOOSH is a self-contained Godot 4.x first-person movement toy using GDScript and the Compatibility renderer.
+SKOOSH is a self-contained Godot 4.x first-person movement toy using typed GDScript and the Forward+ renderer. The balanced profile enables decals, clustered team lights, SSAO, and restrained volumetric fog; expensive showcase features remain off by default.
 
 The current build includes:
 
@@ -22,7 +24,7 @@ The current build includes:
 - Generated terrain colors, procedural sky, lighting, fog, emissive gates, and gate pulses.
 - Linux and legacy Web export presets. Web is no longer a product target; its preset can be removed during later project cleanup.
 
-The original narrow movement/time-trial MVP in `PLAN.md` remains preserved, while the current project entry point now exercises the authoritative combat/CTF vertical slice documented below.
+The original narrow movement/time-trial MVP in `docs/archive/PLAN.md` remains preserved, while the current project entry point now exercises the authoritative combat/CTF vertical slice documented below.
 
 ## 2. Validation completed
 
@@ -58,7 +60,7 @@ Likely work:
 
 - Increase value and hue separation between valleys, traversable slopes, steep rock, and high ground.
 - Reduce the current pale/cyan wash from the interaction of vertex colors, fog, ambient light, and sun.
-- Add a Compatibility-safe terrain shader or more deliberate vertex-color bands.
+- Improve the existing terrain shader or use more deliberate vertex-color bands; bake-off candidates may use Forward+ features within their recorded feature budget.
 - Use slope/height contour accents, restrained procedural texture variation, or broad directional markings rather than downloaded textures.
 - Improve gate-to-gate route communication independently of terrain appearance.
 
@@ -254,10 +256,10 @@ The best leverage is to make movement command-driven, readable, and enjoyable, t
 
 ## 12. Pause handoff
 
-- Research outcome: `RESEARCH_FINDINGS.md`.
-- Executable next phase: `MULTIPLAYER_SPIKE.md`.
-- Research brief and source-discovery paths: `RESEARCH_PATHS.md`.
-- Current product baseline: `PLAN.md` and this checkpoint.
+- Research outcome: `docs/decisions/RESEARCH_FINDINGS.md`.
+- Original execution plan: `docs/archive/MULTIPLAYER_SPIKE.md`.
+- Research brief and source-discovery paths: `docs/archive/RESEARCH_PATHS.md`.
+- Original product baseline: `docs/archive/PLAN.md` and this checkpoint.
 - Git was initialized and the validated pre-CTF multiplayer baseline is commit `d992749`.
 - Multiplayer implementation is now underway; see the implementation checkpoint below.
 
@@ -299,7 +301,53 @@ Important limitations:
 - CTF is deliberately sudden death (one capture) for a quick two-client loop.
 - No artificial latency, jitter, or loss has been measured yet.
 - Correction-distance/contact-disagreement instrumentation is not implemented yet.
-- The pulse rifle uses the server's current collision world and has no historical hitbox rewind/lag compensation yet; see `COMBAT_NETWORKING_ROADMAP.md`.
+- The pulse rifle uses the server's current collision world and has no historical hitbox rewind/lag compensation yet; see `docs/engineering/COMBAT_NETWORKING_ROADMAP.md`.
 - Scale testing beyond two clients is not implemented yet.
 - The revised CTF scene and player art need a human graphical playtest.
 - netfox broadcasts input for this prototype; production relevancy/bandwidth hardening remains.
+
+## 14. Voice, disc, and playtest presentation pass
+
+Implemented on the `feature/voice-disc-ux` playtest branch:
+
+- Replaced the hitscan pulse rifle with the only/default disc launcher: 82 m/s visible projectiles, 55% shooter-velocity inheritance, 0.82-second cadence, 5.8 m authoritative splash, and up to 105 damage.
+- Clients predict disc presentation, while the server substitutes its current muzzle/aim, simulates swept flight, resolves impact/falloff, rejects friendly fire, and owns damage and kill credit.
+- Added server-rate-limited TEAM/GLOBAL voice commands with a `V` menu and 12 commands across social, objective, and status channels. Five Cartesia-generated voice packs are randomized per connection and use restrained radio-band post-processing.
+- Added compact callsigns, clearer score/objective/vitals/weapon hierarchy, F3-gated network telemetry, contextual pointer help, hit/damage feedback, and a focused connection terminal.
+- Darkened terrain values, added four-meter contour banding, reduced cyan fog wash, and strengthened team/base contrast.
+- Extended multiplayer acceptance to require a cross-peer GLOBAL voice relay plus disc impacts/damage, and to fail on logged script errors or rejected launches.
+- Extended off-screen visual QA with team-comms, disc-flight, and disc-impact event captures.
+
+Still pending:
+
+- Human combat, voice-cast, radio-treatment, and audio-level playtesting.
+- Artificial latency, jitter, and loss qualification for launch timing and remote projectile presentation.
+- Projectile correction/age metrics, scale testing, and production command budgets beyond the current per-speaker voice cooldown.
+
+## 15. Selected visual direction
+
+The three-way visual bake-off completed from shared baseline `593f763`. The
+selected direction uses Kestrel's daytime alpine atmosphere and practical
+material hierarchy, STRATOS route grammar and aerofoil equipment silhouette,
+and Khepri triune monument/objective language. The implementation remains on
+`feature/voice-disc-ux` by explicit user request.
+
+The former runway mannequin is replaced by three Blender-authored character
+shell variants. The server assigns and replicates one presentation-only variant
+per player while preserving the `MomentumLean` contract and gameplay capsule.
+The launcher exposes a seated disc and open launch gate; the flying visual is
+disc-shaped while authoritative swept-ray projectile behavior is intentionally
+unchanged. See `docs/production/VISUAL_DIRECTION.md` and
+`docs/decisions/BAKE_OFF_REPORT.md`.
+
+## 16. Four-slot combat loadout
+
+Implemented on `feature/combat-loadout`:
+
+- Added server-validated slots for the existing disc, an arcing impact/fuse grenade, a deterministic-spread gatling gun, and an accurate sniper rifle.
+- The grenade uses swept ballistic flight, 7.2 m authoritative splash, teammate immunity, and half self-damage without blast impulse.
+- Gatling and sniper clients request fire only; the server reconstructs current-world rays from its own muzzle and aim, applies range/damage rules, and owns hit confirmation.
+- Added a 0.25-second switch settle, independent cooldowns, number-key selection that yields to the voice menu, compact HUD status, and color-coded first/third-person presentation.
+- Extended acceptance bots and server counters to require accepted fire from every slot, a grenade impact, and confirmed gatling and sniper hits while preserving the movement, voice, CTF, and round-reset checks.
+
+Current limitation: hitscan is authoritative but not lag compensated. Historical player-capsule evaluation remains part of impairment qualification rather than this loadout implementation.
