@@ -87,4 +87,4 @@ The original solo time-trial remains available as `res://scenes/main.tscn`; the 
 
 ## Current network boundary
 
-The server owns movement results, energy, weapon selection and cadence, projectile impacts, hitscan traces, damage, teams, flags, score, team/global voice routing and rate limits, and rounds. Clients predict firing presentation only; the server reconstructs projectile launches and hitscan rays from its authoritative muzzle and aim. See [`docs/engineering/COMBAT_NETWORKING_ROADMAP.md`](docs/engineering/COMBAT_NETWORKING_ROADMAP.md) and [`docs/CHECKPOINT.md`](docs/CHECKPOINT.md).
+The server owns movement results, energy, weapon selection and cadence, projectile impacts, hitscan traces, damage, teams, flags, score, team/global voice routing and rate limits, and rounds. Clients predict projectile and firing presentation only; the server reconstructs projectile launches and hitscan rays from its authoritative muzzle and aim. See [`docs/engineering/COMBAT_NETWORKING_ROADMAP.md`](docs/engineering/COMBAT_NETWORKING_ROADMAP.md) and [`docs/CHECKPOINT.md`](docs/CHECKPOINT.md).

@@ -2,7 +2,7 @@
 
 ## Current contract
 
-The dedicated server owns health, death, respawn, weapon selection, cadence, teams, flags, score, and round state. A client may request fire only for its own avatar and selected slot. The server independently enforces alive/round state, switch and post-teleport lockouts, cadence, ownership, team, and bounded request age. It reconstructs projectile launches and hitscan rays from its current muzzle and aim, and owns swept projectile collision, hitscan traces, splash falloff, friendly-fire rejection, damage, and kill credit. Clients predict only firing presentation.
+The dedicated server owns health, death, respawn, weapon selection, cadence, teams, flags, score, and round state. A client may request fire only for its own avatar and selected slot. The server independently enforces alive/round state, switch and post-teleport lockouts, cadence, ownership, team, and bounded request age. It reconstructs projectile launches and hitscan rays from its current muzzle and aim, and owns swept projectile collision, hitscan traces, splash falloff, friendly-fire rejection, damage, and kill credit. Clients predict only projectile and firing presentation.
 
 The current player collision capsule is also the current hitbox. The more detailed armor model is presentation only.
 
