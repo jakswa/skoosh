@@ -59,6 +59,8 @@ func _network_tick(_delta: float, _tick: int) -> void:
 		NetworkTime.tick >= _client_fire_ready_tick
 		and input.fire
 		and player.can_fire_weapon(weapon_slot)
+		# Leave room for client/server tick skew at the cooldown boundary.
+		and NetworkTime.tick - last_fire_tick >= _cooldown_ticks() + 2
 		and not player.dead
 	):
 		fire()
@@ -143,9 +145,9 @@ func _is_reconcilable(
 	var local_direction := local_data.get("direction", Vector3.FORWARD) as Vector3
 	var request_tick := int(request_data.get("spawn_tick", NetworkTime.tick))
 	var request_age := NetworkTime.tick - request_tick
-	# Rendered software clients can trail the server by more than 30 ticks. Keep
-	# the wider window authority-safe by requiring close agreement with the
-	# server-built launch state before netfox may reconcile the prediction.
+	# Rendered clients can trail the server and disagree on inherited velocity.
+	# These bounds gate the request, but accepted shots still use the server-built
+	# launch state for authoritative simulation and client reconciliation.
 	return (
 		int(request_data.get("source_peer_id", -1)) == player.peer_id
 		and int(request_data.get("source_team", -1)) == player.team
@@ -153,7 +155,7 @@ func _is_reconcilable(
 		and requested_velocity.is_finite()
 		and requested_direction.is_normalized()
 		and requested_origin.distance_to(local_origin) <= 1.5
-		and requested_velocity.distance_to(local_velocity) <= 8.0
+		and requested_velocity.distance_to(local_velocity) <= 24.0
 		and requested_direction.dot(local_direction) >= 0.985
 		and request_age >= -2
 		and request_age <= 60
