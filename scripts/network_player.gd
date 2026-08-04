@@ -1,15 +1,16 @@
 extends MovementBody
 class_name SkooshNetworkPlayer
 
+const CharacterMaterialRoles = preload("res://scripts/character_material_roles.gd")
 const CHARACTER_VARIANT_NAMES: Array[String] = [
 	"Vector Sprinter Mk II",
 	"STRATOS Foilframe",
 	"Khepri Triune Salvage",
 ]
-const CHARACTER_VARIANT_SCENES: Array[PackedScene] = [
-	preload("res://assets/models/characters/vector_sprinter_mk2.glb"),
-	preload("res://assets/models/characters/stratos_foilframe.glb"),
-	preload("res://assets/models/characters/khepri_triune_salvage.glb"),
+const CHARACTER_VARIANT_PATHS: Array[String] = [
+	"res://assets/models/characters/vector_sprinter_mk2.glb",
+	"res://assets/models/characters/stratos_foilframe.glb",
+	"res://assets/models/characters/khepri_triune_salvage.glb",
 ]
 const CHARACTER_VARIANT_UNRESOLVED := -1
 
@@ -443,10 +444,17 @@ func _update_character_presentation() -> void:
 		or not is_character_variant_valid(character_variant)
 	):
 		return
+	if multiplayer.is_server():
+		_presented_variant = character_variant
+		return
 	if is_instance_valid(_model_root):
 		world_model.remove_child(_model_root)
 		_model_root.queue_free()
-	_model_root = CHARACTER_VARIANT_SCENES[character_variant].instantiate() as Node3D
+	var scene := load(CHARACTER_VARIANT_PATHS[character_variant]) as PackedScene
+	if scene == null:
+		push_error("Character variant %d did not load" % character_variant)
+		return
+	_model_root = scene.instantiate() as Node3D
 	_suit_animation = null
 	if _model_root == null:
 		push_error("Character variant %d did not instantiate as Node3D" % character_variant)
@@ -475,6 +483,7 @@ func _report_character_variant() -> void:
 		peer_id <= 1
 		or _reported_variant == _presented_variant
 		or not is_character_variant_valid(_presented_variant)
+		or not is_instance_valid(_model_root)
 	):
 		return
 	_reported_variant = _presented_variant
@@ -503,19 +512,7 @@ func _update_team_presentation() -> void:
 	secondary_material.albedo_color = color.darkened(0.28)
 	secondary_material.metallic = 0.18
 	secondary_material.roughness = 0.72
-	const PRIMARY_TEAM_PARTS: Array[StringName] = [
-		&"Pelvis shell", &"Chest plate", &"Helmet", &"Rear bib",
-	]
-	const SECONDARY_TEAM_PARTS: Array[StringName] = [
-		&"Jet pod L", &"Jet pod R", &"Shoulder fin L", &"Shoulder fin R",
-		&"Thigh signal L", &"Thigh signal R",
-	]
-	for child in world_model.find_children("*", "MeshInstance3D", true, false):
-		var mesh := child as MeshInstance3D
-		if mesh.name in PRIMARY_TEAM_PARTS:
-			mesh.material_override = primary_material
-		elif mesh.name in SECONDARY_TEAM_PARTS:
-			mesh.material_override = secondary_material
+	CharacterMaterialRoles.apply(world_model, primary_material, secondary_material)
 
 
 static func character_variant_name(id: int) -> String:
@@ -523,7 +520,18 @@ static func character_variant_name(id: int) -> String:
 
 
 static func is_character_variant_valid(id: int) -> bool:
-	return id >= 0 and id < CHARACTER_VARIANT_SCENES.size()
+	return id >= 0 and id < CHARACTER_VARIANT_PATHS.size()
+
+
+static func character_variant_resources_cached() -> bool:
+	for path in CHARACTER_VARIANT_PATHS:
+		if ResourceLoader.has_cached(path):
+			return true
+	return false
+
+
+func has_character_visual_shell() -> bool:
+	return is_instance_valid(_model_root)
 
 
 static func callsign_for_peer(id: int) -> String:

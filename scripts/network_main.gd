@@ -823,6 +823,11 @@ func _finish_automated_test() -> void:
 	var current_variant_ids: Dictionary = {}
 	for variant_id in current_character_variants.values():
 		current_variant_ids[int(variant_id)] = true
+	var character_visual_shells := 0
+	for avatar in avatars.values():
+		if (avatar as SkooshNetworkPlayer).has_character_visual_shell():
+			character_visual_shells += 1
+	var character_resources_cached := SkooshNetworkPlayer.character_variant_resources_cached()
 	print("ACCEPT multiplayer peer=%d peak_avatars=%d current_avatars=%d kills=%d deaths=%d disc_impacts=%d disc_damage=%d weapon_fires=%s weapon_impacts=%s weapon_hits=%s voice=%d captures=%d rounds=%d current_variant_peers=%d current_variants=%d assigned_variant_peers=%d assigned_variants=%d observed_variant_peers=%d observed_variants=%d peak_speed=%.1f jet=%s max_rollback=%d peak_net_ms=%.2f elapsed_ms=%d" % [
 		peer_id, _peak_avatars, avatars.size(), total_kills, total_deaths,
 		_disc_impacts, _disc_damage_events, _weapon_fires, _weapon_impacts, _weapon_hits,
@@ -851,11 +856,14 @@ func _finish_automated_test() -> void:
 				or current_character_variants.size() < 2
 				or current_variant_ids.size() < 2
 				or _server_assigned_character_variants != current_character_variants
-				or _observed_character_variants != current_character_variants
+				or not _observed_character_variants.is_empty()
+				or character_visual_shells != 0
+				or character_resources_cached
 			)
-			print("ACCEPT character variants role=server result=%s current=%s assigned=%s observed=%s" % [
+			print("ACCEPT character variants role=server result=%s current=%s assigned=%s observed=%s visual_shells=%d resources_cached=%s" % [
 				"FAIL" if variants_failed else "PASS", current_character_variants,
 				_server_assigned_character_variants, _observed_character_variants,
+				character_visual_shells, character_resources_cached,
 			])
 		else:
 			variants_failed = (
