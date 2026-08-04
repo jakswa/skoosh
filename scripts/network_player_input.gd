@@ -9,11 +9,13 @@ var movement := Vector2.ZERO
 var ski := false
 var jet := false
 var fire := false
+var weapon_slot := 0
 var reset := false
 var look_delta := Vector2.ZERO
 var bot_mode := false
 
 var _pending_look := Vector2.ZERO
+var _pending_weapon_slot := 0
 var _reset_buffered := false
 var _configured := false
 var _bot_start_tick := -1
@@ -41,6 +43,14 @@ func _input(event: InputEvent) -> void:
 		if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
 			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 			get_viewport().set_input_as_handled()
+	elif event is InputEventKey:
+		var key_event := event as InputEventKey
+		if key_event.pressed and not key_event.echo and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+			var player := get_parent() as SkooshNetworkPlayer
+			if player == null or not player.hud.is_voice_menu_visible():
+				var selection := _weapon_key_index(key_event.physical_keycode)
+				if selection >= 0:
+					_pending_weapon_slot = selection
 	if event.is_action_pressed("reset_run"):
 		_reset_buffered = true
 
@@ -54,6 +64,7 @@ func _gather() -> void:
 	ski = Input.is_action_pressed("ski")
 	jet = Input.is_action_pressed("jet")
 	fire = Input.is_action_pressed("fire") and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
+	weapon_slot = _pending_weapon_slot
 	reset = _reset_buffered
 	_reset_buffered = false
 	look_delta = _pending_look
@@ -74,14 +85,16 @@ func _gather_bot() -> void:
 		ski = false
 		jet = false
 		fire = false
+		weapon_slot = 0
 		reset = false
 		look_delta = Vector2.ZERO
 		return
-	var movement_phase := bot_age >= 240
+	var movement_phase := bot_age >= 480
 	movement = Vector2.ZERO
 	ski = false
 	jet = false
 	fire = not movement_phase
+	weapon_slot = clampi(floori(float(bot_age) / 120.0), 0, 3) if not movement_phase else 0
 	reset = false
 	look_delta = Vector2.ZERO
 	var player := get_parent() as SkooshNetworkPlayer
@@ -96,10 +109,6 @@ func _gather_bot() -> void:
 		fire = false
 	var target_position := player.get_bot_objective_position()
 	if movement_phase and player.team == 0:
-		# Hold the spawn lane while crossing the compact arena. Chasing the
-		# flag's exact Z near a platform edge can flip steering after an
-		# overshoot and leave a high-momentum acceptance bot circling the base.
-		target_position.z = player.global_position.z
 		var planar_distance := Vector2(
 			target_position.x - player.global_position.x,
 			target_position.z - player.global_position.z
@@ -108,7 +117,7 @@ func _gather_bot() -> void:
 		# Keep CTF automation deliberately slower than a player. A short opening
 		# pop proves jet replication, then walking friction gives the bot a stable
 		# approach. Jet again only when it must climb onto a raised flag platform.
-		var opening_pop := bot_age < 250
+		var opening_pop := bot_age < 490
 		var platform_above := target_position.y - player.global_position.y > 1.5
 		var climbing_platform := planar_distance < 13.0 and platform_above
 		jet = opening_pop or climbing_platform
@@ -116,10 +125,44 @@ func _gather_bot() -> void:
 		target_position = target.global_position + Vector3.UP * 1.1
 	var origin := player.head.global_position
 	var direction := origin.direction_to(target_position)
+	if fire and weapon_slot == 1:
+		direction = _grenade_launch_direction(origin, target_position)
 	var desired_yaw := atan2(-direction.x, -direction.z)
 	var desired_pitch := asin(clampf(direction.y, -1.0, 1.0)) if fire else 0.0
 	look_delta.x = clampf(angle_difference(player.rotation.y, desired_yaw), -0.2, 0.2)
 	look_delta.y = clampf(desired_pitch - player.head.rotation.x, -0.15, 0.15)
+
+
+func _weapon_key_index(keycode: Key) -> int:
+	match keycode:
+		KEY_1:
+			return 0
+		KEY_2:
+			return 1
+		KEY_3:
+			return 2
+		KEY_4:
+			return 3
+	return -1
+
+
+func _grenade_launch_direction(origin: Vector3, target: Vector3) -> Vector3:
+	const SPEED := 50.0
+	const GRAVITY := 30.0
+	var offset := target - origin
+	var planar := Vector2(offset.x, offset.z)
+	var distance := planar.length()
+	if distance < 0.01:
+		return origin.direction_to(target)
+	var speed_squared := SPEED * SPEED
+	var discriminant := speed_squared * speed_squared - GRAVITY * (
+		GRAVITY * distance * distance + 2.0 * offset.y * speed_squared
+	)
+	if discriminant <= 0.0:
+		return origin.direction_to(target)
+	var launch_angle := atan((speed_squared - sqrt(discriminant)) / (GRAVITY * distance))
+	var planar_direction := Vector3(offset.x, 0.0, offset.z).normalized()
+	return (planar_direction * cos(launch_angle) + Vector3.UP * sin(launch_angle)).normalized()
 
 
 func _configure_if_local() -> void:

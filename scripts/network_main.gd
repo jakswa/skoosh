@@ -66,6 +66,9 @@ var _combat_kills := 0
 var _combat_deaths := 0
 var _disc_impacts := 0
 var _disc_damage_events := 0
+var _weapon_fires: Array[int] = [0, 0, 0, 0]
+var _weapon_impacts: Array[int] = [0, 0, 0, 0]
+var _weapon_hits: Array[int] = [0, 0, 0, 0]
 var _voice_commands_relayed := 0
 var _ctf_captures := 0
 var _completed_rounds := 0
@@ -308,6 +311,30 @@ func record_disc_impact(damaged_enemies: int) -> void:
 	_disc_impacts += 1
 	_disc_damage_events += damaged_enemies
 	print("COMBAT disc impact=%d damaged=%d" % [_disc_impacts, damaged_enemies])
+
+
+func record_weapon_fire(slot: int) -> void:
+	if not multiplayer.is_server() or slot < 0 or slot >= _weapon_fires.size():
+		return
+	_weapon_fires[slot] += 1
+	print("COMBAT weapon fire slot=%d count=%d" % [slot + 1, _weapon_fires[slot]])
+
+
+func record_weapon_impact(slot: int, damaged_enemies: int) -> void:
+	if not multiplayer.is_server() or slot < 0 or slot >= _weapon_impacts.size():
+		return
+	_weapon_impacts[slot] += 1
+	_weapon_hits[slot] += damaged_enemies
+	print("COMBAT weapon impact slot=%d count=%d damaged=%d" % [
+		slot + 1, _weapon_impacts[slot], damaged_enemies,
+	])
+
+
+func record_weapon_hit(slot: int) -> void:
+	if not multiplayer.is_server() or slot < 0 or slot >= _weapon_hits.size():
+		return
+	_weapon_hits[slot] += 1
+	print("COMBAT weapon hit slot=%d count=%d" % [slot + 1, _weapon_hits[slot]])
 
 
 func find_target_for(peer_id: int) -> SkooshNetworkPlayer:
@@ -736,16 +763,19 @@ func _finish_automated_test() -> void:
 	if multiplayer.is_server():
 		total_kills = _combat_kills
 		total_deaths = _combat_deaths
-	print("ACCEPT multiplayer peer=%d peak_avatars=%d current_avatars=%d kills=%d deaths=%d disc_impacts=%d disc_damage=%d voice=%d captures=%d rounds=%d peak_speed=%.1f jet=%s max_rollback=%d peak_net_ms=%.2f elapsed_ms=%d" % [
+	print("ACCEPT multiplayer peer=%d peak_avatars=%d current_avatars=%d kills=%d deaths=%d disc_impacts=%d disc_damage=%d weapon_fires=%s weapon_impacts=%s weapon_hits=%s voice=%d captures=%d rounds=%d peak_speed=%.1f jet=%s max_rollback=%d peak_net_ms=%.2f elapsed_ms=%d" % [
 		peer_id, _peak_avatars, avatars.size(), total_kills, total_deaths,
-		_disc_impacts, _disc_damage_events, _voice_commands_relayed,
+		_disc_impacts, _disc_damage_events, _weapon_fires, _weapon_impacts, _weapon_hits,
+		_voice_commands_relayed,
 		_ctf_captures, _completed_rounds,
 		_peak_server_speed, _server_saw_jet,
 		_peak_rollback_ticks, _peak_network_loop_ms, Time.get_ticks_msec() - _test_started_at
 	])
-	var combat_failed := _require_combat and (
+	var combat_failed: bool = _require_combat and (
 		_peak_avatars < 2 or total_deaths < 1 or total_kills < 1
 		or _disc_impacts < 1 or _disc_damage_events < 1
+		or _weapon_fires.min() < 1 or _weapon_impacts[1] < 1 or _weapon_hits[1] < 1
+		or _weapon_hits[2] < 1 or _weapon_hits[3] < 1
 	)
 	var movement_failed := _require_movement and (_peak_server_speed < 10.0 or not _server_saw_jet)
 	var ctf_failed := _require_ctf and (_ctf_captures < 1 or _completed_rounds < 1)

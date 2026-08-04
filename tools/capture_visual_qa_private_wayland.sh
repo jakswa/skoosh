@@ -58,7 +58,8 @@ cleanup_render() {
 trap cleanup_render EXIT INT TERM
 
 XDG_RUNTIME_DIR="\$runtime_dir" WAYLAND_DISPLAY= \
-  "$WESTON_BIN" --backend=headless --renderer="${SKOOSH_WESTON_RENDERER:-gl}" --shell=kiosk-shell.so \
+  "$WESTON_BIN" --backend=headless --renderer="${SKOOSH_WESTON_RENDERER:-gl}" \
+  --shell="${SKOOSH_WESTON_SHELL:-kiosk-shell.so}" \
   --socket="\$socket" --width=1280 --height=720 --idle-time=0 --no-config \
   --log="\$weston_log" >/dev/null 2>&1 &
 weston_pid=\$!
