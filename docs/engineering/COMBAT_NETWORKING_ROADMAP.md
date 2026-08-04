@@ -2,11 +2,11 @@
 
 ## Current contract
 
-The dedicated server owns health, death, respawn, teams, flags, score, and round state. A client may request a disc launch only for its own avatar. The server independently enforces alive/round state, post-teleport lockout, cadence, ownership, team, and bounded request age. It discards the requested transform, reconstructs the launch from its current muzzle and aim, and owns swept projectile collision, splash falloff, friendly-fire rejection, damage, and kill credit. Clients predict only projectile presentation.
+The dedicated server owns health, death, respawn, weapon selection, cadence, teams, flags, score, and round state. A client may request fire only for its own avatar and selected slot. The server independently enforces alive/round state, switch and post-teleport lockouts, cadence, ownership, team, and bounded request age. It reconstructs projectile launches and hitscan rays from its current muzzle and aim, and owns swept projectile collision, hitscan traces, splash falloff, friendly-fire rejection, damage, and kill credit. Clients predict only firing presentation.
 
 The current player collision capsule is also the current hitbox. The more detailed armor model is presentation only.
 
-This is sufficient for the local vertical slice, but it is not finished Internet-grade projectile registration. Launch validation uses current server transforms, remote projectile presentation is only coarsely fast-forwarded, and impaired-network behavior has not been qualified.
+This is sufficient for the local vertical slice, but it is not finished Internet-grade combat registration. Launch and hitscan validation use current server transforms, remote projectile presentation is only coarsely fast-forwarded, hitscan has no historical target rewind, and impaired-network behavior has not been qualified.
 
 ## Next implementation stages
 
@@ -48,4 +48,4 @@ This is sufficient for the local vertical slice, but it is not finished Internet
 - Skeletal/per-limb hitboxes and damage multipliers
 - Client-authoritative hits
 - Matchmaking, accounts, progression, and inventory
-- A second weapon until movement and disc-launcher paths pass impairment testing
+- Additional inventory, ammunition, reload, heat, pickup, or per-location damage systems

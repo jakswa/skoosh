@@ -180,11 +180,9 @@ func _process(delta: float) -> void:
 	_objective.add_theme_color_override(
 		"font_color", Color("#ffe36d") if carrying else Color(0.75, 0.88, 0.86, 0.9)
 	)
-	var reload_fraction: float = player.weapon.get_reload_fraction()
+	var reload_fraction: float = player.get_weapon_readiness()
 	_reload_bar.value = reload_fraction * 100.0
-	_weapon_status.text = "INDUCTION DISC  //  %s\n105 IMPACT  /  SPLASH 5.8m" % [
-		"READY" if reload_fraction >= 1.0 else "CHARGING"
-	]
+	_weapon_status.text = player.get_weapon_status()
 	_round_notice.visible = arena.round_over
 	if arena.round_over:
 		var won: bool = arena.winner_team == player.team
@@ -203,7 +201,7 @@ func _process(delta: float) -> void:
 	_controls.text = (
 		"CLICK TO RECAPTURE POINTER"
 		if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED and not player.input.bot_mode
-		else "WASD STEER  SPACE SKI  SHIFT/RMB JET  LMB DISC  R RESPAWN  V COMMS  F3 NET  ESC POINTER"
+		else "WASD STEER  SPACE SKI  SHIFT/RMB JET  LMB FIRE  1-4 WEAPONS  R RESPAWN  V COMMS  F3 NET  ESC POINTER"
 	)
 
 
@@ -245,8 +243,8 @@ func _build() -> void:
 
 	var weapon_panel := _panel(Color(0.025, 0.03, 0.031, 0.9), Color(0.38, 0.78, 0.62, 0.62))
 	weapon_panel.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	weapon_panel.position = Vector2(-318, -104)
-	weapon_panel.size = Vector2(296, 78)
+	weapon_panel.position = Vector2(-358, -138)
+	weapon_panel.size = Vector2(336, 84)
 	add_child(weapon_panel)
 	var weapon_layout := VBoxContainer.new()
 	weapon_layout.add_theme_constant_override("separation", 3)
@@ -274,7 +272,7 @@ func _build() -> void:
 
 	_status = _label(13, Color(0.62, 0.82, 0.84, 0.9))
 	_status.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	_status.position = Vector2(22, -34)
+	_status.position = Vector2(22, -62)
 	_status.size = Vector2(500, 24)
 	_status.visible = false
 	add_child(_status)

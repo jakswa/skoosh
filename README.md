@@ -59,7 +59,8 @@ See [`docs/operations/PLAYTESTING_AND_DISTRIBUTION.md`](docs/operations/PLAYTEST
 - WASD: move and steer
 - Space: ski
 - Shift or right mouse: jet; at low grounded speed this includes a fuel-costed upward pop
-- Left mouse: disc launcher
+- Left mouse: fire selected weapon
+- 1-4: disc, grenade launcher, gatling gun, sniper rifle
 - V, then number keys: voice commands; press T or G in the menu for TEAM or GLOBAL comms
 - F3: network telemetry
 - R: authoritative respawn
@@ -78,7 +79,7 @@ Clients are balanced between RED and BLUE. Take the opposing flag and return to 
 ./tools/test_multiplayer_demo.sh       # about 51 seconds
 ```
 
-The multiplayer test takes about 51 seconds and validates two-team spawning, cross-peer global voice relay, combat, death/respawn, ski/jet movement, a flag capture, win state, and round restart.
+The multiplayer test takes about 51 seconds and validates two-team spawning, all four authoritative weapon paths, cross-peer global voice relay, death/respawn, ski/jet movement, a flag capture, win state, and round restart.
 
 For off-screen visual and UX review, Compatibility uses `./tools/capture_visual_qa.sh`; Forward+ uses `./tools/capture_visual_qa_private_wayland.sh` with a private headless Weston compositor. Neither opens desktop windows or captures the host mouse. See [`docs/production/VISUAL_QA.md`](docs/production/VISUAL_QA.md).
 
@@ -86,4 +87,4 @@ The original solo time-trial remains available as `res://scenes/main.tscn`; the 
 
 ## Current network boundary
 
-The server owns movement results, energy, disc-launcher cadence and projectile impacts, splash damage, teams, flags, score, team/global voice routing and rate limits, and rounds. Clients predict disc visuals, while the server discards requested transforms and reconstructs each accepted launch from its current muzzle and aim. See [`docs/engineering/COMBAT_NETWORKING_ROADMAP.md`](docs/engineering/COMBAT_NETWORKING_ROADMAP.md) and [`docs/CHECKPOINT.md`](docs/CHECKPOINT.md).
+The server owns movement results, energy, weapon selection and cadence, projectile impacts, hitscan traces, damage, teams, flags, score, team/global voice routing and rate limits, and rounds. Clients predict firing presentation only; the server reconstructs projectile launches and hitscan rays from its authoritative muzzle and aim. See [`docs/engineering/COMBAT_NETWORKING_ROADMAP.md`](docs/engineering/COMBAT_NETWORKING_ROADMAP.md) and [`docs/CHECKPOINT.md`](docs/CHECKPOINT.md).

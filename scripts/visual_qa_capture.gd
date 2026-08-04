@@ -6,6 +6,11 @@ const TIMED_CAPTURES := {
 	"50-traversal": 7.0,
 	"90-late-match": 13.0,
 }
+const SLOT_TIMED_CAPTURES := {
+	1: {"name": "24-slot-2-grenade", "earliest": 2.55},
+	2: {"name": "36-slot-3-gatling", "earliest": 4.55},
+	3: {"name": "48-slot-4-sniper", "earliest": 6.55},
+}
 
 var _output_dir := ""
 var _lobby_only := false
@@ -63,6 +68,15 @@ func _process(_delta: float) -> void:
 	for capture_name: String in TIMED_CAPTURES:
 		if elapsed >= float(TIMED_CAPTURES[capture_name]):
 			_queue_capture(capture_name)
+	for slot_variant in SLOT_TIMED_CAPTURES:
+		var slot := int(slot_variant)
+		var capture: Dictionary = SLOT_TIMED_CAPTURES[slot]
+		if (
+			elapsed >= float(capture["earliest"])
+			and _player.active_weapon_slot == slot
+			and NetworkTime.tick - _player.weapon_switch_tick >= SkooshNetworkPlayer.WEAPON_SWITCH_TICKS
+		):
+			_queue_capture(str(capture["name"]))
 
 	var arena := get_parent()
 	if _player.dead:
@@ -72,9 +86,9 @@ func _process(_delta: float) -> void:
 	if arena.round_over:
 		_queue_capture("70-round-result")
 	if not _player.hud.is_voice_menu_visible() and arena.get_node("Projectiles").get_child_count() > 0:
-		_queue_capture("32-disc-flight")
+		_queue_capture("32-projectile-flight")
 	if arena.get_node("Effects").get_child_count() > 0:
-		_queue_capture("34-disc-impact")
+		_queue_capture("34-combat-effect")
 
 
 func _queue_capture(capture_name: String) -> void:
