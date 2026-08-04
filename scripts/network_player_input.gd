@@ -109,10 +109,6 @@ func _gather_bot() -> void:
 		fire = false
 	var target_position := player.get_bot_objective_position()
 	if movement_phase and player.team == 0:
-		# Hold the spawn lane while crossing the compact arena. Chasing the
-		# flag's exact Z near a platform edge can flip steering after an
-		# overshoot and leave a high-momentum acceptance bot circling the base.
-		target_position.z = player.global_position.z
 		var planar_distance := Vector2(
 			target_position.x - player.global_position.x,
 			target_position.z - player.global_position.z
