@@ -4,6 +4,11 @@ render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 varying vec3 world_position;
 varying vec3 world_normal;
 
+uniform vec2 route_origin = vec2(0.0, -207.0);
+uniform vec2 route_axis = vec2(1.0, 0.0);
+uniform float route_half_length = 42.0;
+uniform float route_strength = 0.38;
+
 float hash21(vec2 p) {
 	p = fract(p * vec2(123.34, 456.21));
 	p += dot(p, p + 45.32);
@@ -41,14 +46,18 @@ void fragment() {
 	// STRATOS-derived grade and route grammar, restrained to physical field marks.
 	float contour = 1.0 - smoothstep(0.035, 0.11, abs(fract((world_position.y + 64.0) / 3.25) - 0.5));
 	color *= mix(1.0, 0.72, contour * (1.0 - rock_break * 0.55));
-	float field = 1.0 - smoothstep(30.0, 44.0, abs(world_position.z + 207.0));
-	float lane = 1.0 - smoothstep(2.55, 3.25, abs(world_position.z + 207.0));
-	float red_side = 1.0 - smoothstep(-3.0, 1.5, world_position.x);
-	float blue_side = smoothstep(-1.5, 3.0, world_position.x);
-	color = mix(color, vec3(0.42, 0.075, 0.045), lane * red_side * field * 0.38 * (1.0 - rock_break));
-	color = mix(color, vec3(0.035, 0.20, 0.38), lane * blue_side * field * 0.38 * (1.0 - rock_break));
-	float timing = 1.0 - smoothstep(0.035, 0.09, abs(fract((world_position.x + 3.0) / 12.0) - 0.5));
-	float timing_lane = 1.0 - smoothstep(3.25, 4.0, abs(world_position.z + 207.0));
+	vec2 route_delta = world_position.xz - route_origin;
+	vec2 route_normal = vec2(-route_axis.y, route_axis.x);
+	float route_progress = dot(route_delta, route_axis);
+	float route_across = dot(route_delta, route_normal);
+	float field = 1.0 - smoothstep(route_half_length - 10.0, route_half_length, abs(route_progress));
+	float lane = 1.0 - smoothstep(2.55, 3.25, abs(route_across));
+	float red_side = 1.0 - smoothstep(-3.0, 1.5, route_progress);
+	float blue_side = smoothstep(-1.5, 3.0, route_progress);
+	color = mix(color, vec3(0.42, 0.075, 0.045), lane * red_side * field * route_strength * (1.0 - rock_break));
+	color = mix(color, vec3(0.035, 0.20, 0.38), lane * blue_side * field * route_strength * (1.0 - rock_break));
+	float timing = 1.0 - smoothstep(0.035, 0.09, abs(fract((route_progress + 3.0) / 12.0) - 0.5));
+	float timing_lane = 1.0 - smoothstep(3.25, 4.0, abs(route_across));
 	color = mix(color, vec3(0.055, 0.07, 0.075), timing * timing_lane * field * 0.68);
 	ALBEDO = color;
 	ROUGHNESS = mix(0.88, 0.72, rock_break) + (crust - 0.5) * 0.08;

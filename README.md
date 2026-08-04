@@ -17,6 +17,23 @@ Godot 4.4+ is required. For one local server and two clients, the helper default
 
 This starts one headless authoritative server and two graphical clients on UDP 9077. Focus one client window at a time. Press Ctrl-C in the launching terminal to stop the complete session.
 
+The bundled map IDs are `kestrel_basin` (default compact acceptance arena),
+`relay_divide`, and `split_crown`. Select one consistently for the server and
+clients through the helpers:
+
+```bash
+SKOOSH_MAP=relay_divide ./tools/run_multiplayer_demo.sh
+SKOOSH_MAP=split_crown ./tools/run_remote_clients.sh play.example.com
+```
+
+Relay Divide tests an exposed central spillway against a north shelf and a
+screened south gully. Split Crown tests a sight-blocking central crest, exposed
+east arc, and screened west arc with a jet-cost crest skim. These are map design
+hypotheses for playtesting. Exact team-axis terrain symmetry removes a geometry
+bias; it does not establish route, combat, spawn, or overall gameplay balance.
+The helpers reject unknown `SKOOSH_MAP` values with a nonzero exit. Direct game
+CLI launches still log and fall back to Kestrel for operator visibility.
+
 Override the engine path or port when needed:
 
 ```bash
@@ -73,12 +90,19 @@ Clients are balanced between RED and BLUE. Take the opposing flag and return to 
 ## Automated checks
 
 ```bash
+./tools/test_competitive_maps.sh
+./tools/test_map_mismatch.sh
 ./tools/test_ground_jet.sh
 ./tools/test_oob_recovery.sh
 ./tools/test_multiplayer_demo.sh       # about 51 seconds
 ```
 
-The multiplayer test takes about 51 seconds and validates two-team spawning, cross-peer global voice relay, combat, death/respawn, ski/jet movement, a flag capture, win state, and round restart.
+The map tests generate every bundled terrain and validate catalog contracts,
+mirrored competitive samples, finite heights/normals, homes, spawns, routes,
+the one-trimesh topology, and rejection of clients using the wrong map. The
+51-second multiplayer acceptance remains a `kestrel_basin` regression. Setting
+`SKOOSH_MAP` on that helper runs a short map-agreement, connectivity,
+movement/jet, and voice smoke for another map, not a competitive-balance test.
 
 For off-screen visual and UX review, Compatibility uses `./tools/capture_visual_qa.sh`; Forward+ uses `./tools/capture_visual_qa_private_wayland.sh` with a private headless Weston compositor. Neither opens desktop windows or captures the host mouse. See [`docs/production/VISUAL_QA.md`](docs/production/VISUAL_QA.md).
 
@@ -86,4 +110,4 @@ The original solo time-trial remains available as `res://scenes/main.tscn`; the 
 
 ## Current network boundary
 
-The server owns movement results, energy, disc-launcher cadence and projectile impacts, splash damage, teams, flags, score, team/global voice routing and rate limits, and rounds. Clients predict disc visuals, while the server discards requested transforms and reconstructs each accepted launch from its current muzzle and aim. See [`docs/engineering/COMBAT_NETWORKING_ROADMAP.md`](docs/engineering/COMBAT_NETWORKING_ROADMAP.md) and [`docs/CHECKPOINT.md`](docs/CHECKPOINT.md).
+The server owns movement results, energy, disc-launcher cadence and projectile impacts, splash damage, teams, flags, score, team/global voice routing and rate limits, and rounds. Before spawning a peer, it reports its bundled map ID and disconnects clients whose preselected ID differs. Clients predict disc visuals, while the server discards requested transforms and reconstructs each accepted launch from its current muzzle and aim. See [`docs/engineering/COMBAT_NETWORKING_ROADMAP.md`](docs/engineering/COMBAT_NETWORKING_ROADMAP.md) and [`docs/CHECKPOINT.md`](docs/CHECKPOINT.md).

@@ -1,6 +1,7 @@
 extends StaticBody3D
 
 const ALPINE_TERRAIN_SHADER := preload("res://assets/materials/terrain/alpine_hardpack.gdshader")
+const MapCatalog = preload("res://scripts/map_catalog.gd")
 
 ## Deterministic, single-mesh alpine basin. The same height function is used for
 ## rendering, collision, course placement, and out-of-bounds checks.
@@ -10,6 +11,9 @@ const ALPINE_TERRAIN_SHADER := preload("res://assets/materials/terrain/alpine_ha
 @export_range(33, 257, 2) var resolution: int = 129
 @export var height_scale: float = 1.0
 @export var noise_seed: int = 73021
+@export var consume_command_line_map := false
+
+var map_id := MapCatalog.DEFAULT_MAP_ID
 
 var _broad_noise: FastNoiseLite
 var _detail_noise: FastNoiseLite
@@ -21,6 +25,10 @@ var _generated := false
 func _ready() -> void:
 	collision_layer = 1
 	collision_mask = 0
+	if consume_command_line_map:
+		map_id = MapCatalog.selected_id_from_args()
+	elif map_id.is_empty():
+		map_id = MapCatalog.DEFAULT_MAP_ID
 	generate()
 
 
@@ -50,7 +58,23 @@ func _gaussian(x: float, z: float, cx: float, cz: float, radius: float) -> float
 	return exp(-distance_squared / (radius * radius))
 
 
+func _elliptical(x: float, z: float, cx: float, cz: float, radius_x: float, radius_z: float) -> float:
+	var normalized_x := (x - cx) / radius_x
+	var normalized_z := (z - cz) / radius_z
+	return exp(-(normalized_x * normalized_x + normalized_z * normalized_z))
+
+
 func height_at(x: float, z: float) -> float:
+	if map_id.is_empty():
+		map_id = MapCatalog.DEFAULT_MAP_ID
+	if map_id == "relay_divide":
+		return _relay_divide_height(x, z) * height_scale
+	if map_id == "split_crown":
+		return _split_crown_height(x, z) * height_scale
+	return _kestrel_basin_height(x, z) * height_scale
+
+
+func _kestrel_basin_height(x: float, z: float) -> float:
 	_configure_noise()
 	var height := 3.0
 	height += _broad_noise.get_noise_2d(x, z) * 13.0
@@ -80,7 +104,56 @@ func height_at(x: float, z: float) -> float:
 		var rim_t: float = clampf((edge - 214.0) / 42.0, 0.0, 1.0)
 		rim_t = rim_t * rim_t * (3.0 - 2.0 * rim_t)
 		height += rim_t * 42.0
-	return height * height_scale
+	return height
+
+
+func _relay_divide_height(x: float, z: float) -> float:
+	_configure_noise()
+	var mirrored_x := absf(x)
+	var height := 4.0
+	height += _broad_noise.get_noise_2d(mirrored_x, z) * 7.5
+	height += _detail_noise.get_noise_2d(mirrored_x, z) * 1.15
+	height += sin(z * 0.019 + mirrored_x * 0.006) * 2.6
+
+	# The exposed center stays broad and low. North is a readable shelf, while
+	# smooth shoulders screen the lower south gully without creating pits.
+	height -= _elliptical(mirrored_x, z, 0.0, 0.0, 78.0, 44.0) * 8.0
+	height += _elliptical(mirrored_x, z, 62.0, -67.0, 105.0, 34.0) * 10.0
+	height -= _elliptical(mirrored_x, z, 58.0, 70.0, 112.0, 34.0) * 5.5
+	height += _elliptical(mirrored_x, z, 45.0, 38.0, 120.0, 20.0) * 6.5
+	height += _elliptical(mirrored_x, z, 54.0, 102.0, 118.0, 24.0) * 5.0
+	height += _elliptical(mirrored_x, z, 132.0, 0.0, 42.0, 39.0) * 3.0
+	height += _elliptical(mirrored_x, z, 158.0, 0.0, 30.0, 50.0) * 6.0
+	return height + _recoverable_skirt(x, z)
+
+
+func _split_crown_height(x: float, z: float) -> float:
+	_configure_noise()
+	var mirrored_z := absf(z)
+	var height := 2.5
+	height += _broad_noise.get_noise_2d(x, mirrored_z) * 6.8
+	height += _detail_noise.get_noise_2d(x, mirrored_z) * 1.0
+	height += sin(x * 0.017 + mirrored_z * 0.007) * 2.2
+
+	# A twenty-meter crown breaks flag-to-flag sight. The east arc is exposed;
+	# paired western shoulders screen the alternate route while keeping it open.
+	height += _elliptical(x, mirrored_z, 0.0, 0.0, 42.0, 47.0) * 20.0
+	height -= _elliptical(x, mirrored_z, 76.0, 0.0, 47.0, 94.0) * 4.0
+	height -= _elliptical(x, mirrored_z, -76.0, 0.0, 42.0, 92.0) * 3.5
+	height += _elliptical(x, mirrored_z, -38.0, 38.0, 24.0, 40.0) * 7.5
+	height += _elliptical(x, mirrored_z, -112.0, 36.0, 29.0, 44.0) * 6.0
+	height += _elliptical(x, mirrored_z, 0.0, 118.0, 44.0, 34.0) * 2.5
+	height += _elliptical(x, mirrored_z, 0.0, 148.0, 54.0, 29.0) * 6.0
+	return height + _recoverable_skirt(x, z)
+
+
+func _recoverable_skirt(x: float, z: float) -> float:
+	var edge := maxf(absf(x), absf(z))
+	if edge <= 214.0:
+		return 0.0
+	var rim_t := clampf((edge - 214.0) / 42.0, 0.0, 1.0)
+	rim_t = rim_t * rim_t * (3.0 - 2.0 * rim_t)
+	return rim_t * 42.0
 
 
 func normal_at(x: float, z: float) -> Vector3:
@@ -129,13 +202,23 @@ func generate() -> void:
 			var top_left := z_index * resolution + x_index
 			var bottom_left := top_left + resolution
 			# Godot treats clockwise triangles as front-facing. This winding makes
-			# the generated surface (and its collision normals) face upward.
-			indices.append(top_left)
-			indices.append(top_left + 1)
-			indices.append(bottom_left)
-			indices.append(top_left + 1)
-			indices.append(bottom_left + 1)
-			indices.append(bottom_left)
+			# the generated surface (and its collision normals) face upward. The
+			# competitive halves use opposite diagonals so the piecewise trimesh,
+			# not only its vertices, mirrors exactly across the team axis.
+			if _uses_flipped_diagonal(x_index, z_index):
+				indices.append(top_left)
+				indices.append(top_left + 1)
+				indices.append(bottom_left + 1)
+				indices.append(top_left)
+				indices.append(bottom_left + 1)
+				indices.append(bottom_left)
+			else:
+				indices.append(top_left)
+				indices.append(top_left + 1)
+				indices.append(bottom_left)
+				indices.append(top_left + 1)
+				indices.append(bottom_left + 1)
+				indices.append(bottom_left)
 
 	var arrays: Array = []
 	arrays.resize(Mesh.ARRAY_MAX)
@@ -148,9 +231,27 @@ func generate() -> void:
 
 	var material := ShaderMaterial.new()
 	material.shader = ALPINE_TERRAIN_SHADER
+	_configure_route_marking(material)
 	terrain_mesh.surface_set_material(0, material)
 	_mesh_instance.mesh = terrain_mesh
 	_collision_shape.shape = terrain_mesh.create_trimesh_shape()
+
+
+func _configure_route_marking(material: ShaderMaterial) -> void:
+	var marking := MapCatalog.get_map(map_id)["route_marking"] as Dictionary
+	material.set_shader_parameter("route_origin", marking["origin"])
+	material.set_shader_parameter("route_axis", marking["axis"])
+	material.set_shader_parameter("route_half_length", marking["half_length"])
+	material.set_shader_parameter("route_strength", marking["strength"])
+
+
+func _uses_flipped_diagonal(x_index: int, z_index: int) -> bool:
+	var half_cells := (resolution - 1) / 2
+	if map_id == "relay_divide":
+		return x_index >= half_cells
+	if map_id == "split_crown":
+		return z_index >= half_cells
+	return false
 
 
 func _terrain_color(height: float, normal_y: float) -> Color:

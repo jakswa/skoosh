@@ -6,6 +6,11 @@ ROOT="${SKOOSH_PROJECT_ROOT:-$SCRIPT_ROOT}"
 REAL_GODOT_BIN="${GODOT_BIN:-/tmp/godot-skoosh/Godot_v4.4.1-stable_linux.x86_64}"
 WESTON_BIN="${WESTON_BIN:-$(command -v weston || true)}"
 RENDERING_METHOD="${SKOOSH_RENDERING_METHOD:-forward_plus}"
+MAP="${SKOOSH_MAP:-kestrel_basin}"
+case "$MAP" in
+  kestrel_basin|relay_divide|split_crown) ;;
+  *) echo "SKOOSH_MAP rejected '$MAP'; expected kestrel_basin, relay_divide, or split_crown." >&2; exit 2 ;;
+esac
 
 if [[ ! -x "$REAL_GODOT_BIN" ]]; then
   echo "Set GODOT_BIN to a Godot 4.4+ executable." >&2
@@ -17,7 +22,7 @@ if [[ -z "$WESTON_BIN" || ! -x "$WESTON_BIN" ]]; then
 fi
 
 SCRATCH_ROOT="${SKOOSH_TMP_DIR:-$ROOT/.tmp}"
-WESTON_LOG_DIR="${SKOOSH_VISUAL_QA_DIR:-$ROOT/build/visual-qa/current}/logs"
+WESTON_LOG_DIR="${SKOOSH_VISUAL_QA_DIR:-$ROOT/build/visual-qa/$MAP/current}/logs"
 mkdir -p "$SCRATCH_ROOT" "$WESTON_LOG_DIR"
 WRAPPER_DIR="$(mktemp -d "$SCRATCH_ROOT/forward-wrapper.XXXXXX")"
 GODOT_WRAPPER="$WRAPPER_DIR/godot-forward-plus"

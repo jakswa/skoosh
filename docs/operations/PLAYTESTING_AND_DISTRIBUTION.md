@@ -16,16 +16,37 @@ This starts a headless authoritative server and two graphical clients. Override 
 GODOT_BIN=/path/to/Godot SKOOSH_PORT=9078 ./tools/run_multiplayer_demo.sh
 ```
 
+`SKOOSH_MAP` defaults to `kestrel_basin`. The bundled allowlist is
+`kestrel_basin`, `relay_divide`, and `split_crown`:
+
+```bash
+SKOOSH_MAP=relay_divide ./tools/run_multiplayer_demo.sh
+SKOOSH_MAP=split_crown ./tools/test_multiplayer_demo.sh
+```
+
+The standard full combat/CTF acceptance is intentionally limited to
+`kestrel_basin`; the other IDs run short map-agreement, movement/jet, and voice
+network smokes. Use
+`./tools/test_competitive_maps.sh` for deterministic terrain/catalog contracts
+and `./tools/test_map_mismatch.sh` for server-side map-agreement rejection.
+Mirrored collision geometry is a fairness prerequisite, not evidence that a
+map's routes, timing, combat, or spawns are competitively balanced.
+
+Map-aware helpers reject unknown `SKOOSH_MAP` values and exit nonzero. Once
+connected, the server sends its selected bundled ID and disconnects a client
+before avatar spawning if the client's preselected ID differs. This agreement
+check does not download maps or replace the requirement for matching builds.
+
 Logs are written under the ignored `.tmp/skoosh-network` directory. Ctrl-C in the launching terminal stops the whole group. The two clients are assigned to opposing teams, so TEAM voice commands are intentionally private; press G in the open V menu to send a GLOBAL command that both clients can hear.
 
 To run the processes separately:
 
 ```bash
 # Terminal 1
-/path/to/Godot --headless --path . -- --server --port=9077
+/path/to/Godot --headless --path . -- --server --port=9077 --map=relay_divide
 
 # Terminals 2 and 3
-/path/to/Godot --path . -- --join=127.0.0.1 --port=9077
+/path/to/Godot --path . -- --join=127.0.0.1 --port=9077 --map=relay_divide
 ```
 
 Launching a client without arguments opens the lobby. Enter an address and port and press **JOIN SERVER**. **START SERVER** creates an authority-only server in that process; it does not create a local player, so two additional client processes are still required.
@@ -38,7 +59,9 @@ To open two local clients against one remote server:
 ./tools/run_remote_clients.sh play.example.com
 ```
 
-Override the port with `SKOOSH_PORT=9078`. To launch only one client from source:
+Override the port with `SKOOSH_PORT=9078` and select the server's map with
+`SKOOSH_MAP`. Server and clients must select the same bundled ID. To launch only
+one client from source:
 
 ```bash
 /path/to/Godot --path . -- --join=play.example.com --port=9077

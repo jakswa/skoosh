@@ -4,6 +4,11 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GODOT_BIN="${GODOT_BIN:-/tmp/godot-skoosh/Godot_v4.4.1-stable_linux.x86_64}"
 PORT="${SKOOSH_PORT:-9077}"
+MAP="${SKOOSH_MAP:-kestrel_basin}"
+case "$MAP" in
+  kestrel_basin|relay_divide|split_crown) ;;
+  *) echo "SKOOSH_MAP rejected '$MAP'; expected kestrel_basin, relay_divide, or split_crown." >&2; exit 2 ;;
+esac
 LOG_DIR="${SKOOSH_LOG_DIR:-$ROOT/.tmp/skoosh-network}"
 mkdir -p "$LOG_DIR"
 
@@ -20,19 +25,19 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-"$GODOT_BIN" --headless --path "$ROOT" -- --server --port="$PORT" \
+"$GODOT_BIN" --headless --path "$ROOT" -- --server --port="$PORT" --map="$MAP" \
   >"$LOG_DIR/server.log" 2>&1 &
 pids+=("$!")
 sleep 1
 
-"$GODOT_BIN" --path "$ROOT" --position 60,80 -- --join=127.0.0.1 --port="$PORT" \
+"$GODOT_BIN" --path "$ROOT" --position 60,80 -- --join=127.0.0.1 --port="$PORT" --map="$MAP" \
   >"$LOG_DIR/client-1.log" 2>&1 &
 pids+=("$!")
-"$GODOT_BIN" --path "$ROOT" --position 720,80 -- --join=127.0.0.1 --port="$PORT" \
+"$GODOT_BIN" --path "$ROOT" --position 720,80 -- --join=127.0.0.1 --port="$PORT" --map="$MAP" \
   >"$LOG_DIR/client-2.log" 2>&1 &
 pids+=("$!")
 
-echo "SKOOSH network lab running on UDP $PORT"
+echo "SKOOSH network lab running map=$MAP on UDP $PORT"
 echo "Logs: $LOG_DIR"
 echo "Clients are opponents: TEAM comms stay local; choose GLOBAL with G in the V menu."
 echo "Close both client windows or press Ctrl-C here to stop the server."

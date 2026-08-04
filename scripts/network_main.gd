@@ -1,6 +1,7 @@
 extends Node3D
 
 const VoiceCommandLibrary = preload("res://scripts/voice_command_library.gd")
+const MapCatalog = preload("res://scripts/map_catalog.gd")
 const DEFAULT_PORT := 9077
 const MAX_CLIENTS := 16
 const TEAM_RED := 0
@@ -15,9 +16,8 @@ const FLAG_CONTACT_HEIGHT := 8.0
 const FLAG_CAPTURE_HEIGHT := 80.0
 const FLAG_RETURN_TICKS := 600
 const ROUND_RESTART_TICKS := 300
-const ARENA_CENTER := Vector2(0.0, -207.0)
-const BASE_SEPARATION := 48.0
 const OOB_RECOVERY_SAFE_FRAMES := 3
+const MAP_AGREEMENT_TIMEOUT_MS := 5000
 const VOICE_COMMAND_COOLDOWN_TICKS := 60
 const VOICE_CHANNEL_COOLDOWN_TICKS := 30
 const VOICE_COMMANDS := VoiceCommandLibrary.COMMANDS
@@ -31,6 +31,7 @@ const VOICE_COMMANDS := VoiceCommandLibrary.COMMANDS
 @onready var blue_platform := $CompactArena/BluePlatform as StaticBody3D
 @onready var red_flag := $CompactArena/RedFlag as SkooshNetworkFlag
 @onready var blue_flag := $CompactArena/BlueFlag as SkooshNetworkFlag
+@onready var neutral_landmarks := $NeutralLandmarks
 
 # Match and objective state are written only by peer 1 and replicated by the
 # root MultiplayerSynchronizer. Clients present this state but never score it.
@@ -53,6 +54,10 @@ var avatars: Dictionary = {}
 var red_home := Vector3.ZERO
 var blue_home := Vector3.ZERO
 var platform_surface_y := 0.0
+var red_platform_surface_y := 0.0
+var blue_platform_surface_y := 0.0
+var map_id := MapCatalog.DEFAULT_MAP_ID
+var map_config: Dictionary = {}
 var _bot_mode := false
 var _test_seconds := 0.0
 var _require_combat := false
@@ -78,10 +83,13 @@ var _last_voice_command_tick: Dictionary = {}
 var _last_voice_request_tick: Dictionary = {}
 var _last_team_voice_tick: Dictionary = {}
 var _last_global_voice_tick := -100000
+var _approved_map_peers: Dictionary = {}
+var _map_agreement_deadlines: Dictionary = {}
+var _map_mismatch := false
 
 
 func _ready() -> void:
-	_configure_compact_arena()
+	_configure_map()
 	NetworkEvents.on_server_start.connect(_on_server_started)
 	NetworkEvents.on_client_start.connect(_on_client_started)
 	NetworkEvents.on_peer_join.connect(_on_peer_joined)
@@ -94,20 +102,32 @@ func _ready() -> void:
 	_parse_command_line()
 
 
-func _configure_compact_arena() -> void:
-	var red_x := ARENA_CENTER.x - BASE_SEPARATION * 0.5
-	var blue_x := ARENA_CENTER.x + BASE_SEPARATION * 0.5
-	var red_ground: float = terrain.height_at(red_x, ARENA_CENTER.y)
-	var blue_ground: float = terrain.height_at(blue_x, ARENA_CENTER.y)
-	platform_surface_y = maxf(red_ground, blue_ground) + 4.5
-	red_platform.position = Vector3(red_x, platform_surface_y - 1.0, ARENA_CENTER.y)
-	blue_platform.position = Vector3(blue_x, platform_surface_y - 1.0, ARENA_CENTER.y)
-	red_home = Vector3(red_x, platform_surface_y + 1.08, ARENA_CENTER.y)
-	blue_home = Vector3(blue_x, platform_surface_y + 1.08, ARENA_CENTER.y)
+func _configure_map() -> void:
+	map_id = MapCatalog.selected_id_from_args(true)
+	map_config = MapCatalog.get_map(map_id)
+	var base_centers := map_config["base_centers"] as Array
+	var red_center := base_centers[TEAM_RED] as Vector2
+	var blue_center := base_centers[TEAM_BLUE] as Vector2
+	var clearance := float(map_config["platform_clearance"])
+	var red_ground: float = terrain.height_at(red_center.x, red_center.y)
+	var blue_ground: float = terrain.height_at(blue_center.x, blue_center.y)
+	red_platform_surface_y = red_ground + clearance
+	blue_platform_surface_y = blue_ground + clearance
+	if bool(map_config["shared_platform_elevation"]):
+		red_platform_surface_y = maxf(red_ground, blue_ground) + clearance
+		blue_platform_surface_y = red_platform_surface_y
+	platform_surface_y = maxf(red_platform_surface_y, blue_platform_surface_y)
+	red_platform.position = Vector3(red_center.x, red_platform_surface_y - 1.0, red_center.y)
+	blue_platform.position = Vector3(blue_center.x, blue_platform_surface_y - 1.0, blue_center.y)
+	red_home = Vector3(red_center.x, red_platform_surface_y + 1.08, red_center.y)
+	blue_home = Vector3(blue_center.x, blue_platform_surface_y + 1.08, blue_center.y)
 	red_flag_position = red_home
 	blue_flag_position = blue_home
 	red_flag.present(red_home, false)
 	blue_flag.present(blue_home, false)
+	neutral_landmarks.configure(map_id, map_config, terrain)
+	lobby.set_map_name(str(map_config["label"]))
+	print("MAP selected id=%s label=%s" % [map_id, map_config["label"]])
 
 
 func _parse_command_line() -> void:
@@ -149,6 +169,7 @@ func _parse_command_line() -> void:
 func start_server(port: int) -> void:
 	if multiplayer.multiplayer_peer is ENetMultiplayerPeer:
 		return
+	_map_mismatch = false
 	var peer := ENetMultiplayerPeer.new()
 	var error := peer.create_server(port, MAX_CLIENTS)
 	if error != OK:
@@ -168,6 +189,7 @@ func join_server(address: String, port: int) -> void:
 		return
 	if multiplayer.multiplayer_peer is ENetMultiplayerPeer:
 		return
+	_map_mismatch = false
 	var peer := ENetMultiplayerPeer.new()
 	var error := peer.create_client(address, port)
 	if error != OK:
@@ -186,19 +208,85 @@ func _on_server_started() -> void:
 
 func _on_client_started(id: int) -> void:
 	print("NETWORK client connected peer=%d" % id)
-	lobby.set_status("CONNECTED AS PEER #%d" % id, true)
-	_spawn_avatar(id)
+	lobby.set_status("CONNECTED AS PEER #%d\nVERIFYING SERVER MAP..." % id, true)
 
 
 func _on_peer_joined(id: int) -> void:
 	if id == 1:
 		return
 	print("NETWORK peer joined id=%d local=%d" % [id, multiplayer.get_unique_id()])
-	_spawn_avatar(id)
+	if multiplayer.is_server():
+		call_deferred("_begin_map_agreement", id)
+	elif id != multiplayer.get_unique_id():
+		# Existing authoritative synchronizers can replicate before the joining
+		# client's approval backfill RPC. A remote-only placeholder keeps those
+		# paths valid; the local playable avatar remains agreement-gated.
+		_spawn_avatar(id)
+
+
+func _begin_map_agreement(peer_id: int) -> void:
+	if not multiplayer.is_server() or peer_id not in multiplayer.get_peers():
+		return
+	_map_agreement_deadlines[peer_id] = Time.get_ticks_msec() + MAP_AGREEMENT_TIMEOUT_MS
+	_offer_server_map.rpc_id(peer_id, map_id)
+	print("MAP agreement offered peer=%d server=%s" % [peer_id, map_id])
+
+
+@rpc("authority", "reliable", "call_remote")
+func _offer_server_map(server_map_id: String) -> void:
+	if multiplayer.is_server():
+		return
+	print("MAP agreement received server=%s client=%s" % [server_map_id, map_id])
+	_report_client_map.rpc_id(1, map_id)
+	if server_map_id != map_id:
+		_map_mismatch = true
+		print("MAP mismatch server=%s client=%s rejection=pending" % [server_map_id, map_id])
+		lobby.show_error("MAP MISMATCH\nSERVER: %s\nCLIENT: %s" % [server_map_id, map_id])
+
+
+@rpc("any_peer", "reliable", "call_remote")
+func _report_client_map(client_map_id: String) -> void:
+	if not multiplayer.is_server():
+		return
+	var peer_id := multiplayer.get_remote_sender_id()
+	if peer_id <= 1 or _approved_map_peers.has(peer_id):
+		return
+	_map_agreement_deadlines.erase(peer_id)
+	if client_map_id != map_id:
+		print("MAP mismatch peer=%d server=%s client=%s rejection=disconnect" % [
+			peer_id, map_id, client_map_id,
+		])
+		_schedule_map_rejection(peer_id)
+		return
+	_approved_map_peers[peer_id] = true
+	print("MAP agreement accepted peer=%d id=%s" % [peer_id, map_id])
+	_approve_map_peer.rpc(peer_id)
+	for approved_variant in _approved_map_peers.keys():
+		var approved_id := int(approved_variant)
+		if approved_id != peer_id:
+			_approve_map_peer.rpc_id(peer_id, approved_id)
+
+
+@rpc("authority", "reliable", "call_local")
+func _approve_map_peer(peer_id: int) -> void:
+	_spawn_avatar(peer_id)
+	if peer_id == multiplayer.get_unique_id():
+		lobby.set_status("CONNECTED AS PEER #%d\nMAP: %s" % [peer_id, map_config["label"]], true)
+
+
+func _schedule_map_rejection(peer_id: int) -> void:
+	get_tree().create_timer(0.25).timeout.connect(_disconnect_map_peer.bind(peer_id), CONNECT_ONE_SHOT)
+
+
+func _disconnect_map_peer(peer_id: int) -> void:
+	if multiplayer.is_server() and peer_id in multiplayer.get_peers():
+		multiplayer.multiplayer_peer.disconnect_peer(peer_id)
 
 
 func _on_peer_left(id: int) -> void:
 	print("NETWORK peer left id=%d" % id)
+	_approved_map_peers.erase(id)
+	_map_agreement_deadlines.erase(id)
 	_last_voice_command_tick.erase(id)
 	_last_voice_request_tick.erase(id)
 	if multiplayer.is_server():
@@ -207,10 +295,12 @@ func _on_peer_left(id: int) -> void:
 
 
 func _on_connection_stopped() -> void:
+	_approved_map_peers.clear()
+	_map_agreement_deadlines.clear()
 	for id in avatars.keys():
 		_remove_avatar(id)
 	call_deferred("_reset_multiplayer_peer")
-	if not DisplayServer.get_name().contains("headless"):
+	if not DisplayServer.get_name().contains("headless") and not _map_mismatch:
 		lobby.show_lobby()
 		lobby.show_error("DISCONNECTED")
 
@@ -278,10 +368,15 @@ func get_spawn_transform(peer_id: int, respawn_count: int = 0) -> Transform3D:
 
 
 func get_team_spawn_transform(team: int, peer_id: int, respawn_count: int) -> Transform3D:
-	var home := red_home if team == TEAM_RED else blue_home
-	var z_offset := (float(absi(peer_id + respawn_count) % 3) - 1.0) * 2.2
-	var position := Vector3(home.x, platform_surface_y + 0.08, home.z + z_offset)
-	var direction := Vector3(-1.0, 0.0, 0.0) if team == TEAM_BLUE else Vector3(1.0, 0.0, 0.0)
+	var team_sockets := (map_config["spawn_sockets"] as Array)[team] as Array
+	var socket := team_sockets[absi(peer_id + respawn_count) % team_sockets.size()] as Dictionary
+	var planar := socket["position"] as Vector2
+	var surface_y := red_platform_surface_y if team == TEAM_RED else blue_platform_surface_y
+	if not bool(socket["on_platform"]):
+		surface_y = terrain.height_at(planar.x, planar.y)
+	var position := Vector3(planar.x, surface_y + 0.08, planar.y)
+	var planar_direction := (socket["direction"] as Vector2).normalized()
+	var direction := Vector3(planar_direction.x, 0.0, planar_direction.y)
 	var yaw := atan2(-direction.x, -direction.z)
 	return Transform3D(Basis(Vector3.UP, yaw), position)
 
@@ -332,20 +427,56 @@ func find_target_for(peer_id: int) -> SkooshNetworkPlayer:
 func get_bot_objective_position(peer_id: int) -> Vector3:
 	var player := avatars.get(peer_id) as SkooshNetworkPlayer
 	if player == null:
-		return Vector3(ARENA_CENTER.x, platform_surface_y, ARENA_CENTER.y)
+		return (red_home + blue_home) * 0.5
 	var enemy_team := TEAM_BLUE if player.team == TEAM_RED else TEAM_RED
 	var own_carrier := _get_flag_carrier(player.team)
+	var objective := Vector3.ZERO
 	if _get_flag_carrier(enemy_team) == peer_id:
 		if own_carrier != 0:
 			var enemy := avatars.get(own_carrier) as SkooshNetworkPlayer
 			if enemy != null:
 				return enemy.global_position
-		return red_home if player.team == TEAM_RED else blue_home
+		objective = red_home if player.team == TEAM_RED else blue_home
+		return _route_bot_toward(player.global_position, objective)
 	if _get_flag_state(enemy_team) == FLAG_CARRIED:
 		var carrier := avatars.get(_get_flag_carrier(enemy_team)) as SkooshNetworkPlayer
 		if carrier != null:
 			return carrier.global_position
-	return _get_flag_position(enemy_team)
+	objective = _get_flag_position(enemy_team)
+	if _get_flag_state(enemy_team) == FLAG_HOME:
+		return _route_bot_toward(player.global_position, objective)
+	return objective
+
+
+func _route_bot_toward(player_position: Vector3, objective: Vector3) -> Vector3:
+	var waypoints := map_config["route_waypoints"] as Array
+	if waypoints.size() <= 2:
+		# Preserve a player's lateral lane on compact/direct maps without assuming
+		# whether the team axis is X or Z.
+		var axis := blue_home - red_home
+		var planar_axis := Vector2(axis.x, axis.z).normalized()
+		var lateral := Vector2(-planar_axis.y, planar_axis.x)
+		var player_planar := Vector2(player_position.x, player_position.z)
+		var objective_planar := Vector2(objective.x, objective.z)
+		objective_planar += lateral * (player_planar - objective_planar).dot(lateral)
+		return Vector3(objective_planar.x, objective.y, objective_planar.y)
+	var player_planar := Vector2(player_position.x, player_position.z)
+	var objective_planar := Vector2(objective.x, objective.z)
+	var objective_distance := player_planar.distance_to(objective_planar)
+	var best := objective_planar
+	var best_player_distance := INF
+	for waypoint_variant in waypoints:
+		var waypoint := waypoint_variant as Vector2
+		if waypoint.distance_to(objective_planar) + 6.0 >= objective_distance:
+			continue
+		var player_distance := player_planar.distance_to(waypoint)
+		if player_distance < best_player_distance:
+			best = waypoint
+			best_player_distance = player_distance
+	var height: float = terrain.height_at(best.x, best.y)
+	if best.distance_to(objective_planar) < 0.1:
+		height = objective.y
+	return Vector3(best.x, height, best.y)
 
 
 func should_bot_fire(peer_id: int) -> bool:
@@ -478,6 +609,15 @@ func _receive_voice_command(speaker_peer_id: int, command_id: int, scope: int) -
 
 
 func _process(_delta: float) -> void:
+	if multiplayer.is_server() and not _map_agreement_deadlines.is_empty():
+		var now := Time.get_ticks_msec()
+		for peer_variant in _map_agreement_deadlines.keys():
+			var peer_id := int(peer_variant)
+			if now < int(_map_agreement_deadlines[peer_id]):
+				continue
+			_map_agreement_deadlines.erase(peer_id)
+			print("MAP agreement timeout peer=%d server=%s rejection=disconnect" % [peer_id, map_id])
+			_schedule_map_rejection(peer_id)
 	_peak_rollback_ticks = maxi(_peak_rollback_ticks, NetworkPerformance.get_rollback_ticks())
 	_peak_network_loop_ms = maxf(_peak_network_loop_ms, NetworkPerformance.get_network_loop_duration_ms())
 	_present_flags()
@@ -504,7 +644,8 @@ func _physics_process(_delta: float) -> void:
 		_peak_server_speed = maxf(_peak_server_speed, player.total_speed)
 		_server_saw_jet = _server_saw_jet or player.jet_active
 		var position: Vector3 = player.global_position
-		var outside := absf(position.x) > 278.0 or absf(position.z) > 278.0
+		var oob := map_config["oob_half_extents"] as Vector2
+		var outside := absf(position.x) > oob.x or absf(position.z) > oob.y
 		var far_below := position.y < float(terrain.height_at(position.x, position.z)) - 35.0
 		var needs_recovery := outside or far_below
 		if needs_recovery:

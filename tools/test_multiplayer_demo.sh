@@ -5,7 +5,16 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GODOT_BIN="${GODOT_BIN:-/tmp/godot-skoosh/Godot_v4.4.1-stable_linux.x86_64}"
 CLIENT_BIN="${SKOOSH_CLIENT_BIN:-$GODOT_BIN}"
 PORT="${SKOOSH_TEST_PORT:-19077}"
-TEST_SECONDS="${SKOOSH_TEST_SECONDS:-50}"
+MAP="${SKOOSH_MAP:-kestrel_basin}"
+case "$MAP" in
+  kestrel_basin|relay_divide|split_crown) ;;
+  *) echo "SKOOSH_MAP rejected '$MAP'; expected kestrel_basin, relay_divide, or split_crown." >&2; exit 2 ;;
+esac
+if [[ "$MAP" == "kestrel_basin" ]]; then
+  TEST_SECONDS="${SKOOSH_TEST_SECONDS:-50}"
+else
+  TEST_SECONDS="${SKOOSH_TEST_SECONDS:-8}"
+fi
 CLIENT_TEST_SECONDS=$((TEST_SECONDS + 1))
 LOG_DIR="${SKOOSH_TEST_LOG_DIR:-$ROOT/.tmp/skoosh-network-test}"
 rm -rf "$LOG_DIR"
@@ -19,9 +28,16 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-"$GODOT_BIN" --headless --path "$ROOT" -- --server --port="$PORT" \
-  --test-seconds="$TEST_SECONDS" --require-combat --require-movement --require-ctf \
-  --require-voice >"$LOG_DIR/server.log" 2>&1 &
+requirements=()
+if [[ "$MAP" == "kestrel_basin" ]]; then
+  requirements+=(--require-combat --require-movement --require-ctf)
+else
+  requirements+=(--require-movement)
+fi
+
+"$GODOT_BIN" --headless --path "$ROOT" -- --server --port="$PORT" --map="$MAP" \
+  --test-seconds="$TEST_SECONDS" --require-voice "${requirements[@]}" \
+  >"$LOG_DIR/server.log" 2>&1 &
 server_pid=$!
 pids+=("$server_pid")
 sleep 1
@@ -33,7 +49,7 @@ fi
 
 for client in 1 2; do
   "${client_command[@]}" -- --join=127.0.0.1 --port="$PORT" \
-    --bot --test-seconds="$CLIENT_TEST_SECONDS" >"$LOG_DIR/client-$client.log" 2>&1 &
+    --map="$MAP" --bot --test-seconds="$CLIENT_TEST_SECONDS" >"$LOG_DIR/client-$client.log" 2>&1 &
   pids+=("$!")
 done
 
@@ -53,6 +69,11 @@ for pid in "${pids[@]:1}"; do
 done
 
 cat "$LOG_DIR/server.log"
+agreement_count="$(grep -c "MAP agreement accepted.*id=$MAP" "$LOG_DIR/server.log" || true)"
+if (( agreement_count < 2 )); then
+  echo "Fewer than two clients completed map agreement for $MAP. Logs: $LOG_DIR" >&2
+  status=1
+fi
 if grep -Eq "ERROR:|SCRIPT ERROR|rejected" "$LOG_DIR"/*.log; then
   echo "Multiplayer acceptance logged an error or rejected launch. Logs: $LOG_DIR" >&2
   status=1
@@ -73,4 +94,8 @@ if [[ $status -ne 0 ]]; then
   exit "$status"
 fi
 
-echo "Multiplayer acceptance passed. Logs: $LOG_DIR"
+if [[ "$MAP" == "kestrel_basin" ]]; then
+  echo "Multiplayer acceptance passed map=$MAP. Logs: $LOG_DIR"
+else
+  echo "Multiplayer smoke passed map=$MAP; this does not establish balance. Logs: $LOG_DIR"
+fi

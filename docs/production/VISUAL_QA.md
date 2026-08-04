@@ -16,15 +16,22 @@ Forward+ or a GPU-backed renderer comparison:
 ./tools/capture_visual_qa_private_wayland.sh
 ```
 
+Select any bundled map for either path with `SKOOSH_MAP=kestrel_basin`,
+`SKOOSH_MAP=relay_divide`, or `SKOOSH_MAP=split_crown`.
+
 The Compatibility runner starts rendered Godot processes on disposable Xvfb displays with TCP disabled. Xvfb cannot provide the Vulkan presentation queue required by Forward+. The Forward+ runner instead starts a private headless Weston compositor for each rendered process; it requires the `weston` executable or an explicit `WESTON_BIN` path and keeps sockets/wrappers under the repository's ignored `.tmp/` directory. Do not disable libdecor plugins for this path: Godot 4.4 uses libdecor when the kiosk compositor does not advertise server-side decorations. Both paths avoid the desktop display, desktop screenshots, pointer movement, and host keyboard focus. Multiplayer input comes from the existing acceptance bot.
 
 Captures and logs are written to the ignored directory:
 
 ```text
-build/visual-qa/current/
-build/visual-qa/current/contact-sheet.png
-build/visual-qa/current/logs/
+build/visual-qa/<map-id>/current/
+build/visual-qa/<map-id>/current/contact-sheet.png
+build/visual-qa/<map-id>/current/logs/
 ```
+
+This per-map separation applies when `SKOOSH_VISUAL_QA_DIR` is not explicitly
+set. Captures support terrain/readability review but do not demonstrate map
+balance, even when competitive collision is exactly mirrored.
 
 The private-Wayland path retains a `weston-<pid>.log` for each rendered process alongside the Godot logs.
 

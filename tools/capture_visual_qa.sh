@@ -3,7 +3,12 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GODOT_BIN="${GODOT_BIN:-/tmp/godot-skoosh/Godot_v4.4.1-stable_linux.x86_64}"
-OUTPUT_DIR="${SKOOSH_VISUAL_QA_DIR:-$ROOT/build/visual-qa/current}"
+MAP="${SKOOSH_MAP:-kestrel_basin}"
+case "$MAP" in
+  kestrel_basin|relay_divide|split_crown) ;;
+  *) echo "SKOOSH_MAP rejected '$MAP'; expected kestrel_basin, relay_divide, or split_crown." >&2; exit 2 ;;
+esac
+OUTPUT_DIR="${SKOOSH_VISUAL_QA_DIR:-$ROOT/build/visual-qa/$MAP/current}"
 LOG_DIR="$OUTPUT_DIR/logs"
 PORT="${SKOOSH_VISUAL_QA_PORT:-29077}"
 TEST_SECONDS="${SKOOSH_VISUAL_QA_SECONDS:-20}"
@@ -44,16 +49,16 @@ XVFB_ARGS="-screen 0 1280x720x24 -nolisten tcp"
 # can create a window or capture the pointer on the user's desktop display.
 xvfb-run -a --server-args="$XVFB_ARGS" \
   "$GODOT_BIN" --path "$ROOT" --max-fps 60 -- \
-  --visual-qa-dir="$OUTPUT_DIR" --visual-qa-lobby \
+  --map="$MAP" --visual-qa-dir="$OUTPUT_DIR" --visual-qa-lobby \
   >"$LOG_DIR/lobby.log" 2>&1
 
-"$GODOT_BIN" --headless --path "$ROOT" -- --server --port="$PORT" \
+"$GODOT_BIN" --headless --path "$ROOT" -- --server --port="$PORT" --map="$MAP" \
   --test-seconds="$SERVER_SECONDS" >"$LOG_DIR/server.log" 2>&1 &
 pids+=("$!")
 sleep 1
 
 xvfb-run -a --server-args="$XVFB_ARGS" \
-  "$GODOT_BIN" --path "$ROOT" --max-fps 60 -- --join=127.0.0.1 --port="$PORT" --bot \
+  "$GODOT_BIN" --path "$ROOT" --max-fps 60 -- --join=127.0.0.1 --port="$PORT" --map="$MAP" --bot \
   --test-seconds="$TEST_SECONDS" --visual-qa-dir="$OUTPUT_DIR" \
   >"$LOG_DIR/qa-client.log" 2>&1 &
 qa_pid=$!
@@ -77,7 +82,7 @@ if [[ "$qa_connected" != true ]]; then
   exit 1
 fi
 
-"$GODOT_BIN" --headless --path "$ROOT" -- --join=127.0.0.1 --port="$PORT" \
+"$GODOT_BIN" --headless --path "$ROOT" -- --join=127.0.0.1 --port="$PORT" --map="$MAP" \
   --bot --test-seconds="$TEST_SECONDS" >"$LOG_DIR/bot-client.log" 2>&1 &
 pids+=("$!")
 
@@ -114,7 +119,7 @@ if command -v montage >/dev/null 2>&1; then
     -background '#07121c' "$OUTPUT_DIR/contact-sheet.png"
 fi
 
-echo "Visual QA captured ${#captures[@]} states without using the desktop display."
+echo "Visual QA captured ${#captures[@]} states for map=$MAP without using the desktop display."
 echo "Output: $OUTPUT_DIR"
 if [[ -f "$OUTPUT_DIR/contact-sheet.png" ]]; then
   echo "Contact sheet: $OUTPUT_DIR/contact-sheet.png"
