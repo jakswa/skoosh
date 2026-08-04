@@ -98,13 +98,29 @@ done
 
 shopt -s nullglob
 captures=("$OUTPUT_DIR"/[0-9][0-9]-*.png)
-if (( ${#captures[@]} < 5 )); then
-  echo "Visual QA produced only ${#captures[@]} captures. Logs: $LOG_DIR" >&2
+required_captures=(
+  00-lobby.png
+  10-spawn.png
+  12-team-comms.png
+  24-slot-2-grenade.png
+  30-combat.png
+  32-projectile-flight.png
+  34-combat-effect.png
+  36-slot-3-gatling.png
+  48-slot-4-sniper.png
+  50-traversal.png
+  90-late-match.png
+)
+missing_captures=()
+for capture in "${required_captures[@]}"; do
+  [[ -f "$OUTPUT_DIR/$capture" ]] || missing_captures+=("$capture")
+done
+if (( ${#missing_captures[@]} > 0 )); then
+  echo "Visual QA missing required captures: ${missing_captures[*]}. Logs: $LOG_DIR" >&2
   exit 1
 fi
 
-if grep -E "ERROR:|SCRIPT ERROR|rejected|Invalid" "$LOG_DIR"/*.log \
-  | grep -v "ERROR: 1 resources still in use at exit" >/dev/null; then
+if grep -Eq "ERROR:|SCRIPT ERROR|rejected|Invalid" "$LOG_DIR"/*.log; then
   echo "Visual QA logged a runtime error. Logs: $LOG_DIR" >&2
   exit 1
 fi
