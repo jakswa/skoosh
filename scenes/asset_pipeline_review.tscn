@@ -1,7 +1,9 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=11 format=3]
 
-[ext_resource type="PackedScene" path="res://assets/models/characters/vector_expedition_runner.glb" id="1_suit"]
-[ext_resource type="Script" path="res://scripts/asset_pipeline_review.gd" id="2_script"]
+[ext_resource type="PackedScene" path="res://assets/models/characters/vector_sprinter_mk2.glb" id="1_vector"]
+[ext_resource type="PackedScene" path="res://assets/models/characters/stratos_foilframe.glb" id="2_stratos"]
+[ext_resource type="PackedScene" path="res://assets/models/characters/khepri_triune_salvage.glb" id="3_khepri"]
+[ext_resource type="Script" path="res://scripts/asset_pipeline_review.gd" id="4_script"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial"]
 sky_top_color = Color(0.015, 0.035, 0.07, 1)
@@ -21,10 +23,10 @@ ambient_light_energy = 0.65
 tonemap_mode = 2
 
 [sub_resource type="CylinderMesh" id="PlinthMesh"]
-top_radius = 1.2
-bottom_radius = 1.35
+top_radius = 0.7
+bottom_radius = 0.78
 height = 0.18
-radial_segments = 32
+radial_segments = 24
 
 [sub_resource type="StandardMaterial3D" id="PlinthMaterial"]
 albedo_color = Color(0.055, 0.075, 0.085, 1)
@@ -38,7 +40,7 @@ outline_size = 6
 outline_color = Color(0.01, 0.02, 0.025, 0.9)
 
 [node name="AssetPipelineReview" type="Node3D"]
-script = ExtResource("2_script")
+script = ExtResource("4_script")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment")
@@ -50,28 +52,44 @@ light_energy = 1.4
 shadow_enabled = true
 
 [node name="FillLight" type="OmniLight3D" parent="."]
-position = Vector3(-2, 1.6, 2)
-omni_range = 6.0
+position = Vector3(-2.4, 1.8, 2.6)
+omni_range = 8.0
 light_color = Color(0.18, 0.7, 1, 1)
-light_energy = 2.2
+light_energy = 2.4
 
 [node name="Camera3D" type="Camera3D" parent="."]
-position = Vector3(3, 1.45, 4)
-rotation_degrees = Vector3(-4, 37, 0)
+position = Vector3(4.7, 2.1, 6.5)
+rotation_degrees = Vector3(-6, 36, 0)
 current = true
-fov = 42.0
+fov = 46.0
 
-[node name="Plinth" type="MeshInstance3D" parent="."]
+[node name="VectorPlinth" type="MeshInstance3D" parent="."]
+position = Vector3(-1.35, -0.11, 0)
+mesh = SubResource("PlinthMesh")
+material_override = SubResource("PlinthMaterial")
+
+[node name="StratosPlinth" type="MeshInstance3D" parent="."]
 position = Vector3(0, -0.11, 0)
 mesh = SubResource("PlinthMesh")
 material_override = SubResource("PlinthMaterial")
 
-[node name="VectorRunnerRig" parent="." instance=ExtResource("1_suit")]
+[node name="KhepriPlinth" type="MeshInstance3D" parent="."]
+position = Vector3(1.35, -0.11, 0)
+mesh = SubResource("PlinthMesh")
+material_override = SubResource("PlinthMaterial")
+
+[node name="VectorSprinterMk2" parent="." instance=ExtResource("1_vector")]
+position = Vector3(-1.35, 0, 0)
+
+[node name="StratosFoilframe" parent="." instance=ExtResource("2_stratos")]
+
+[node name="KhepriTriuneSalvage" parent="." instance=ExtResource("3_khepri")]
+position = Vector3(1.35, 0, 0)
 
 [node name="ReviewLabel" type="Label" parent="."]
 offset_left = 24.0
 offset_top = 24.0
-offset_right = 700.0
-offset_bottom = 88.0
-text = "VECTOR EXPEDITION RUNNER\nAthletic relay rig + MomentumLean animation + turntable"
+offset_right = 920.0
+offset_bottom = 90.0
+text = "CHARACTER SHELL STUDY\nVECTOR SPRINTER MK II  /  STRATOS FOILFRAME  /  KHEPRI TRIUNE SALVAGE"
 label_settings = SubResource("LabelSettings")

@@ -39,9 +39,11 @@ SKOOSH_VISUAL_QA_DIR="$PWD/build/asset-pipeline/solar-nomad" \
 ./tools/capture_visual_qa.sh
 ```
 
-## Reusable runway examples
+## Historical reusable runway examples
 
-The launcher generator proved one hero asset. The runway examples exercise the same repository-local approach across additional domains without establishing an art direction.
+The launcher generator proved one hero asset. These historical runway examples
+exercised the same repository-local approach across additional domains before
+the visual bake-off; they did not establish the current art direction.
 
 ```bash
 # Deterministic terrain albedo/detail-normal/roughness maps.
@@ -57,7 +59,14 @@ blender --background --python tools/asset_pipeline/create_runway_suit_rig.py
 
 `blender_asset_utils.py` contains direction-neutral construction, UV, material, static-consolidation, save, and GLB-export helpers. Candidate generators should import it while keeping dimensions and design decisions in their own scripts.
 
-The base kit is instantiated for both teams from one GLB. `team_base_visual.gd` supplies presentation-only team material variants while the original simple collision remains authoritative. The terrain shader adds deterministic world-space detail to existing gameplay-derived vertex colors. The neutral character replaces the former primitive multiplayer world model and proves that Blender armatures, skin data, named animation, team material overrides, local-player hiding, and remote-player presentation survive the complete path. It remains disposable bake-off runway art, not a production character.
+The base kit demonstrated one GLB instantiated for both teams, with
+`team_base_visual.gd` supplying presentation-only material variants while
+simple collision remained authoritative. The terrain shader demonstrated
+deterministic world-space detail over gameplay-derived vertex colors. The
+neutral runway character formerly replaced the primitive multiplayer model and
+proved the armature, skin, animation, team override, and local-player hiding
+path. It is historical disposable runway art and is not a current runtime
+character.
 
 Verify the imported contracts headlessly:
 
@@ -65,13 +74,14 @@ Verify the imported contracts headlessly:
 ./tools/test_asset_pipeline.sh
 ```
 
-Visually inspect the animated skinned mannequin in the dedicated turntable scene:
+The current review scene shows the three runtime shells described below. The
+runway mannequin remains available only as historical source/runtime output.
 
 ```bash
 ./tools/run_asset_pipeline_review.sh
 ```
 
-This launches only the review scene. The same rig is also installed as the current remote multiplayer world model; local first-person players remain hidden from their own world model as before.
+This launches only the review scene; it does not change multiplayer state.
 
 Current source policy for these small experiments is to track `.blend` source directly and exclude Blender `.blend1` backups. Reconsider Git LFS if production source files or texture sets become materially larger.
 
@@ -88,19 +98,44 @@ relay station with:
 TMPDIR="$PWD/.tmp" blender --background --python tools/asset_pipeline/create_alpine_expedition_assets.py
 ```
 
-Generate the selected remote-player character separately:
+Generate the formerly selected remote-player character separately:
 
 ```bash
 TMPDIR="$PWD/.tmp" blender --background --python tools/asset_pipeline/create_vector_expedition_runner.py
 ```
 
 The launcher has a visible disc seat/feed path and an open rectangular launch
-gate rather than a circular barrel. The Vector Expedition Runner preserves the
+gate rather than a circular barrel. The Vector Expedition Runner preserved the
 proven bone names and `MomentumLean` contract while replacing the runway
-mannequin's geometry, posture, equipment, and animation. Editable `.blend`
-sources are retained. Provenance is recorded in
+mannequin's geometry, posture, equipment, and animation. It was the selected
+runner after the bake-off but has since been superseded at runtime by the three
+character shells below. Editable `.blend` sources are retained. Provenance is recorded in
 `assets/manifests/kestrel_basin_assets.json` and
 `assets/manifests/vector_expedition_runner.json`.
+
+## Character shell variants
+
+Generate the three runtime character shell variants:
+
+```bash
+TMPDIR="$PWD/.tmp" blender --background --python tools/asset_pipeline/create_character_shell_variants.py
+```
+
+This one deterministic generator writes editable `.blend` source and matching
+Godot-ready `.glb` files for Vector Sprinter Mk II, STRATOS Foilframe, and
+Khepri Triune Salvage. All three use the exact same 12-bone contract, 50 named
+rigid-skinned mesh roles (36 established shell roles plus 14 overlapping
+articulation interfaces). Their `MomentumLean` clips change the same six
+non-root bones and never change the Root transform; importer-generated constant
+Root channels are permitted and may be removed by Godot as immutable tracks.
+The role names used by runtime team overrides remain intact. Multiplayer uses
+these three current runtime shells as server-assigned, presentation-only
+character variants.
+
+Run `./tools/test_asset_pipeline.sh` to import and contract-check all three.
+Run `./tools/run_asset_pipeline_review.sh` to view the animated lineup. Design,
+provenance, output statistics, and limitations are recorded in
+`assets/manifests/character_shell_variants.json`.
 
 ## Forward+ qualification decal
 

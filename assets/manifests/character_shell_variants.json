@@ -1,0 +1,93 @@
+{
+  "asset_group": "SKOOSH character shell variants",
+  "status": "runtime-integrated presentation variants; server-assigned and replicated",
+  "creator": "Project-local deterministic procedural generation",
+  "source_url": null,
+  "license": "Original project work; no external asset dependencies",
+  "commercial_use": true,
+  "redistribution": "May be redistributed with the project and game exports",
+  "attribution_required": false,
+  "tools": [
+    "Blender 5.2.0 LTS background Python",
+    "Godot 4.4.1 Forward+ importer"
+  ],
+  "generator": "tools/asset_pipeline/create_character_shell_variants.py",
+  "shared_utility": "tools/asset_pipeline/blender_asset_utils.py",
+  "contract": {
+    "bones": [
+      "Root", "Pelvis", "Spine", "Head",
+      "UpperArm.L", "Forearm.L", "Thigh.L", "Shin.L",
+      "UpperArm.R", "Forearm.R", "Thigh.R", "Shin.R"
+    ],
+    "animation": "MomentumLean changes exactly Pelvis, Spine, UpperArm.L, UpperArm.R, Thigh.L, and Thigh.R; Root transform does not change (constant exporter channels are permitted and Godot may remove them as immutable)",
+    "source_semantics": "Editable source retains 50 named rigid one-bone skinned semantic parts, including 14 graphite articulation interfaces",
+    "runtime_geometry": "Export-only consolidation produces seven skinned meshes, one per used material role, without changing triangles or skin weights",
+    "runtime_roles": [
+      "Graphite", "Hardware", "TeamPrimary", "TeamSecondary", "Mint", "Orange",
+      "Ceramic for Vector/STRATOS or Bronze for Khepri"
+    ],
+    "collision": "No collision meshes or CollisionObject3D nodes",
+    "team_geometry": "One neutral geometry set per shell; red/blue are material overrides"
+  },
+  "variants": [
+    {
+      "name": "Vector Sprinter Mk II",
+      "design": "Narrow forward-canted wedge helmet and broad visor, V-taper relay torso, low swept shoulder and hip planes, long ski stabilizers, and depth-staggered horizontal twin ducts.",
+      "source": "assets/source/characters/vector_sprinter_mk2.blend",
+      "runtime": "assets/models/characters/vector_sprinter_mk2.glb",
+      "source_meshes": 50,
+      "runtime_meshes": 7,
+      "source_vertices": 5112,
+      "runtime_vertices": 20448,
+      "source_triangles": 10032,
+      "runtime_triangles": 10032,
+      "source_materials": 7,
+      "runtime_materials": 7,
+      "source_bytes": 239364,
+      "runtime_bytes": 1148396,
+      "runtime_sha256": "0374f4219fb9def0fdefa6e41ebcc3f79b292fea8415a7a64962e11867621b59"
+    },
+    {
+      "name": "STRATOS Foilframe",
+      "design": "Compact speed helmet and broad integrated team bib, uninterrupted aerofoil shoulder line, pinched waist, high vertical split-airbrake ducts, and strong calf stabilizers.",
+      "source": "assets/source/characters/stratos_foilframe.blend",
+      "runtime": "assets/models/characters/stratos_foilframe.glb",
+      "source_meshes": 50,
+      "runtime_meshes": 7,
+      "source_vertices": 5104,
+      "runtime_vertices": 20412,
+      "source_triangles": 10016,
+      "runtime_triangles": 10016,
+      "source_materials": 7,
+      "runtime_materials": 7,
+      "source_bytes": 239871,
+      "runtime_bytes": 1146452,
+      "runtime_sha256": "08df650386f96b72d7801b29c67269d83adcac43b44dc1e89a87afe6fa0594e4"
+    },
+    {
+      "name": "Khepri Triune Salvage",
+      "design": "Faceted directional helmet, triune chest and hip contours, one asymmetric sensor vane, forked collar line, and depth/height-staggered lower bronze twin cowls.",
+      "source": "assets/source/characters/khepri_triune_salvage.blend",
+      "runtime": "assets/models/characters/khepri_triune_salvage.glb",
+      "source_meshes": 50,
+      "runtime_meshes": 7,
+      "source_vertices": 5296,
+      "runtime_vertices": 21180,
+      "source_triangles": 10400,
+      "runtime_triangles": 10400,
+      "source_materials": 7,
+      "runtime_materials": 7,
+      "source_bytes": 250603,
+      "runtime_bytes": 1188692,
+      "runtime_sha256": "6250f4c2f9d33e0520af106da1dca1f46b924d9186a58f69a648d48c85c1bdcf"
+    }
+  ],
+  "known_limitations": [
+    "Rigid skinning remains visibly hard-surface, while overlapping graphite interfaces maintain anatomical continuity.",
+    "MomentumLean is the only authored clip; locomotion state coverage is not production-complete.",
+    "Team-color area is an authored approximately 25 percent target, not a UV-area measurement.",
+    "Editable source remains 50 semantic parts while runtime exports are consolidated to seven material-role meshes.",
+    "Godot importer-generated LOD behavior is unchanged and has not been qualified as an authored character LOD strategy.",
+    "Off-screen red/blue review is complete at turntable and 96 px comparison scale; a human in-match readability playtest remains."
+  ]
+}

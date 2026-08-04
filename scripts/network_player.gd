@@ -1,6 +1,19 @@
 extends MovementBody
 class_name SkooshNetworkPlayer
 
+const CharacterMaterialRoles = preload("res://scripts/character_material_roles.gd")
+const CHARACTER_VARIANT_NAMES: Array[String] = [
+	"Vector Sprinter Mk II",
+	"STRATOS Foilframe",
+	"Khepri Triune Salvage",
+]
+const CHARACTER_VARIANT_PATHS: Array[String] = [
+	"res://assets/models/characters/vector_sprinter_mk2.glb",
+	"res://assets/models/characters/stratos_foilframe.glb",
+	"res://assets/models/characters/khepri_triune_salvage.glb",
+]
+const CHARACTER_VARIANT_UNRESOLVED := -1
+
 const WEAPON_COUNT := 4
 const WEAPON_SWITCH_TICKS := 15
 const WEAPON_NAMES: Array[String] = [
@@ -29,7 +42,6 @@ const WEAPON_DETAILS: Array[String] = [
 @onready var head := $Head as Node3D
 @onready var camera := $Head/Camera3D as Camera3D
 @onready var world_model := $WorldModel as Node3D
-@onready var suit_animation := $WorldModel/VectorRunnerRig/AnimationPlayer as AnimationPlayer
 @onready var name_label := $NameLabel as Label3D
 @onready var input := $Input as SkooshNetworkInput
 @onready var rollback_synchronizer := $RollbackSynchronizer as RollbackSynchronizer
@@ -57,6 +69,9 @@ const WEAPON_DETAILS: Array[String] = [
 
 var peer_id := 0
 var team := -1
+var character_variant := CHARACTER_VARIANT_UNRESOLVED:
+	set(value):
+		character_variant = value if is_character_variant_valid(value) else CHARACTER_VARIANT_UNRESOLVED
 var health := 100
 var dead := false
 var kills := 0
@@ -71,6 +86,10 @@ var active_weapon_slot := 0
 var weapon_switch_tick := -100000
 var _local_active := false
 var _presented_team := -99
+var _presented_variant := -1
+var _reported_variant := -1
+var _model_root: Node3D
+var _suit_animation: AnimationPlayer
 var _presented_weapon_slot := -1
 var _view_gun_rest_position := Vector3.ZERO
 var _view_gun_rest_rotation := Vector3.ZERO
@@ -117,24 +136,30 @@ func _ready() -> void:
 			collision.collision_layer = 0
 			collision.collision_mask = 0
 	_update_weapon_proxy_visibility()
-	var momentum_lean := suit_animation.get_animation("MomentumLean")
-	if momentum_lean != null:
-		momentum_lean.loop_mode = Animation.LOOP_LINEAR
-		suit_animation.play("MomentumLean")
 	NetworkTime.on_tick.connect(_network_tick)
 	NetworkTime.after_tick_loop.connect(_after_tick_loop)
 	call_deferred("_finish_network_setup")
 
 
-func configure_peer(id: int, spawn_transform: Transform3D, use_bot: bool, assigned_team: int = -1) -> void:
+func configure_peer(
+	id: int,
+	spawn_transform: Transform3D,
+	use_bot: bool,
+	assigned_team: int = -1,
+	assigned_character_variant: int = -1
+) -> void:
 	peer_id = id
 	team = assigned_team
+	if is_character_variant_valid(assigned_character_variant):
+		character_variant = assigned_character_variant
 	name = "Player_%d" % id
 	global_transform = spawn_transform
 	respawn_position = spawn_transform.origin
 	respawn_yaw = spawn_transform.basis.get_euler().y
 	input.bot_mode = use_bot
+	_update_character_presentation()
 	_update_team_presentation()
+	_report_character_variant()
 
 
 func _finish_network_setup() -> void:
@@ -190,11 +215,14 @@ func _after_tick_loop() -> void:
 
 
 func _process(delta: float) -> void:
+	if _presented_variant != character_variant:
+		_update_character_presentation()
 	if _presented_team != team:
 		_update_team_presentation()
 	if _presented_weapon_slot != active_weapon_slot:
 		_update_weapon_proxy_visibility()
-	suit_animation.speed_scale = clampf(0.55 + horizontal_speed / 32.0, 0.55, 2.2)
+	if _suit_animation != null:
+		_suit_animation.speed_scale = clampf(0.55 + horizontal_speed / 32.0, 0.55, 2.2)
 	_update_gatling_presentation(delta)
 	if not _local_active:
 		return
@@ -409,6 +437,65 @@ func get_telemetry() -> Dictionary:
 	return get_movement_telemetry()
 
 
+func _update_character_presentation() -> void:
+	if (
+		not is_node_ready()
+		or _presented_variant == character_variant
+		or not is_character_variant_valid(character_variant)
+	):
+		return
+	if multiplayer.is_server():
+		_presented_variant = character_variant
+		return
+	if is_instance_valid(_model_root):
+		world_model.remove_child(_model_root)
+		_model_root.queue_free()
+	var scene := load(CHARACTER_VARIANT_PATHS[character_variant]) as PackedScene
+	if scene == null:
+		push_error("Character variant %d did not load" % character_variant)
+		return
+	_model_root = scene.instantiate() as Node3D
+	_suit_animation = null
+	if _model_root == null:
+		push_error("Character variant %d did not instantiate as Node3D" % character_variant)
+		return
+	_model_root.rotation = Vector3(0.0, PI, 0.0)
+	world_model.add_child(_model_root)
+	for node in _model_root.find_children("*", "AnimationPlayer", true, false):
+		var animation_player := node as AnimationPlayer
+		if animation_player.has_animation("MomentumLean"):
+			_suit_animation = animation_player
+			break
+	if _suit_animation != null:
+		var momentum_lean := _suit_animation.get_animation("MomentumLean")
+		momentum_lean.loop_mode = Animation.LOOP_LINEAR
+		_suit_animation.play("MomentumLean")
+	else:
+		push_warning("Character variant %d has no MomentumLean AnimationPlayer" % character_variant)
+	_presented_variant = character_variant
+	_presented_team = -99
+	_update_team_presentation()
+	_report_character_variant()
+
+
+func _report_character_variant() -> void:
+	if (
+		peer_id <= 1
+		or _reported_variant == _presented_variant
+		or not is_character_variant_valid(_presented_variant)
+		or not is_instance_valid(_model_root)
+	):
+		return
+	_reported_variant = _presented_variant
+	print("CHARACTER observed observer=%d peer=%d variant=%d name=%s model=%s" % [
+		multiplayer.get_unique_id(), peer_id, _presented_variant,
+		character_variant_name(_presented_variant), _model_root.name,
+	])
+	var arena := get_parent().get_parent()
+	if arena.has_method("record_character_variant_observation"):
+		arena.record_character_variant_observation(peer_id, _presented_variant)
+
+
 func _update_team_presentation() -> void:
 	if not is_node_ready():
 		return
@@ -425,19 +512,26 @@ func _update_team_presentation() -> void:
 	secondary_material.albedo_color = color.darkened(0.28)
 	secondary_material.metallic = 0.18
 	secondary_material.roughness = 0.72
-	const PRIMARY_TEAM_PARTS: Array[StringName] = [
-		&"Pelvis shell", &"Chest plate", &"Helmet",
-	]
-	const SECONDARY_TEAM_PARTS: Array[StringName] = [
-		&"Jet pod L", &"Jet pod R", &"Shoulder fin L", &"Shoulder fin R",
-		&"Thigh signal L", &"Thigh signal R",
-	]
-	for child in world_model.find_children("*", "MeshInstance3D", true, false):
-		var mesh := child as MeshInstance3D
-		if mesh.name in PRIMARY_TEAM_PARTS:
-			mesh.material_override = primary_material
-		elif mesh.name in SECONDARY_TEAM_PARTS:
-			mesh.material_override = secondary_material
+	CharacterMaterialRoles.apply(world_model, primary_material, secondary_material)
+
+
+static func character_variant_name(id: int) -> String:
+	return CHARACTER_VARIANT_NAMES[id] if is_character_variant_valid(id) else "UNRESOLVED"
+
+
+static func is_character_variant_valid(id: int) -> bool:
+	return id >= 0 and id < CHARACTER_VARIANT_PATHS.size()
+
+
+static func character_variant_resources_cached() -> bool:
+	for path in CHARACTER_VARIANT_PATHS:
+		if ResourceLoader.has_cached(path):
+			return true
+	return false
+
+
+func has_character_visual_shell() -> bool:
+	return is_instance_valid(_model_root)
 
 
 static func callsign_for_peer(id: int) -> String:
