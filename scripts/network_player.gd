@@ -13,6 +13,20 @@ const CHARACTER_VARIANT_SCENES: Array[PackedScene] = [
 ]
 const CHARACTER_VARIANT_UNRESOLVED := -1
 
+const WEAPON_COUNT := 4
+const WEAPON_SWITCH_TICKS := 15
+const WEAPON_NAMES: Array[String] = [
+	"INDUCTION DISC", "ARC GRENADE", "GATLING", "LONGSHOT",
+]
+const WEAPON_ROLES: Array[String] = [
+	"INTERCEPT", "AREA CONTROL", "TRACKING", "PRECISION",
+]
+const WEAPON_DETAILS: Array[String] = [
+	"105 IMPACT / SPLASH 5.8m",
+	"90 MAX / SPLASH 7.2m",
+	"10-6 DMG / 600 RPM / 90m",
+	"70 DMG / 220m",
+]
 @export_category("Combat")
 @export var max_health := 100
 @export var respawn_delay_ticks := 60
@@ -33,7 +47,24 @@ const CHARACTER_VARIANT_UNRESOLVED := -1
 @onready var tick_interpolator := $TickInterpolator as TickInterpolator
 @onready var hud := $NetworkHUD as SkooshNetworkHUD
 @onready var weapon := $Head/DiscLauncher as SkooshDiscLauncher
+@onready var weapons: Array[Node] = [
+	$Head/DiscLauncher, $Head/GrenadeLauncher, $Head/GatlingGun, $Head/SniperRifle,
+]
 @onready var view_gun := $Head/Camera3D/ViewGun as Node3D
+@onready var view_weapon_proxies: Array[Node3D] = [
+	$Head/Camera3D/ViewGun/ViewDiscProxy,
+	$Head/Camera3D/ViewGun/ViewGrenadeProxy,
+	$Head/Camera3D/ViewGun/ViewGatlingProxy,
+	$Head/Camera3D/ViewGun/ViewSniperProxy,
+]
+@onready var world_weapon_proxies: Array[Node3D] = [
+	$WorldModel/WorldWeaponProxies/WorldDiscProxy,
+	$WorldModel/WorldWeaponProxies/WorldGrenadeProxy,
+	$WorldModel/WorldWeaponProxies/WorldGatlingProxy,
+	$WorldModel/WorldWeaponProxies/WorldSniperProxy,
+]
+@onready var view_gatling_rotor := $Head/Camera3D/ViewGun/ViewGatlingProxy/ViewGatlingRotor as Node3D
+@onready var world_gatling_rotor := $WorldModel/WorldWeaponProxies/WorldGatlingProxy/WorldGatlingRotor as Node3D
 
 var peer_id := 0
 var team := -1
@@ -50,12 +81,15 @@ var respawn_yaw := 0.0
 var teleport_tick := -1
 var last_attacker := 0
 var did_teleport := false
+var active_weapon_slot := 0
+var weapon_switch_tick := -100000
 var _local_active := false
 var _presented_team := -99
 var _presented_variant := -1
 var _reported_variant := -1
 var _model_root: Node3D
 var _suit_animation: AnimationPlayer
+var _presented_weapon_slot := -1
 var _view_gun_rest_position := Vector3.ZERO
 var _view_gun_rest_rotation := Vector3.ZERO
 var _disc_rotor: Node3D
@@ -65,6 +99,10 @@ var _charge_gate_position := Vector3.ZERO
 var _charge_launch_time := 0.0
 var _weapon_recoil := 0.0
 var _rotor_speed := 0.45
+var _gatling_spin_speed := 0.0
+var _gatling_rail_kick := 0.0
+var _view_gatling_rotor_rest_position := Vector3.ZERO
+var _world_gatling_rotor_rest_position := Vector3.ZERO
 var _charge_fraction := 1.0
 
 
@@ -75,6 +113,8 @@ func _ready() -> void:
 	camera.fov = base_fov
 	_view_gun_rest_position = view_gun.position
 	_view_gun_rest_rotation = view_gun.rotation
+	_view_gatling_rotor_rest_position = view_gatling_rotor.position
+	_world_gatling_rotor_rest_position = world_gatling_rotor.position
 	_disc_rotor = view_gun.find_child("DiscRotor", true, false) as Node3D
 	_charge_core = view_gun.find_child("ChargeCore", true, false) as Node3D
 	if _charge_core != null:
@@ -83,6 +123,18 @@ func _ready() -> void:
 		var muzzle_socket := view_gun.find_child("MuzzleSocket", true, false) as Node3D
 		if muzzle_socket != null:
 			_charge_gate_position = _charge_core.get_parent_node_3d().to_local(muzzle_socket.global_position)
+	var all_weapon_proxies: Array[Node3D] = []
+	all_weapon_proxies.append_array(view_weapon_proxies)
+	all_weapon_proxies.append_array(world_weapon_proxies)
+	for proxy: Node3D in all_weapon_proxies:
+		for geometry_variant in proxy.find_children("*", "GeometryInstance3D", true, false):
+			var geometry := geometry_variant as GeometryInstance3D
+			geometry.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		for collision_variant in proxy.find_children("*", "CollisionObject3D", true, false):
+			var collision := collision_variant as CollisionObject3D
+			collision.collision_layer = 0
+			collision.collision_mask = 0
+	_update_weapon_proxy_visibility()
 	NetworkTime.on_tick.connect(_network_tick)
 	NetworkTime.after_tick_loop.connect(_after_tick_loop)
 	call_deferred("_finish_network_setup")
@@ -138,6 +190,7 @@ func _rollback_tick(delta: float, tick: int, _is_fresh: bool) -> void:
 	if dead:
 		velocity = Vector3.ZERO
 		return
+	set_requested_weapon_slot(input.weapon_slot, tick)
 
 	force_update_floor_state()
 	rotate_y(input.look_delta.x)
@@ -165,8 +218,11 @@ func _process(delta: float) -> void:
 		_update_character_presentation()
 	if _presented_team != team:
 		_update_team_presentation()
+	if _presented_weapon_slot != active_weapon_slot:
+		_update_weapon_proxy_visibility()
 	if _suit_animation != null:
 		_suit_animation.speed_scale = clampf(0.55 + horizontal_speed / 32.0, 0.55, 2.2)
+	_update_gatling_presentation(delta)
 	if not _local_active:
 		return
 	var fov_t: float = clampf(
@@ -179,13 +235,17 @@ func _process(delta: float) -> void:
 	_update_weapon_presentation(delta)
 
 
-func present_weapon_fire() -> void:
+func present_weapon_fire(slot: int = 0) -> void:
 	if not _local_active:
 		return
 	_weapon_recoil = 1.0
-	_rotor_speed += 16.0
-	_charge_fraction = 0.0
-	_charge_launch_time = 0.12
+	if slot == 0:
+		_rotor_speed += 16.0
+		_charge_fraction = 0.0
+		_charge_launch_time = 0.12
+	elif slot == 2:
+		_gatling_spin_speed = minf(42.0, _gatling_spin_speed + 18.0)
+		_gatling_rail_kick = 1.0
 
 
 func _update_weapon_presentation(delta: float) -> void:
@@ -207,6 +267,7 @@ func _update_weapon_presentation(delta: float) -> void:
 	if _disc_rotor != null:
 		_disc_rotor.rotate_y(_rotor_speed * delta)
 	if _charge_core != null:
+		_charge_core.visible = active_weapon_slot == 0
 		if _charge_launch_time > 0.0:
 			_charge_launch_time = maxf(0.0, _charge_launch_time - delta)
 			var launch_fraction := 1.0 - _charge_launch_time / 0.12
@@ -217,6 +278,72 @@ func _update_weapon_presentation(delta: float) -> void:
 			_charge_core.position = _charge_rest_position
 			var eased_charge := _charge_fraction * _charge_fraction * (3.0 - 2.0 * _charge_fraction)
 			_charge_core.scale = Vector3.ONE * lerpf(0.08, 1.0, eased_charge)
+
+
+func _update_gatling_presentation(delta: float) -> void:
+	var idle_speed := 1.4 if active_weapon_slot == 2 else 0.0
+	_gatling_spin_speed = lerpf(
+		_gatling_spin_speed, idle_speed, 1.0 - exp(-5.5 * delta)
+	)
+	_gatling_rail_kick = move_toward(_gatling_rail_kick, 0.0, delta * 8.0)
+	var rotation_step := _gatling_spin_speed * delta
+	view_gatling_rotor.rotate_z(rotation_step)
+	world_gatling_rotor.rotate_z(rotation_step)
+	var rail_travel := sin(Time.get_ticks_msec() * 0.052) * 0.035 * _gatling_rail_kick
+	view_gatling_rotor.position = _view_gatling_rotor_rest_position + Vector3(0, 0, rail_travel)
+	world_gatling_rotor.position = _world_gatling_rotor_rest_position + Vector3(0, 0, rail_travel)
+
+
+func set_requested_weapon_slot(requested_slot: int, tick: int) -> void:
+	var validated_slot := clampi(requested_slot, 0, WEAPON_COUNT - 1)
+	if validated_slot == active_weapon_slot:
+		return
+	active_weapon_slot = validated_slot
+	weapon_switch_tick = tick
+
+
+func can_fire_weapon(slot: int) -> bool:
+	return (
+		slot == active_weapon_slot
+		and NetworkTime.tick - weapon_switch_tick >= WEAPON_SWITCH_TICKS
+	)
+
+
+func get_selected_weapon() -> Node:
+	return weapons[clampi(active_weapon_slot, 0, weapons.size() - 1)]
+
+
+func get_weapon_readiness() -> float:
+	var selected := get_selected_weapon()
+	var cooldown_fraction := 1.0
+	if selected.has_method("get_reload_fraction"):
+		cooldown_fraction = float(selected.call("get_reload_fraction"))
+	var switch_fraction := clampf(
+		float(NetworkTime.tick - weapon_switch_tick) / float(WEAPON_SWITCH_TICKS), 0.0, 1.0
+	)
+	return minf(cooldown_fraction, switch_fraction)
+
+
+func get_weapon_status() -> String:
+	var slot := clampi(active_weapon_slot, 0, WEAPON_COUNT - 1)
+	var readiness := get_weapon_readiness()
+	var switch_settled := NetworkTime.tick - weapon_switch_tick >= WEAPON_SWITCH_TICKS
+	var state := "SWITCHING" if not switch_settled else "READY" if readiness >= 1.0 else "CHARGING"
+	return "%d %s // %s\n%s // %s" % [
+		slot + 1,
+		WEAPON_NAMES[slot],
+		state,
+		WEAPON_ROLES[slot],
+		WEAPON_DETAILS[slot],
+	]
+
+
+func _update_weapon_proxy_visibility() -> void:
+	_presented_weapon_slot = active_weapon_slot
+	var slot := clampi(active_weapon_slot, 0, WEAPON_COUNT - 1)
+	for index in WEAPON_COUNT:
+		view_weapon_proxies[index].visible = index == slot
+		world_weapon_proxies[index].visible = index == slot
 
 
 func apply_damage(amount: int, attacker_peer_id: int) -> void:

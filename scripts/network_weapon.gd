@@ -8,6 +8,7 @@ class_name SkooshDiscLauncher
 @export var splash_radius := 5.8
 @export var maximum_damage := 105
 @export var minimum_damage := 28
+@export_range(0, 3) var weapon_slot := 0
 
 @onready var player := get_parent().get_parent() as SkooshNetworkPlayer
 @onready var input := player.get_node("Input") as SkooshNetworkInput
@@ -54,24 +55,29 @@ func _network_tick(_delta: float, _tick: int) -> void:
 	if _client_fire_ready_tick < 0:
 		_client_fire_ready_tick = NetworkTime.tick + 30
 		return
-	if NetworkTime.tick >= _client_fire_ready_tick and input.fire and not player.dead:
+	if (
+		NetworkTime.tick >= _client_fire_ready_tick
+		and input.fire
+		and player.can_fire_weapon(weapon_slot)
+		and not player.dead
+	):
 		fire()
 
 
 func _can_fire() -> bool:
 	var arena := player.get_parent().get_parent()
 	var round_active: bool = not arena.has_method("is_round_active") or bool(arena.is_round_active())
-	var cooldown := fire_cooldown + (0.08 if input.is_multiplayer_authority() else 0.0)
 	return (
 		not player.dead
 		and round_active
+		and player.can_fire_weapon(weapon_slot)
 		and NetworkTime.tick - player.teleport_tick >= 15
-		and NetworkTime.seconds_between(last_fire_tick, NetworkTime.tick) >= cooldown
+		and NetworkTime.tick - last_fire_tick >= _cooldown_ticks()
 	)
 
 
 func _can_peer_use(peer_id: int) -> bool:
-	if peer_id != player.peer_id:
+	if not multiplayer.is_server() or peer_id != player.peer_id:
 		return false
 	var previous_tick := int(_last_request_tick_by_peer.get(peer_id, -100000))
 	if NetworkTime.tick - previous_tick < 6:
@@ -165,14 +171,22 @@ func _reconcile(projectile: Node3D, local_data: Dictionary, remote_data: Diction
 func _after_fire(_projectile: Node3D) -> void:
 	last_fire_tick = NetworkTime.tick
 	_muzzle_time = 0.08
+	var arena := player.get_parent().get_parent()
+	if multiplayer.is_server() and arena.has_method("record_weapon_fire"):
+		arena.record_weapon_fire(weapon_slot)
 	if input.is_multiplayer_authority():
-		player.present_weapon_fire()
+		player.present_weapon_fire(weapon_slot)
 		player.hud.flash_shot()
 
 
 func get_reload_fraction() -> float:
-	var elapsed := NetworkTime.seconds_between(last_fire_tick, NetworkTime.tick)
-	return clampf(elapsed / fire_cooldown, 0.0, 1.0)
+	return clampf(
+		float(NetworkTime.tick - last_fire_tick) / float(_cooldown_ticks()), 0.0, 1.0
+	)
+
+
+func _cooldown_ticks() -> int:
+	return maxi(1, ceili(fire_cooldown / NetworkTime.ticktime - 0.0001))
 
 
 func resolve_disc_impact(projectile: SkooshDiscProjectile, collider: Object) -> void:
@@ -191,7 +205,10 @@ func resolve_disc_impact(projectile: SkooshDiscProjectile, collider: Object) -> 
 		var distance := target_center.distance_to(impact_position)
 		if distance > splash_radius and target != direct_target:
 			continue
-		if target != direct_target and _world_blocks_splash(impact_position, target_center):
+		if (
+			target != direct_target
+			and _world_blocks_splash(impact_position, target_center, target.get_rid())
+		):
 			continue
 		var falloff := 1.0 - clampf(distance / splash_radius, 0.0, 1.0)
 		var amount := roundi(lerpf(float(minimum_damage), float(maximum_damage), falloff))
@@ -201,15 +218,25 @@ func resolve_disc_impact(projectile: SkooshDiscProjectile, collider: Object) -> 
 		damaged_enemies += 1
 	if arena.has_method("record_disc_impact"):
 		arena.record_disc_impact(damaged_enemies)
+	if arena.has_method("record_weapon_impact"):
+		arena.record_weapon_impact(weapon_slot, damaged_enemies)
 	_present_disc_impact.rpc(projectile_id, impact_position, projectile.source_team, damaged_enemies > 0)
 
 
-func _world_blocks_splash(impact_position: Vector3, target_position: Vector3) -> bool:
+func _world_blocks_splash(
+	impact_position: Vector3,
+	target_position: Vector3,
+	target_rid: RID
+) -> bool:
 	var direction := impact_position.direction_to(target_position)
+	var excludes: Array[RID] = []
+	if target_rid.is_valid():
+		excludes.append(target_rid)
 	var query := PhysicsRayQueryParameters3D.create(
 		impact_position + direction * 0.12,
 		target_position,
-		1
+		1,
+		excludes
 	)
 	query.collide_with_areas = false
 	return not get_world_3d().direct_space_state.intersect_ray(query).is_empty()
@@ -227,7 +254,12 @@ func _present_disc_impact(
 	var arena := player.get_parent().get_parent()
 	var effect := Node3D.new()
 	effect.name = "DiscImpact"
-	var color := Color("#ffbc55") if source_team == 0 else Color("#56d9ff")
+	var is_grenade := weapon_slot == 1
+	var color := (
+		Color("#ff9a55") if is_grenade
+		else Color("#ffbc55") if source_team == 0
+		else Color("#56d9ff")
+	)
 	if hit_enemy:
 		color = Color("#fff08a")
 	arena.get_node("Effects").add_child(effect)
@@ -252,7 +284,9 @@ func _present_disc_impact(
 	ring_mesh.rings = 28
 	ring_mesh.ring_segments = 6
 	pressure_ring.mesh = ring_mesh
-	pressure_ring.material_override = _impact_material(Color("#8fffd5"), 3.8)
+	pressure_ring.material_override = _impact_material(
+		Color("#ffb25f") if is_grenade else Color("#8fffd5"), 3.8
+	)
 	pressure_ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	effect.add_child(pressure_ring)
 

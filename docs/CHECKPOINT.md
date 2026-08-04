@@ -339,3 +339,15 @@ The launcher exposes a seated disc and open launch gate; the flying visual is
 disc-shaped while authoritative swept-ray projectile behavior is intentionally
 unchanged. See `docs/production/VISUAL_DIRECTION.md` and
 `docs/decisions/BAKE_OFF_REPORT.md`.
+
+## 16. Four-slot combat loadout
+
+Implemented on `feature/combat-loadout`:
+
+- Added server-validated slots for the existing disc, an arcing impact/fuse grenade, a deterministic-spread gatling gun, and an accurate sniper rifle.
+- The grenade uses swept ballistic flight, 7.2 m authoritative splash, teammate immunity, and half self-damage without blast impulse.
+- Gatling and sniper clients request fire only; the server reconstructs current-world rays from its own muzzle and aim, applies range/damage rules, and owns hit confirmation.
+- Added a 0.25-second switch settle, independent cooldowns, number-key selection that yields to the voice menu, compact HUD status, and color-coded first/third-person presentation.
+- Extended acceptance bots and server counters to require accepted fire from every slot, a grenade impact, and confirmed gatling and sniper hits while preserving the movement, voice, CTF, and round-reset checks.
+
+Current limitation: hitscan is authoritative but not lag compensated. Historical player-capsule evaluation remains part of impairment qualification rather than this loadout implementation.
