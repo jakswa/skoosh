@@ -11,8 +11,8 @@ The selection deliberately incorporates:
 
 - STRATOS contour bands, route lanes, timing marks, and aerofoil equipment shape.
 - Khepri's triune monument, capture-cage, and asymmetric-symbol vocabulary.
-- A new Vector Expedition Runner character: athletic posture, practical relay
-  equipment, restrained team shell roles, and a root-motion-free lean loop.
+- Three character shells spanning Vector, STRATOS, and Khepri silhouettes, with
+  restrained shared team roles and a root-motion-free lean loop.
 - An open-slot disc launcher with a visible seated disc and feed path. Circular
   barrels, muzzle lenses, and nozzle rings are outside the weapon language.
 
@@ -39,6 +39,10 @@ own coherent material and atmosphere family.
 - Team color targets approximately one quarter of a character or structure.
 - Decorative geometry must not imply authoritative collision on competitive routes.
 - Character silhouettes prioritize helmet, shoulder/hip sweep, and twin jet pods.
+- Character shells use overlapping graphite articulation volumes; rigid armor
+  may separate by value, but may not read as floating anatomy at play scale.
+- Team recognition must survive 48-96 px through helmet, chest/bib, pelvis, and
+  pod/shoulder planes rather than relying on small trim or warning accents.
 - First-person hands, production deformation, and complete movement animations
   remain future work and must not be implied by prototype rigs.
 

@@ -1,0 +1,71 @@
+{
+  "asset_group": "SKOOSH character shell variants",
+  "status": "runtime-integrated presentation variants; server-assigned and replicated",
+  "creator": "Project-local deterministic procedural generation",
+  "source_url": null,
+  "license": "Original project work; no external asset dependencies",
+  "commercial_use": true,
+  "redistribution": "May be redistributed with the project and game exports",
+  "attribution_required": false,
+  "tools": [
+    "Blender 5.2.0 LTS background Python",
+    "Godot 4.4.1 Forward+ importer"
+  ],
+  "generator": "tools/asset_pipeline/create_character_shell_variants.py",
+  "shared_utility": "tools/asset_pipeline/blender_asset_utils.py",
+  "contract": {
+    "bones": [
+      "Root", "Pelvis", "Spine", "Head",
+      "UpperArm.L", "Forearm.L", "Thigh.L", "Shin.L",
+      "UpperArm.R", "Forearm.R", "Thigh.R", "Shin.R"
+    ],
+    "animation": "MomentumLean changes exactly Pelvis, Spine, UpperArm.L, UpperArm.R, Thigh.L, and Thigh.R; Root transform does not change (constant exporter channels are permitted and Godot may remove them as immutable)",
+    "skinning": "50 separate rigid one-bone skinned semantic meshes per variant, including 14 graphite articulation interfaces",
+    "collision": "No collision meshes or CollisionObject3D nodes",
+    "team_geometry": "One neutral geometry set per shell; red/blue are material overrides"
+  },
+  "variants": [
+    {
+      "name": "Vector Sprinter Mk II",
+      "design": "Narrow forward-canted wedge helmet and broad visor, V-taper relay torso, low swept shoulder and hip planes, long ski stabilizers, and depth-staggered horizontal twin ducts.",
+      "source": "assets/source/characters/vector_sprinter_mk2.blend",
+      "runtime": "assets/models/characters/vector_sprinter_mk2.glb",
+      "meshes": 50,
+      "vertices": 5112,
+      "triangles": 10032,
+      "materials": 7,
+      "source_bytes": 237461,
+      "runtime_bytes": 1176632
+    },
+    {
+      "name": "STRATOS Foilframe",
+      "design": "Compact speed helmet and broad integrated team bib, uninterrupted aerofoil shoulder line, pinched waist, high vertical split-airbrake ducts, and strong calf stabilizers.",
+      "source": "assets/source/characters/stratos_foilframe.blend",
+      "runtime": "assets/models/characters/stratos_foilframe.glb",
+      "meshes": 50,
+      "vertices": 5104,
+      "triangles": 10016,
+      "materials": 7,
+      "source_bytes": 237446,
+      "runtime_bytes": 1175952
+    },
+    {
+      "name": "Khepri Triune Salvage",
+      "design": "Faceted directional helmet, triune chest and hip contours, one asymmetric sensor vane, forked collar line, and depth/height-staggered lower bronze twin cowls.",
+      "source": "assets/source/characters/khepri_triune_salvage.blend",
+      "runtime": "assets/models/characters/khepri_triune_salvage.glb",
+      "meshes": 50,
+      "vertices": 5296,
+      "triangles": 10400,
+      "materials": 7,
+      "source_bytes": 248702,
+      "runtime_bytes": 1225716
+    }
+  ],
+  "known_limitations": [
+    "Rigid skinning remains visibly hard-surface, while overlapping graphite interfaces maintain anatomical continuity.",
+    "MomentumLean is the only authored clip; locomotion state coverage is not production-complete.",
+    "Team-color area is an authored approximately 25 percent target, not a UV-area measurement.",
+    "Off-screen red/blue review is complete at turntable and 96 px comparison scale; a human in-match readability playtest remains."
+  ]
+}

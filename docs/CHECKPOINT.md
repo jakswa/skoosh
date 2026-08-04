@@ -332,9 +332,10 @@ material hierarchy, STRATOS route grammar and aerofoil equipment silhouette,
 and Khepri triune monument/objective language. The implementation remains on
 `feature/voice-disc-ux` by explicit user request.
 
-The former runway mannequin is replaced by the Blender-authored Vector
-Expedition Runner while preserving the presentation-only `MomentumLean`
-contract. The launcher now exposes a seated disc and open launch gate; the
-flying visual is disc-shaped while authoritative swept-ray projectile behavior
-is intentionally unchanged. See `docs/production/VISUAL_DIRECTION.md` and
+The former runway mannequin is replaced by three Blender-authored character
+shell variants. The server assigns and replicates one presentation-only variant
+per player while preserving the `MomentumLean` contract and gameplay capsule.
+The launcher exposes a seated disc and open launch gate; the flying visual is
+disc-shaped while authoritative swept-ray projectile behavior is intentionally
+unchanged. See `docs/production/VISUAL_DIRECTION.md` and
 `docs/decisions/BAKE_OFF_REPORT.md`.

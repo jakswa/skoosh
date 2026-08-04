@@ -21,7 +21,7 @@ trap cleanup EXIT INT TERM
 
 "$GODOT_BIN" --headless --path "$ROOT" -- --server --port="$PORT" \
   --test-seconds="$TEST_SECONDS" --require-combat --require-movement --require-ctf \
-  --require-voice >"$LOG_DIR/server.log" 2>&1 &
+  --require-voice --require-character-variants >"$LOG_DIR/server.log" 2>&1 &
 server_pid=$!
 pids+=("$server_pid")
 sleep 1
@@ -33,7 +33,8 @@ fi
 
 for client in 1 2; do
   "${client_command[@]}" -- --join=127.0.0.1 --port="$PORT" \
-    --bot --test-seconds="$CLIENT_TEST_SECONDS" >"$LOG_DIR/client-$client.log" 2>&1 &
+    --bot --test-seconds="$CLIENT_TEST_SECONDS" --require-character-variants \
+    >"$LOG_DIR/client-$client.log" 2>&1 &
   pids+=("$!")
 done
 

@@ -1,14 +1,20 @@
 extends Node3D
 
-@onready var suit := $VectorRunnerRig
-@onready var animation_player := $VectorRunnerRig/AnimationPlayer as AnimationPlayer
+@onready var suits: Array[Node3D] = [
+	$VectorSprinterMk2,
+	$StratosFoilframe,
+	$KhepriTriuneSalvage,
+]
 
 
 func _ready() -> void:
-	var animation := animation_player.get_animation("MomentumLean")
-	if animation != null:
-		animation.loop_mode = Animation.LOOP_LINEAR
-	animation_player.play("MomentumLean")
+	for suit in suits:
+		for node in suit.find_children("*", "AnimationPlayer", true, false):
+			var animation_player := node as AnimationPlayer
+			var animation := animation_player.get_animation("MomentumLean")
+			if animation != null:
+				animation.loop_mode = Animation.LOOP_LINEAR
+				animation_player.play("MomentumLean")
 	if not OS.get_environment("SKOOSH_ASSET_REVIEW_CAPTURE").is_empty():
 		_capture_review.call_deferred()
 
@@ -25,5 +31,5 @@ func _capture_review() -> void:
 
 
 func _process(delta: float) -> void:
-	# Slow turntable motion makes skin deformation and silhouette easy to inspect.
-	suit.rotate_y(delta * 0.32)
+	for suit in suits:
+		suit.rotate_y(delta * 0.22)

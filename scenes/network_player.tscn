@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://scripts/network_player.gd" id="1_player"]
 [ext_resource type="Script" path="res://scripts/network_player_input.gd" id="2_input"]
@@ -8,7 +8,6 @@
 [ext_resource type="Script" path="res://addons/netfox/tick-interpolator.gd" id="6_interpolator"]
 [ext_resource type="PackedScene" path="res://scenes/disc_projectile.tscn" id="7_projectile"]
 [ext_resource type="PackedScene" path="res://assets/models/weapons/kestrel_induction_launcher.glb" id="8_launcher_model"]
-[ext_resource type="PackedScene" path="res://assets/models/characters/vector_expedition_runner.glb" id="9_suit_model"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape_player"]
 radius = 0.48
@@ -61,6 +60,10 @@ properties/8/path = NodePath(".:team")
 properties/8/spawn = true
 properties/8/sync = true
 properties/8/watch = true
+properties/9/path = NodePath(".:character_variant")
+properties/9/spawn = true
+properties/9/sync = true
+properties/9/watch = true
 
 [node name="NetworkPlayer" type="CharacterBody3D"]
 script = ExtResource("1_player")
@@ -70,9 +73,6 @@ position = Vector3(0, 1.1, 0)
 shape = SubResource("CapsuleShape_player")
 
 [node name="WorldModel" type="Node3D" parent="."]
-
-[node name="VectorRunnerRig" parent="WorldModel" instance=ExtResource("9_suit_model")]
-rotation = Vector3(0, 3.14159, 0)
 
 [node name="NameLabel" type="Label3D" parent="."]
 position = Vector3(0, 2.72, 0)

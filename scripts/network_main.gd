@@ -20,6 +20,7 @@ const BASE_SEPARATION := 48.0
 const OOB_RECOVERY_SAFE_FRAMES := 3
 const VOICE_COMMAND_COOLDOWN_TICKS := 60
 const VOICE_CHANNEL_COOLDOWN_TICKS := 30
+const TEST_SERVER_SHUTDOWN_GRACE_SECONDS := 3.0
 const VOICE_COMMANDS := VoiceCommandLibrary.COMMANDS
 
 @export var player_scene: PackedScene
@@ -54,6 +55,7 @@ var red_home := Vector3.ZERO
 var blue_home := Vector3.ZERO
 var platform_surface_y := 0.0
 var _bot_mode := false
+var _server_mode := false
 var _test_seconds := 0.0
 var _require_combat := false
 var _require_movement := false
@@ -73,6 +75,9 @@ var _peak_server_speed := 0.0
 var _server_saw_jet := false
 var _peak_rollback_ticks := 0
 var _peak_network_loop_ms := 0.0
+var _require_character_variants := false
+var _server_assigned_character_variants: Dictionary = {}
+var _observed_character_variants: Dictionary = {}
 var _oob_recovery_safe_frames: Dictionary = {}
 var _last_voice_command_tick: Dictionary = {}
 var _last_voice_request_tick: Dictionary = {}
@@ -128,6 +133,8 @@ func _parse_command_line() -> void:
 			_require_ctf = true
 		elif arg == "--require-voice":
 			_require_voice = true
+		elif arg == "--require-character-variants":
+			_require_character_variants = true
 		elif arg.begins_with("--join="):
 			mode = "client"
 			address = arg.trim_prefix("--join=")
@@ -157,6 +164,7 @@ func start_server(port: int) -> void:
 	peer.host.compress(ENetConnection.COMPRESS_RANGE_CODER)
 	multiplayer.multiplayer_peer = peer
 	multiplayer.server_relay = true
+	_server_mode = true
 	lobby.set_status("DEDICATED CTF SERVER LISTENING ON UDP %d" % port, true)
 	print("NETWORK server listening port=%d max_clients=%d" % [port, MAX_CLIENTS])
 	_start_test_timer()
@@ -175,6 +183,7 @@ func join_server(address: String, port: int) -> void:
 		return
 	peer.host.compress(ENetConnection.COMPRESS_RANGE_CODER)
 	multiplayer.multiplayer_peer = peer
+	_server_mode = false
 	lobby.set_status("CONNECTING TO %s:%d..." % [address, port])
 	print("NETWORK client connecting address=%s port=%d bot=%s" % [address, port, _bot_mode])
 	_start_test_timer()
@@ -240,11 +249,21 @@ func _spawn_avatar(id: int) -> void:
 	players.add_child(avatar)
 	avatars[id] = avatar
 	var assigned_team := _assign_balanced_team() if multiplayer.is_server() else id % 2
+	var assigned_character_variant := _assign_balanced_character_variant(id) if multiplayer.is_server() else -1
 	var local_bot := _bot_mode and id == multiplayer.get_unique_id()
-	avatar.configure_peer(id, get_team_spawn_transform(assigned_team, id, 0), local_bot, assigned_team)
+	avatar.configure_peer(
+		id,
+		get_team_spawn_transform(assigned_team, id, 0),
+		local_bot,
+		assigned_team,
+		assigned_character_variant
+	)
+	if multiplayer.is_server():
+		_server_assigned_character_variants[id] = assigned_character_variant
 	_peak_avatars = maxi(_peak_avatars, avatars.size())
-	print("NETWORK avatar spawned id=%d team=%s local_bot=%s node=%s" % [
-		id, get_team_name(assigned_team), local_bot, avatar.get_path()
+	print("NETWORK avatar spawned id=%d team=%s variant=%d variant_name=%s local_bot=%s node=%s" % [
+		id, get_team_name(assigned_team), avatar.character_variant,
+		SkooshNetworkPlayer.character_variant_name(avatar.character_variant), local_bot, avatar.get_path()
 	])
 
 
@@ -261,8 +280,35 @@ func _assign_balanced_team() -> int:
 	return TEAM_RED if red_count <= blue_count else TEAM_BLUE
 
 
+func _assign_balanced_character_variant(new_peer_id: int) -> int:
+	var counts: Array[int] = [0, 0, 0]
+	for candidate_id in avatars:
+		if int(candidate_id) == new_peer_id:
+			continue
+		var player := avatars[candidate_id] as SkooshNetworkPlayer
+		if SkooshNetworkPlayer.is_character_variant_valid(player.character_variant):
+			counts[player.character_variant] += 1
+	var selected_variant := 0
+	for variant_id in range(1, counts.size()):
+		if counts[variant_id] < counts[selected_variant]:
+			selected_variant = variant_id
+	return selected_variant
+
+
+func record_character_variant_observation(observed_peer_id: int, variant_id: int) -> void:
+	var player := avatars.get(observed_peer_id) as SkooshNetworkPlayer
+	if (
+		player != null
+		and player.character_variant == variant_id
+		and SkooshNetworkPlayer.is_character_variant_valid(variant_id)
+	):
+		_observed_character_variants[observed_peer_id] = variant_id
+
+
 func _remove_avatar(id: int) -> void:
 	_oob_recovery_safe_frames.erase(id)
+	_server_assigned_character_variants.erase(id)
+	_observed_character_variants.erase(id)
 	if not avatars.has(id):
 		return
 	var avatar := avatars[id] as Node
@@ -727,19 +773,36 @@ func _finish_automated_test() -> void:
 		var player := avatar as SkooshNetworkPlayer
 		total_deaths += player.deaths
 		total_kills += player.kills
-		if multiplayer.is_server():
+		if _server_mode:
 			print("ACCEPT player peer=%d team=%s position=%s speed=%.1f" % [
 				player.peer_id, get_team_name(player.team), player.global_position, player.total_speed
 			])
 	var status := multiplayer.multiplayer_peer.get_connection_status()
 	var peer_id := multiplayer.get_unique_id() if status == MultiplayerPeer.CONNECTION_CONNECTED else 0
-	if multiplayer.is_server():
+	if _server_mode:
 		total_kills = _combat_kills
 		total_deaths = _combat_deaths
-	print("ACCEPT multiplayer peer=%d peak_avatars=%d current_avatars=%d kills=%d deaths=%d disc_impacts=%d disc_damage=%d voice=%d captures=%d rounds=%d peak_speed=%.1f jet=%s max_rollback=%d peak_net_ms=%.2f elapsed_ms=%d" % [
+	var current_character_variants: Dictionary = {}
+	for id in avatars:
+		var player := avatars[id] as SkooshNetworkPlayer
+		if SkooshNetworkPlayer.is_character_variant_valid(player.character_variant):
+			current_character_variants[id] = player.character_variant
+	var assigned_variant_ids: Dictionary = {}
+	for variant_id in _server_assigned_character_variants.values():
+		assigned_variant_ids[int(variant_id)] = true
+	var observed_variant_ids: Dictionary = {}
+	for variant_id in _observed_character_variants.values():
+		observed_variant_ids[int(variant_id)] = true
+	var current_variant_ids: Dictionary = {}
+	for variant_id in current_character_variants.values():
+		current_variant_ids[int(variant_id)] = true
+	print("ACCEPT multiplayer peer=%d peak_avatars=%d current_avatars=%d kills=%d deaths=%d disc_impacts=%d disc_damage=%d voice=%d captures=%d rounds=%d current_variant_peers=%d current_variants=%d assigned_variant_peers=%d assigned_variants=%d observed_variant_peers=%d observed_variants=%d peak_speed=%.1f jet=%s max_rollback=%d peak_net_ms=%.2f elapsed_ms=%d" % [
 		peer_id, _peak_avatars, avatars.size(), total_kills, total_deaths,
 		_disc_impacts, _disc_damage_events, _voice_commands_relayed,
 		_ctf_captures, _completed_rounds,
+		current_character_variants.size(), current_variant_ids.size(),
+		_server_assigned_character_variants.size(), assigned_variant_ids.size(),
+		_observed_character_variants.size(), observed_variant_ids.size(),
 		_peak_server_speed, _server_saw_jet,
 		_peak_rollback_ticks, _peak_network_loop_ms, Time.get_ticks_msec() - _test_started_at
 	])
@@ -750,4 +813,39 @@ func _finish_automated_test() -> void:
 	var movement_failed := _require_movement and (_peak_server_speed < 10.0 or not _server_saw_jet)
 	var ctf_failed := _require_ctf and (_ctf_captures < 1 or _completed_rounds < 1)
 	var voice_failed := _require_voice and _voice_commands_relayed < 1
-	get_tree().quit(1 if combat_failed or movement_failed or ctf_failed or voice_failed else 0)
+	var variants_failed := false
+	if _require_character_variants:
+		if _server_mode:
+			variants_failed = (
+				current_character_variants.size() != avatars.size()
+				or current_character_variants.size() < 2
+				or current_variant_ids.size() < 2
+				or _server_assigned_character_variants != current_character_variants
+				or _observed_character_variants != current_character_variants
+			)
+			print("ACCEPT character variants role=server result=%s current=%s assigned=%s observed=%s" % [
+				"FAIL" if variants_failed else "PASS", current_character_variants,
+				_server_assigned_character_variants, _observed_character_variants,
+			])
+		else:
+			variants_failed = (
+				current_character_variants.size() != avatars.size()
+				or current_character_variants.size() < 2
+				or current_variant_ids.size() < 2
+				or _observed_character_variants != current_character_variants
+			)
+			print("ACCEPT character variants role=client result=%s current=%s observed=%s" % [
+				"FAIL" if variants_failed else "PASS", current_character_variants,
+				_observed_character_variants,
+			])
+	var test_failed := combat_failed or movement_failed or ctf_failed or voice_failed or variants_failed
+	if test_failed:
+		get_tree().quit(1)
+	elif _server_mode and _require_character_variants:
+		print("ACCEPT server shutdown grace=%.1fs for client variant validation" % TEST_SERVER_SHUTDOWN_GRACE_SECONDS)
+		get_tree().create_timer(TEST_SERVER_SHUTDOWN_GRACE_SECONDS).timeout.connect(get_tree().quit)
+	elif _require_character_variants:
+		print("ACCEPT client shutdown grace=%.1fs for server completion" % TEST_SERVER_SHUTDOWN_GRACE_SECONDS)
+		get_tree().create_timer(TEST_SERVER_SHUTDOWN_GRACE_SECONDS).timeout.connect(get_tree().quit)
+	else:
+		get_tree().quit()
