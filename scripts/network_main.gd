@@ -9,12 +9,14 @@ const TEAM_BLUE := 1
 const FLAG_HOME := 0
 const FLAG_CARRIED := 1
 const FLAG_DROPPED := 2
-const CAPTURE_LIMIT := 1
+const DEFAULT_SCORE_LIMIT := 3
+const ALLOWED_SCORE_LIMIT_ARGUMENTS: Array[String] = ["3", "4", "5"]
 const FLAG_PICKUP_RADIUS := 4.0
 const FLAG_CAPTURE_RADIUS := 12.0
 const FLAG_CONTACT_HEIGHT := 8.0
 const FLAG_CAPTURE_HEIGHT := 80.0
 const FLAG_RETURN_TICKS := 600
+const OBJECTIVE_RESET_TICKS := 120
 const ROUND_RESTART_TICKS := 300
 const OOB_RECOVERY_SAFE_FRAMES := 3
 const MAP_AGREEMENT_TIMEOUT_MS := 5000
@@ -40,6 +42,7 @@ const VOICE_COMMANDS := VoiceCommandLibrary.COMMANDS
 # root MultiplayerSynchronizer. Clients present this state but never score it.
 var red_score := 0
 var blue_score := 0
+var score_limit := DEFAULT_SCORE_LIMIT
 var red_flag_state := FLAG_HOME
 var red_flag_carrier := 0
 var red_flag_position := Vector3.ZERO
@@ -52,6 +55,7 @@ var round_over := false
 var winner_team := -1
 var round_restart_tick := -1
 var round_number := 1
+var objective_reset_tick := -1
 
 var avatars: Dictionary = {}
 var red_home := Vector3.ZERO
@@ -81,6 +85,12 @@ var _weapon_hits: Array[int] = [0, 0, 0, 0]
 var _voice_commands_relayed := 0
 var _ctf_captures := 0
 var _completed_rounds := 0
+var _non_winning_captures := 0
+var _limit_wins := 0
+var _objective_resets_completed := 0
+var _match_resets := 0
+var _duplicate_capture_checks := 0
+var _duplicate_capture_awards := 0
 var _peak_server_speed := 0.0
 var _server_saw_jet := false
 var _peak_rollback_ticks := 0
@@ -164,6 +174,8 @@ func _parse_command_line() -> void:
 	var mode := ""
 	var address := "127.0.0.1"
 	var port := DEFAULT_PORT
+	var score_limit_option := ""
+	var score_limit_option_seen := false
 	for arg in args:
 		if arg == "--server" or arg == "--host":
 			mode = "server"
@@ -188,6 +200,21 @@ func _parse_command_line() -> void:
 			port = int(arg.trim_prefix("--port="))
 		elif arg.begins_with("--test-seconds="):
 			_test_seconds = float(arg.trim_prefix("--test-seconds="))
+		elif arg.begins_with("--score-limit"):
+			if score_limit_option_seen or not arg.begins_with("--score-limit="):
+				_fail_startup("--score-limit must be supplied once as --score-limit=N")
+				return
+			score_limit_option_seen = true
+			score_limit_option = arg.trim_prefix("--score-limit=")
+
+	if score_limit_option_seen:
+		if mode != "server":
+			_fail_startup("--score-limit is a server-only option")
+			return
+		if score_limit_option not in ALLOWED_SCORE_LIMIT_ARGUMENTS:
+			_fail_startup("--score-limit must be one of 3, 4, or 5; received '%s'" % score_limit_option)
+			return
+		score_limit = score_limit_option.to_int()
 
 	if mode == "server":
 		lobby.hide_lobby()
@@ -197,6 +224,12 @@ func _parse_command_line() -> void:
 		join_server(address, port)
 	else:
 		lobby.set_status("START A DEDICATED SERVER OR JOIN ONE\nServer windows do not own a player.")
+
+
+func _fail_startup(message: String) -> void:
+	printerr("STARTUP ERROR: %s" % message)
+	lobby.show_error(message)
+	get_tree().quit(2)
 
 
 func start_server(port: int) -> void:
@@ -238,7 +271,7 @@ func join_server(address: String, port: int) -> void:
 
 
 func _on_server_started() -> void:
-	print("NETWORK authoritative CTF server started peer=1 capture_limit=%d" % CAPTURE_LIMIT)
+	print("NETWORK authoritative CTF server started peer=1 score_limit=%d" % score_limit)
 
 
 func _on_client_started(id: int) -> void:
@@ -600,7 +633,11 @@ func get_team_name(team: int) -> String:
 
 
 func get_capture_limit() -> int:
-	return CAPTURE_LIMIT
+	return score_limit
+
+
+func is_objective_resetting() -> bool:
+	return objective_reset_tick >= 0 and NetworkTime.tick < objective_reset_tick
 
 
 func get_flag_status(team: int) -> String:
@@ -759,6 +796,10 @@ func _physics_process(_delta: float) -> void:
 		if NetworkTime.tick >= round_restart_tick:
 			_start_new_round()
 		return
+	if objective_reset_tick >= 0:
+		if NetworkTime.tick >= objective_reset_tick:
+			_finish_objective_reset()
+		return
 	_update_ctf_state()
 
 
@@ -772,6 +813,8 @@ func _update_ctf_state() -> void:
 		if player.dead or player.team < 0:
 			continue
 		_process_player_flag_contact(player)
+		if round_over or objective_reset_tick >= 0:
+			return
 
 
 func _process_player_flag_contact(player: SkooshNetworkPlayer) -> void:
@@ -807,18 +850,61 @@ func _take_flag(flag_team: int, player: SkooshNetworkPlayer) -> void:
 	])
 
 
-func _capture_flag(player: SkooshNetworkPlayer, enemy_flag_team: int) -> void:
+func _capture_flag(player: SkooshNetworkPlayer, enemy_flag_team: int) -> bool:
+	if (
+		not multiplayer.is_server()
+		or round_over
+		or objective_reset_tick >= 0
+		or player == null
+		or player.dead
+		or enemy_flag_team == player.team
+		or _get_flag_state(enemy_flag_team) != FLAG_CARRIED
+		or _get_flag_carrier(enemy_flag_team) != player.peer_id
+	):
+		return false
 	if player.team == TEAM_RED:
 		red_score += 1
 	else:
 		blue_score += 1
 	_ctf_captures += 1
-	_return_flag_home(enemy_flag_team, "captured")
 	print("CTF capture player=%d team=%s score=%d-%d" % [
 		player.peer_id, get_team_name(player.team), red_score, blue_score
 	])
-	if red_score >= CAPTURE_LIMIT or blue_score >= CAPTURE_LIMIT:
+	if red_score >= score_limit or blue_score >= score_limit:
+		_limit_wins += 1
+		_reset_objectives("match won")
 		_end_round(player.team)
+	else:
+		_non_winning_captures += 1
+		_start_objective_reset()
+	if _require_ctf:
+		# Replay the just-consumed contact once to prove stale delivery cannot score.
+		var score_after_award := Vector2i(red_score, blue_score)
+		if not _capture_flag(player, enemy_flag_team) and Vector2i(red_score, blue_score) == score_after_award:
+			_duplicate_capture_checks += 1
+		else:
+			_duplicate_capture_awards += 1
+	return true
+
+
+func _start_objective_reset() -> void:
+	_reset_objectives("capture reset")
+	objective_reset_tick = NetworkTime.tick + OBJECTIVE_RESET_TICKS
+	print("CTF objective reset score=%d-%d ready_tick=%d" % [
+		red_score, blue_score, objective_reset_tick,
+	])
+
+
+func _finish_objective_reset() -> void:
+	objective_reset_tick = -1
+	_reset_objectives("objective ready")
+	_objective_resets_completed += 1
+	print("CTF objective ready score=%d-%d" % [red_score, blue_score])
+
+
+func _reset_objectives(reason: String) -> void:
+	_return_flag_home(TEAM_RED, reason)
+	_return_flag_home(TEAM_BLUE, reason)
 
 
 func _end_round(team: int) -> void:
@@ -834,15 +920,17 @@ func _end_round(team: int) -> void:
 func _start_new_round() -> void:
 	red_score = 0
 	blue_score = 0
+	objective_reset_tick = -1
 	round_over = false
 	winner_team = -1
 	round_restart_tick = -1
 	round_number += 1
+	_match_resets += 1
 	_return_flag_home(TEAM_RED, "new round")
 	_return_flag_home(TEAM_BLUE, "new round")
 	for avatar in avatars.values():
 		(avatar as SkooshNetworkPlayer).request_authoritative_respawn(false)
-	print("CTF round started round=%d" % round_number)
+	print("CTF match started match=%d score=%d-%d" % [round_number, red_score, blue_score])
 
 
 func _validate_flag_carrier(team: int) -> void:
@@ -988,11 +1076,13 @@ func _finish_automated_test() -> void:
 		if (avatar as SkooshNetworkPlayer).has_character_visual_shell():
 			character_visual_shells += 1
 	var character_resources_cached := SkooshNetworkPlayer.character_variant_resources_cached()
-	print("ACCEPT multiplayer peer=%d peak_avatars=%d current_avatars=%d kills=%d deaths=%d disc_impacts=%d disc_damage=%d weapon_fires=%s weapon_impacts=%s weapon_hits=%s voice=%d captures=%d rounds=%d current_variant_peers=%d current_variants=%d assigned_variant_peers=%d assigned_variants=%d observed_variant_peers=%d observed_variants=%d peak_speed=%.1f jet=%s max_rollback=%d peak_net_ms=%.2f elapsed_ms=%d" % [
+	print("ACCEPT multiplayer peer=%d peak_avatars=%d current_avatars=%d kills=%d deaths=%d disc_impacts=%d disc_damage=%d weapon_fires=%s weapon_impacts=%s weapon_hits=%s voice=%d captures=%d non_winning_captures=%d limit_wins=%d objective_resets=%d completed_matches=%d match_resets=%d duplicate_checks=%d duplicate_awards=%d score_limit=%d current_variant_peers=%d current_variants=%d assigned_variant_peers=%d assigned_variants=%d observed_variant_peers=%d observed_variants=%d peak_speed=%.1f jet=%s max_rollback=%d peak_net_ms=%.2f elapsed_ms=%d" % [
 		peer_id, _peak_avatars, avatars.size(), total_kills, total_deaths,
 		_disc_impacts, _disc_damage_events, _weapon_fires, _weapon_impacts, _weapon_hits,
 		_voice_commands_relayed,
-		_ctf_captures, _completed_rounds,
+		_ctf_captures, _non_winning_captures, _limit_wins, _objective_resets_completed,
+		_completed_rounds, _match_resets, _duplicate_capture_checks, _duplicate_capture_awards,
+		score_limit,
 		current_character_variants.size(), current_variant_ids.size(),
 		_server_assigned_character_variants.size(), assigned_variant_ids.size(),
 		_observed_character_variants.size(), observed_variant_ids.size(),
@@ -1006,7 +1096,16 @@ func _finish_automated_test() -> void:
 		or _weapon_hits[2] < 1 or _weapon_hits[3] < 1
 	)
 	var movement_failed := _require_movement and (_peak_server_speed < 10.0 or not _server_saw_jet)
-	var ctf_failed := _require_ctf and (_ctf_captures < 1 or _completed_rounds < 1)
+	var ctf_failed := _require_ctf and (
+		_ctf_captures < score_limit
+		or _non_winning_captures < score_limit - 1
+		or _limit_wins < 1
+		or _objective_resets_completed < score_limit - 1
+		or _completed_rounds < 1
+		or _match_resets < 1
+		or _duplicate_capture_checks < score_limit
+		or _duplicate_capture_awards > 0
+	)
 	var voice_failed := _require_voice and _voice_commands_relayed < 1
 	var variants_failed := false
 	if _require_character_variants:

@@ -363,3 +363,24 @@ Implemented on `feature/proper-competitive-maps`:
 - Added automated contracts for production count/rotation, profile and swapped-axis topology distance, footprint/aspect, curved boundary recovery, base separation, route spacing/length/grade/landings, sightlines, symmetry, one-mesh/one-collider generation, and map mismatch rejection.
 
 These checks and automated CTF completions do not establish human balance or final production art. Both maps still require repeated human skiing, offense/defense, visibility, spawn-pressure, impairment, and minimum-spec evaluation. See `docs/production/COMPETITIVE_MAPS.md`.
+
+## 18. Authoritative score-limit match loop
+
+Implemented on `feature/match-loop`:
+
+- Replaced one-capture sudden death with a server-owned score limit defaulting
+  to three; only dedicated-server CLI values `3`, `4`, and `5` are accepted.
+- Replicated the selected limit and objective-reset deadline for late joiners
+  and HUD presentation.
+- Captures below the limit retain both scores and enter a two-second objective
+  rearm. Reaching the limit enters the existing five-second intermission, then
+  resets scores, objectives, and avatars for the next match.
+- Hardened capture award eligibility against stale or duplicate calls and
+  extended headless acceptance through accumulation, no early win, limit win,
+  intermission/reset, and duplicate rejection.
+
+Automatic rotation remains pending a disposable world-generation seam. No
+placeholder rotation code was retained. See
+`docs/engineering/MAP_ROTATION_HANDOFF.md` for the recommended persistent
+session/world-container split, bounded generation protocol, and required
+acceptance.

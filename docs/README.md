@@ -10,6 +10,7 @@ shortest path to running the game.
 |---|---|
 | [Project checkpoint](CHECKPOINT.md) | Current product, technical, and validation state. |
 | [Combat networking roadmap](engineering/COMBAT_NETWORKING_ROADMAP.md) | Immediate networking and combat qualification work. |
+| [Map rotation handoff](engineering/MAP_ROTATION_HANDOFF.md) | Blockers, world seam, bounded generation protocol, and acceptance for real-map rotation. |
 | [Playtesting and distribution](operations/PLAYTESTING_AND_DISTRIBUTION.md) | Source, release, export, and playtest workflows. |
 | [Server deployment](operations/SERVER_DEPLOYMENT.md) | Dedicated-server operator runbook. |
 | [Visual direction](production/VISUAL_DIRECTION.md) | Selected art direction and presentation rules. |

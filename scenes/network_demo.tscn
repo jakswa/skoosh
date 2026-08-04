@@ -180,6 +180,14 @@ properties/13/path = NodePath(".:round_number")
 properties/13/spawn = true
 properties/13/sync = true
 properties/13/watch = true
+properties/14/path = NodePath(".:score_limit")
+properties/14/spawn = true
+properties/14/sync = true
+properties/14/watch = true
+properties/15/path = NodePath(".:objective_reset_tick")
+properties/15/spawn = true
+properties/15/sync = true
+properties/15/watch = true
 
 [node name="NetworkDemo" type="Node3D"]
 script = ExtResource("1_main")

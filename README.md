@@ -74,7 +74,7 @@ See [`docs/operations/PLAYTESTING_AND_DISTRIBUTION.md`](docs/operations/PLAYTEST
 
 ### CTF loop
 
-Clients are balanced between RED and BLUE. Take the opposing flag and return to the glowing ring on your team platform while your flag is home. Death drops a carried flag; teammates return their dropped flag by touching it, otherwise it returns after ten seconds. The current mode is sudden death: one capture wins, followed by a five-second intermission and a fresh round.
+Clients are balanced between RED and BLUE. Take the opposing flag and return to the glowing ring on your team platform while your flag is home. Death drops a carried flag; teammates return their dropped flag by touching it, otherwise it returns after ten seconds. The server-owned score limit defaults to three captures. Captures below the limit preserve the score and rearm both objectives after two seconds; reaching the limit starts a five-second intermission, then resets scores and players for a new match. Dedicated servers may set `--score-limit=N`, where `N` is exactly `3`, `4`, or `5`; other values fail startup.
 
 ## Automated checks
 
@@ -83,10 +83,11 @@ Clients are balanced between RED and BLUE. Take the opposing flag and return to 
 ./tools/test_oob_recovery.sh
 ./tools/test_competitive_maps.sh
 ./tools/test_map_mismatch.sh
+./tools/test_score_limit_cli.sh
 ./tools/test_multiplayer_demo.sh       # about 111 seconds
 ```
 
-The multiplayer test takes about 111 seconds and validates two-team spawning, all four authoritative weapon paths, cross-peer global voice relay, death/respawn, ski/jet movement, a full-map flag capture, win state, and round restart. Set `SKOOSH_TEST_MAP=cairn_steps` to run it on the second production map.
+The multiplayer test takes about 111 seconds and validates two-team spawning, all four authoritative weapon paths, cross-peer global voice relay, death/respawn, ski/jet movement, full-map capture accumulation without an early win, score-limit victory, intermission/reset, and duplicate-award rejection. Set `SKOOSH_TEST_MAP=cairn_steps` to run it on the second production map.
 
 For off-screen visual and UX review, Compatibility uses `./tools/capture_visual_qa.sh`; Forward+ uses `./tools/capture_visual_qa_private_wayland.sh` with a private headless Weston compositor. Neither opens desktop windows or captures the host mouse. See [`docs/production/VISUAL_QA.md`](docs/production/VISUAL_QA.md).
 

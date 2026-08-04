@@ -164,12 +164,15 @@ func _process(delta: float) -> void:
 	_health_bar.value = player.health
 	_energy_bar.value = player.jet_energy
 	var capture_limit: int = int(arena.get_capture_limit())
-	_score.text = "RED  %d/%d  [%s]       ROUND %d       [%s]  %d/%d  BLUE" % [
+	_score.text = "RED  %d/%d  [%s]       MATCH %d       [%s]  %d/%d  BLUE" % [
 		arena.red_score, capture_limit, arena.get_flag_status(0), arena.round_number,
 		arena.get_flag_status(1), arena.blue_score, capture_limit
 	]
 	var carrying: bool = arena.player_carries_enemy_flag(player)
 	_objective.text = (
+		"OBJECTIVES REARMING // SCORE HOLDS"
+		if arena.is_objective_resetting()
+		else
 		"RELAY KEY SECURED // RETURN TO YOUR STATION"
 		if carrying
 		else "ENEMY RELAY: %s     //     OUR RELAY: %s" % [
@@ -187,7 +190,7 @@ func _process(delta: float) -> void:
 	if arena.round_over:
 		var won: bool = arena.winner_team == player.team
 		var round_remaining := maxi(0, arena.round_restart_tick - NetworkTime.tick)
-		_round_notice.text = ("ROUND SECURED" if won else "ROUND LOST") + "\nREDEPLOY IN %.1f" % (round_remaining / 60.0)
+		_round_notice.text = ("MATCH SECURED" if won else "MATCH LOST") + "\nNEXT MATCH IN %.1f" % (round_remaining / 60.0)
 	_death.visible = player.dead
 	if player.dead:
 		var respawn_remaining := maxi(0, player.respawn_tick - NetworkTime.tick)

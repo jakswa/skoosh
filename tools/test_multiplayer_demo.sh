@@ -77,10 +77,33 @@ for client in 1 2; do
     echo "Client $client did not receive a global voice command. Logs: $LOG_DIR" >&2
     status=1
   fi
+  if ! grep -q "ACCEPT multiplayer.*score_limit=3" "$LOG_DIR/client-$client.log"; then
+    echo "Client $client did not replicate the authoritative score limit. Logs: $LOG_DIR" >&2
+    status=1
+  fi
 done
 if ! perl -ne '$relayed = 1 if /VOICE received listener=(\d+) speaker=(\d+)/ && $1 != $2; END { exit($relayed ? 0 : 1) }' \
   "$LOG_DIR"/client-*.log; then
   echo "No client received a voice command from another peer. Logs: $LOG_DIR" >&2
+  status=1
+fi
+if ! perl -ne '
+  BEGIN { $accumulation_ok = 1 }
+  if (/CTF capture .* score=(\d+)-(\d+)/ && !$won) {
+    $captures++;
+    $accumulation_ok = 0 if $1 + $2 != $captures;
+  }
+  if (/CTF objective ready score=/ && !$won) { $objective_resets++ }
+  if (/CTF win .* score=(\d+)-(\d+)/ && !$won) {
+    $won = 1;
+    $limit_win = $1 + $2 == 3 && $captures == 3;
+  }
+  if (/CTF match started match=2 score=0-0/) { $match_reset = 1 }
+  END {
+    exit($captures == 3 && $accumulation_ok != 0 && $objective_resets == 2 && $limit_win && $match_reset ? 0 : 1)
+  }
+' "$LOG_DIR/server.log"; then
+  echo "Authoritative score accumulation/limit/intermission/reset sequence was not observed. Logs: $LOG_DIR" >&2
   status=1
 fi
 if [[ $status -ne 0 ]]; then

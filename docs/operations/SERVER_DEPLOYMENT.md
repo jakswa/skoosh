@@ -54,9 +54,9 @@ Group=skoosh
 WorkingDirectory=/var/lib/skoosh
 Environment=HOME=/var/lib/skoosh
 # Prebuilt release binary:
-ExecStart=/opt/skoosh/skoosh-server --headless -- --server --port=9077 --map=faultline_basin
+ExecStart=/opt/skoosh/skoosh-server --headless -- --server --port=9077 --map=faultline_basin --score-limit=3
 # For a Git checkout, replace ExecStart with:
-# ExecStart=/opt/skoosh/godot --headless --path /opt/skoosh -- --server --port=9077 --map=faultline_basin
+# ExecStart=/opt/skoosh/godot --headless --path /opt/skoosh -- --server --port=9077 --map=faultline_basin --score-limit=3
 Restart=on-failure
 RestartSec=3
 NoNewPrivileges=true
@@ -82,11 +82,16 @@ A healthy startup includes:
 
 ```text
 NETWORK server listening port=9077 max_clients=16
-NETWORK authoritative CTF server started peer=1 capture_limit=1
+NETWORK authoritative CTF server started peer=1 score_limit=3
 ```
 
 Use `--map=cairn_steps` instead for the second production map. Every client must
 launch with the same map ID; mismatched peers are rejected before spawning.
+
+The score limit defaults to `3`. Operators may set `--score-limit=3`,
+`--score-limit=4`, or `--score-limit=5`; a missing `N`, malformed, or other value
+prints `STARTUP ERROR: --score-limit ...` and exits before opening the ENet
+server.
 
 ## Network configuration
 
