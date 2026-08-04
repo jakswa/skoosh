@@ -68,4 +68,4 @@ STRATOS's first final multiplayer run completed combat, voice, movement, jetting
 
 ## Decision
 
-The user selected a Kestrel-daylight hybrid on the current `feature/voice-disc-ux` branch. Khepri Night and STRATOS Graphic remain cataloged future map vocabularies in `docs/VISUAL_DIRECTION.md`.
+The user selected a Kestrel-daylight hybrid on the current `feature/voice-disc-ux` branch. Khepri Night and STRATOS Graphic remain cataloged future map vocabularies in `docs/production/VISUAL_DIRECTION.md`.

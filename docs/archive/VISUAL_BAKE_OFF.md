@@ -1,6 +1,6 @@
 # SKOOSH Visual Direction Bake-Off
 
-> **COMPLETED:** Three candidates were produced from baseline `593f763`, reviewed, and consolidated on `feature/voice-disc-ux`. See `docs/visual_bakeoff/BAKE_OFF_REPORT.md` and `docs/VISUAL_DIRECTION.md`.
+> **COMPLETED:** Three candidates were produced from baseline `593f763`, reviewed, and consolidated on `feature/voice-disc-ux`. See `docs/decisions/BAKE_OFF_REPORT.md` and `docs/production/VISUAL_DIRECTION.md`.
 
 **Status:** Historical completed bake-off plan. Kestrel daylight is the selected foundation, with specific STRATOS and Khepri elements retained.
 
@@ -34,13 +34,13 @@ The overseer and all workers must read:
 
 - `AGENTS.md`
 - `docs/CHECKPOINT.md`
-- `docs/VISUAL_QA.md`
-- `docs/plans/ASSET_PIPELINE_EXPLORATION.md`
-- `docs/plans/FORWARD_PLUS_EVALUATION.md`
+- `docs/production/VISUAL_QA.md`
+- `docs/decisions/ASSET_PIPELINE_EXPLORATION.md`
+- `docs/decisions/FORWARD_PLUS_EVALUATION.md`
 - `tools/asset_pipeline/README.md`
 - This plan
 
-`docs/plans/SOLAR_NOMAD_LAUNCHER.md` is a failure/learning brief, not a style guide. The current launcher, runway base, terrain treatment, and suit mannequin are disposable technical examples. Workers should reuse contracts and tooling while creating fresh visible designs.
+`docs/archive/SOLAR_NOMAD_LAUNCHER.md` is a failure/learning brief, not a style guide. The current launcher, runway base, terrain treatment, and suit mannequin are disposable technical examples. Workers should reuse contracts and tooling while creating fresh visible designs.
 
 Relevant constraints:
 
@@ -484,10 +484,10 @@ Assigned multiplayer-test port: <TEST_PORT>.
 Assigned worktree-local capture directory: <WORKTREE>/build/visual-bake-off/<CANDIDATE>.
 Asset policy: <POLICY>.
 
-Read AGENTS.md, docs/CHECKPOINT.md, docs/VISUAL_QA.md,
-`docs/plans/ASSET_PIPELINE_EXPLORATION.md`,
-`docs/plans/FORWARD_PLUS_EVALUATION.md`, `tools/asset_pipeline/README.md`, and
-`docs/plans/VISUAL_BAKE_OFF.md` completely before editing. Treat existing
+Read AGENTS.md, docs/CHECKPOINT.md, docs/production/VISUAL_QA.md,
+`docs/decisions/ASSET_PIPELINE_EXPLORATION.md`,
+`docs/decisions/FORWARD_PLUS_EVALUATION.md`, `tools/asset_pipeline/README.md`, and
+`docs/archive/VISUAL_BAKE_OFF.md` completely before editing. Treat existing
 runway assets as technical examples, not a required visual style.
 
 Create a coherent runnable visual prototype for your assigned direction. It

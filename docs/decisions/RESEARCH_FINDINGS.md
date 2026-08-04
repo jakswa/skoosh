@@ -165,4 +165,4 @@ Escalate to a narrow alternative-engine spike only if:
 - Server performance misses target after narrow optimization escape hatches.
 - Corrections routinely break movement feel under ordinary latency.
 
-See `MULTIPLAYER_SPIKE.md` for the execution plan.
+See `docs/archive/MULTIPLAYER_SPIKE.md` for the original execution plan.

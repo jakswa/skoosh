@@ -5,6 +5,8 @@
 **Direction decision:** Proper multiplayer is a destination. Native desktop clients use an authoritative dedicated-server model; browser support is no longer a destination. Godot 4.4+, ENet, and Forward+ with the balanced presentation profile are the current baseline.
 **Purpose:** Record where the project is, the first playtest impressions, and the likely cost of expanding it. This is context, not an instruction to address the feedback immediately.
 
+> **Reading note:** This is an append-only project history. Sections 1-12 preserve the original movement-prototype checkpoint; sections 13-15 supersede them with the current multiplayer, disc/voice, and selected visual-direction state.
+
 ## 1. What exists now
 
 SKOOSH is a self-contained Godot 4.x first-person movement toy using typed GDScript and the Forward+ renderer. The balanced profile enables decals, clustered team lights, SSAO, and restrained volumetric fog; expensive showcase features remain off by default.
@@ -22,7 +24,7 @@ The current build includes:
 - Generated terrain colors, procedural sky, lighting, fog, emissive gates, and gate pulses.
 - Linux and legacy Web export presets. Web is no longer a product target; its preset can be removed during later project cleanup.
 
-The original narrow movement/time-trial MVP in `PLAN.md` remains preserved, while the current project entry point now exercises the authoritative combat/CTF vertical slice documented below.
+The original narrow movement/time-trial MVP in `docs/archive/PLAN.md` remains preserved, while the current project entry point now exercises the authoritative combat/CTF vertical slice documented below.
 
 ## 2. Validation completed
 
@@ -254,10 +256,10 @@ The best leverage is to make movement command-driven, readable, and enjoyable, t
 
 ## 12. Pause handoff
 
-- Research outcome: `RESEARCH_FINDINGS.md`.
-- Executable next phase: `MULTIPLAYER_SPIKE.md`.
-- Research brief and source-discovery paths: `RESEARCH_PATHS.md`.
-- Current product baseline: `PLAN.md` and this checkpoint.
+- Research outcome: `docs/decisions/RESEARCH_FINDINGS.md`.
+- Original execution plan: `docs/archive/MULTIPLAYER_SPIKE.md`.
+- Research brief and source-discovery paths: `docs/archive/RESEARCH_PATHS.md`.
+- Original product baseline: `docs/archive/PLAN.md` and this checkpoint.
 - Git was initialized and the validated pre-CTF multiplayer baseline is commit `d992749`.
 - Multiplayer implementation is now underway; see the implementation checkpoint below.
 
@@ -299,7 +301,7 @@ Important limitations:
 - CTF is deliberately sudden death (one capture) for a quick two-client loop.
 - No artificial latency, jitter, or loss has been measured yet.
 - Correction-distance/contact-disagreement instrumentation is not implemented yet.
-- The pulse rifle uses the server's current collision world and has no historical hitbox rewind/lag compensation yet; see `COMBAT_NETWORKING_ROADMAP.md`.
+- The pulse rifle uses the server's current collision world and has no historical hitbox rewind/lag compensation yet; see `docs/engineering/COMBAT_NETWORKING_ROADMAP.md`.
 - Scale testing beyond two clients is not implemented yet.
 - The revised CTF scene and player art need a human graphical playtest.
 - netfox broadcasts input for this prototype; production relevancy/bandwidth hardening remains.
@@ -334,5 +336,5 @@ The former runway mannequin is replaced by the Blender-authored Vector
 Expedition Runner while preserving the presentation-only `MomentumLean`
 contract. The launcher now exposes a seated disc and open launch gate; the
 flying visual is disc-shaped while authoritative swept-ray projectile behavior
-is intentionally unchanged. See `docs/VISUAL_DIRECTION.md` and
-`docs/visual_bakeoff/BAKE_OFF_REPORT.md`.
+is intentionally unchanged. See `docs/production/VISUAL_DIRECTION.md` and
+`docs/decisions/BAKE_OFF_REPORT.md`.

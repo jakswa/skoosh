@@ -1,5 +1,7 @@
 # SKOOSH — Authoritative Multiplayer Movement Spike
 
+> **Archived:** This spike produced the current multiplayer vertical slice. Its remaining-work lists and resume instructions are historical; use `docs/CHECKPOINT.md` and `docs/engineering/COMBAT_NETWORKING_ROADMAP.md` for current work.
+
 **Purpose:** Answer whether Godot can preserve SKOOSH's skiing/jet movement under realistic network conditions before combat and CTF expand the architecture.  
 **Time-box:** Approximately 1–2 focused engineering weeks for the network experiment, excluding open-ended movement polish.  
 **Decision:** Evaluate Godot first. Do not port engines or build two networking stacks in parallel.
@@ -41,7 +43,7 @@ Terrain readability and movement control deserve a small local pass, but must no
 
 Before implementation resumes:
 
-1. Read `CHECKPOINT.md` and `RESEARCH_FINDINGS.md`.
+1. Read `docs/CHECKPOINT.md` and `docs/decisions/RESEARCH_FINDINGS.md`.
 2. Initialize source control and commit the existing playable baseline if the owner approves; the current directory is not yet a Git repository.
 3. Pin one Godot stable version for client, server, CI, and all contributors.
 4. Re-run editor import, runtime smoke, and course-state checks on that version.

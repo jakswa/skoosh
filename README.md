@@ -4,6 +4,9 @@ A Godot 4 momentum-skiing, jet-assisted, authoritative multiplayer CTF prototype
 
 ![SKOOSH multiplayer CTF gameplay](docs/screenshot.png)
 
+Start with [`docs/CHECKPOINT.md`](docs/CHECKPOINT.md) for current project state
+and [`docs/README.md`](docs/README.md) for the documentation map.
+
 ## Run from source
 
 Godot 4.4+ is required. For one local server and two clients, the helper defaults to the temporary development binary when present:
@@ -27,7 +30,7 @@ SKOOSH_RENDERER_PROFILE=lean ./tools/run_multiplayer_demo.sh
 SKOOSH_RENDERER_PROFILE=showcase ./tools/run_multiplayer_demo.sh
 ```
 
-See [`docs/plans/FORWARD_PLUS_EVALUATION.md`](docs/plans/FORWARD_PLUS_EVALUATION.md) for renderer evidence, limitations, and the adopted feature policy.
+See [`docs/decisions/FORWARD_PLUS_EVALUATION.md`](docs/decisions/FORWARD_PLUS_EVALUATION.md) for renderer evidence, limitations, and the adopted feature policy.
 
 Connect two local clients to any direct host with:
 
@@ -49,7 +52,7 @@ Linux can also connect directly with:
 
 The current macOS build is ad-hoc signed but not Apple-notarized, so Gatekeeper may require right-clicking the app and selecting **Open**.
 
-See [`docs/PLAYTESTING_AND_DISTRIBUTION.md`](docs/PLAYTESTING_AND_DISTRIBUTION.md) for complete source/release client workflows. Give server operators [`docs/SERVER_DEPLOYMENT.md`](docs/SERVER_DEPLOYMENT.md), which covers Git and prebuilt-binary installs, systemd, UDP forwarding, updates, and verification.
+See [`docs/operations/PLAYTESTING_AND_DISTRIBUTION.md`](docs/operations/PLAYTESTING_AND_DISTRIBUTION.md) for complete source/release client workflows. Give server operators [`docs/operations/SERVER_DEPLOYMENT.md`](docs/operations/SERVER_DEPLOYMENT.md), which covers Git and prebuilt-binary installs, systemd, UDP forwarding, updates, and verification.
 
 ### Controls
 
@@ -77,10 +80,10 @@ Clients are balanced between RED and BLUE. Take the opposing flag and return to 
 
 The multiplayer test takes about 51 seconds and validates two-team spawning, cross-peer global voice relay, combat, death/respawn, ski/jet movement, a flag capture, win state, and round restart.
 
-For off-screen visual and UX review, Compatibility uses `./tools/capture_visual_qa.sh`; Forward+ uses `./tools/capture_visual_qa_private_wayland.sh` with a private headless Weston compositor. Neither opens desktop windows or captures the host mouse. See [`docs/VISUAL_QA.md`](docs/VISUAL_QA.md).
+For off-screen visual and UX review, Compatibility uses `./tools/capture_visual_qa.sh`; Forward+ uses `./tools/capture_visual_qa_private_wayland.sh` with a private headless Weston compositor. Neither opens desktop windows or captures the host mouse. See [`docs/production/VISUAL_QA.md`](docs/production/VISUAL_QA.md).
 
 The original solo time-trial remains available as `res://scenes/main.tscn`; the multiplayer CTF scene is the project entry point.
 
 ## Current network boundary
 
-The server owns movement results, energy, disc-launcher cadence and projectile impacts, splash damage, teams, flags, score, team/global voice routing and rate limits, and rounds. Clients predict disc visuals, while the server discards requested transforms and reconstructs each accepted launch from its current muzzle and aim. See [`docs/COMBAT_NETWORKING_ROADMAP.md`](docs/COMBAT_NETWORKING_ROADMAP.md) and [`docs/CHECKPOINT.md`](docs/CHECKPOINT.md).
+The server owns movement results, energy, disc-launcher cadence and projectile impacts, splash damage, teams, flags, score, team/global voice routing and rate limits, and rounds. Clients predict disc visuals, while the server discards requested transforms and reconstructs each accepted launch from its current muzzle and aim. See [`docs/engineering/COMBAT_NETWORKING_ROADMAP.md`](docs/engineering/COMBAT_NETWORKING_ROADMAP.md) and [`docs/CHECKPOINT.md`](docs/CHECKPOINT.md).

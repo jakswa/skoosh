@@ -1,6 +1,6 @@
 # SKOOSH — Research Paths for a Confident Technical Trajectory
 
-> **Status:** Research pass completed. The distilled recommendation is in `RESEARCH_FINDINGS.md`, and the resulting execution plan is in `MULTIPLAYER_SPIKE.md`. Retain this document as the research brief and evidence checklist for follow-up questions.
+> **Status:** Research pass completed. The distilled recommendation is in `docs/decisions/RESEARCH_FINDINGS.md`, and the resulting execution plan is in `docs/archive/MULTIPLAYER_SPIKE.md`. Retain this document as the research brief and evidence checklist for follow-up questions.
 
 ## 1. Research objective
 
@@ -20,7 +20,7 @@ The core question is:
 
 ## 2. Current project context
 
-The researcher should inspect `PLAN.md` and `CHECKPOINT.md` before beginning.
+The researcher should inspect `docs/archive/PLAN.md` and `docs/CHECKPOINT.md` before beginning.
 
 Current implementation:
 

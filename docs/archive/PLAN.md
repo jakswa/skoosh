@@ -1,5 +1,7 @@
 # SKOOSH — Implementation Plan
 
+> **Archived:** This is the original solo movement/time-trial MVP plan. See `docs/CHECKPOINT.md` for the current multiplayer project state.
+
 ## 1. Product definition
 
 Build a small, original, first-person 3D movement game inspired by the feeling of momentum skiing and jet-assisted flight across rolling terrain. This is a **movement toy and time trial**, not a full Tribes clone.

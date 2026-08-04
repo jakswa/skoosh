@@ -1,6 +1,6 @@
 # SKOOSH Asset Pipeline Exploration
 
-**Status:** Exploration complete and exercised by the visual bake-off. The selected hybrid now includes a purpose-built disc launcher/projectile, terrain/base language, and a replacement rigged character. See `docs/VISUAL_DIRECTION.md`.
+**Status:** Exploration complete and exercised by the visual bake-off. The selected hybrid now includes a purpose-built disc launcher/projectile, terrain/base language, and a replacement rigged character. See `docs/production/VISUAL_DIRECTION.md`.
 
 ## 1. Purpose
 
@@ -41,7 +41,7 @@ The Solar Nomad launcher experiment has moved the project beyond a model-import 
 - Licensed/CC0 and AI-3D sourcing paths have not yet been compared against local Blender generation; Round 1 intentionally does not require them.
 - Small binary source assets are tracked directly; Git LFS remains a later scale decision.
 
-Launcher-specific design debt and continuation criteria are documented in `SOLAR_NOMAD_LAUNCHER.md`.
+Launcher-specific design debt and continuation criteria are documented in `docs/archive/SOLAR_NOMAD_LAUNCHER.md`.
 
 ## 2. Questions to answer
 
@@ -392,7 +392,7 @@ By the end of exploration, produce:
 - A version-control decision for binary/source assets and Git LFS.
 - Estimated per-direction and winner-refinement budgets.
 - A concise asset-pipeline guide workers can follow.
-- A go/no-go decision for resuming `VISUAL_BAKE_OFF.md`.
+- A go/no-go decision for resuming `docs/archive/VISUAL_BAKE_OFF.md`.
 
 ## 14. Resume criteria for the visual bake-off
 

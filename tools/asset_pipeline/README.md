@@ -110,4 +110,4 @@ The renderer experiment uses one neutral landing-zone decal to demonstrate proje
 python tools/asset_pipeline/create_forward_plus_showcase_textures.py
 ```
 
-This writes `assets/textures/environment/forward_plus_base_decal.png`. RED and BLUE tint the same texture at runtime. See `docs/plans/FORWARD_PLUS_EVALUATION.md` for the lean, balanced, and showcase feature profiles.
+This writes `assets/textures/environment/forward_plus_base_decal.png`. RED and BLUE tint the same texture at runtime. See `docs/decisions/FORWARD_PLUS_EVALUATION.md` for the lean, balanced, and showcase feature profiles.
