@@ -119,6 +119,8 @@ func _configure_map() -> void:
 	platform_surface_y = maxf(red_platform_surface_y, blue_platform_surface_y)
 	red_platform.position = Vector3(red_center.x, red_platform_surface_y - 1.0, red_center.y)
 	blue_platform.position = Vector3(blue_center.x, blue_platform_surface_y - 1.0, blue_center.y)
+	red_platform.rotation.y = float(map_config["base_yaw"])
+	blue_platform.rotation.y = float(map_config["base_yaw"])
 	red_home = Vector3(red_center.x, red_platform_surface_y + 1.08, red_center.y)
 	blue_home = Vector3(blue_center.x, blue_platform_surface_y + 1.08, blue_center.y)
 	red_flag_position = red_home

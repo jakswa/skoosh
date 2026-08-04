@@ -13,6 +13,7 @@ const MAPS := {
 		"label": "Kestrel Basin",
 		"symmetry_axis": "none",
 		"base_centers": [Vector2(-24.0, -207.0), Vector2(24.0, -207.0)],
+		"base_yaw": 0.0,
 		"platform_clearance": 4.5,
 		"shared_platform_elevation": true,
 		"oob_half_extents": Vector2(278.0, 278.0),
@@ -31,7 +32,7 @@ const MAPS := {
 		"route_waypoints": [Vector2(-24.0, -207.0), Vector2(24.0, -207.0)],
 		"route_marking": {
 			"origin": Vector2(0.0, -207.0), "axis": Vector2(1.0, 0.0),
-			"half_length": 42.0, "strength": 0.38,
+			"half_length": 42.0, "bend": 0.0, "bend_extent": 42.0, "strength": 0.38,
 		},
 		"landmark": "",
 		"landmark_markers": [],
@@ -40,6 +41,7 @@ const MAPS := {
 		"label": "Relay Divide",
 		"symmetry_axis": "x",
 		"base_centers": [Vector2(-132.0, 0.0), Vector2(132.0, 0.0)],
+		"base_yaw": 0.0,
 		"platform_clearance": 2.0,
 		"shared_platform_elevation": false,
 		"oob_half_extents": Vector2(250.0, 250.0),
@@ -69,7 +71,7 @@ const MAPS := {
 		],
 		"route_marking": {
 			"origin": Vector2(0.0, 0.0), "axis": Vector2(1.0, 0.0),
-			"half_length": 150.0, "strength": 0.31,
+			"half_length": 150.0, "bend": 0.0, "bend_extent": 132.0, "strength": 0.31,
 		},
 		"landmark": "relay_mast",
 		"landmark_markers": [
@@ -81,6 +83,7 @@ const MAPS := {
 		"label": "Split Crown",
 		"symmetry_axis": "z",
 		"base_centers": [Vector2(0.0, -120.0), Vector2(0.0, 120.0)],
+		"base_yaw": -PI * 0.5,
 		"platform_clearance": 2.0,
 		"shared_platform_elevation": false,
 		"oob_half_extents": Vector2(250.0, 250.0),
@@ -110,7 +113,7 @@ const MAPS := {
 		],
 		"route_marking": {
 			"origin": Vector2(0.0, 0.0), "axis": Vector2(0.0, 1.0),
-			"half_length": 136.0, "strength": 0.29,
+			"half_length": 136.0, "bend": -76.0, "bend_extent": 120.0, "strength": 0.29,
 		},
 		"landmark": "crown_beacon",
 		"landmark_markers": [],

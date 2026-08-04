@@ -7,6 +7,8 @@ varying vec3 world_normal;
 uniform vec2 route_origin = vec2(0.0, -207.0);
 uniform vec2 route_axis = vec2(1.0, 0.0);
 uniform float route_half_length = 42.0;
+uniform float route_bend = 0.0;
+uniform float route_bend_extent = 42.0;
 uniform float route_strength = 0.38;
 
 float hash21(vec2 p) {
@@ -50,6 +52,8 @@ void fragment() {
 	vec2 route_normal = vec2(-route_axis.y, route_axis.x);
 	float route_progress = dot(route_delta, route_axis);
 	float route_across = dot(route_delta, route_normal);
+	float bend_progress = clamp(abs(route_progress) / route_bend_extent, 0.0, 1.0);
+	route_across -= route_bend * (1.0 - bend_progress * bend_progress);
 	float field = 1.0 - smoothstep(route_half_length - 10.0, route_half_length, abs(route_progress));
 	float lane = 1.0 - smoothstep(2.55, 3.25, abs(route_across));
 	float red_side = 1.0 - smoothstep(-3.0, 1.5, route_progress);

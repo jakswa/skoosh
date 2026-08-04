@@ -107,6 +107,10 @@ func _validate_match_contract(map_id: String, config: Dictionary, terrain: Node)
 	var bases := config["base_centers"] as Array
 	var oob := config["oob_half_extents"] as Vector2
 	var clearance := float(config["platform_clearance"])
+	var base_axis := ((bases[1] as Vector2) - (bases[0] as Vector2)).normalized()
+	var base_yaw := float(config["base_yaw"])
+	var architecture_axis := Vector2(cos(base_yaw), -sin(base_yaw))
+	_require(absf(base_axis.dot(architecture_axis)) > 0.999, "%s station approach is misaligned" % map_id)
 	var surfaces: Array[float] = []
 	for base_variant in bases:
 		var base := base_variant as Vector2
@@ -168,13 +172,26 @@ func _validate_match_contract(map_id: String, config: Dictionary, terrain: Node)
 			_require(blue_direction.is_equal_approx(expected_direction), "%s spawn %d facing is not mirrored" % [map_id, index])
 
 	var route := config["route_waypoints"] as Array
+	var marking := config["route_marking"] as Dictionary
+	var route_axis := (marking["axis"] as Vector2).normalized()
+	var route_normal := Vector2(-route_axis.y, route_axis.x)
+	var bend := float(marking["bend"])
+	var bend_extent := float(marking["bend_extent"])
+	_require(bend_extent > 0.0, "%s route marking has no bend extent" % map_id)
 	_require(route.size() >= 2, "%s has no bot route" % map_id)
 	for waypoint_variant in route:
 		var waypoint := waypoint_variant as Vector2
 		_require(absf(waypoint.x) < oob.x and absf(waypoint.y) < oob.y, "%s route leaves OOB" % map_id)
 		_require(is_finite(terrain.height_at(waypoint.x, waypoint.y)), "%s route has invalid terrain" % map_id)
+		var route_delta := waypoint - (marking["origin"] as Vector2)
+		var progress := route_delta.dot(route_axis)
+		var bend_progress := clampf(absf(progress) / bend_extent, 0.0, 1.0)
+		var marked_across := bend * (1.0 - bend_progress * bend_progress)
+		_require(absf(route_delta.dot(route_normal) - marked_across) < 4.0, "%s route marking misses waypoint %s" % [map_id, waypoint])
 	_require((route[0] as Vector2).distance_to(bases[0]) < 1.0, "%s route does not start at RED" % map_id)
 	_require((route[-1] as Vector2).distance_to(bases[1]) < 1.0, "%s route does not end at BLUE" % map_id)
+	if map_id == "split_crown":
+		_require(absf(bend) > 70.0, "Split Crown route marking is still straight")
 
 
 func _validate_generated_mesh(map_id: String, terrain: Node) -> void:
@@ -193,6 +210,8 @@ func _validate_generated_mesh(map_id: String, terrain: Node) -> void:
 			if material != null:
 				_require(material.get_shader_parameter("route_origin") == marking["origin"], "%s route origin was not configured" % map_id)
 				_require(material.get_shader_parameter("route_axis") == marking["axis"], "%s route axis was not configured" % map_id)
+				_require(material.get_shader_parameter("route_bend") == marking["bend"], "%s route bend was not configured" % map_id)
+				_require(material.get_shader_parameter("route_bend_extent") == marking["bend_extent"], "%s route bend extent was not configured" % map_id)
 	if collisions.size() == 1:
 		_require((collisions[0] as CollisionShape3D).shape is ConcavePolygonShape3D, "%s collider is not trimesh" % map_id)
 

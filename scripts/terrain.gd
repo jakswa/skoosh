@@ -242,6 +242,8 @@ func _configure_route_marking(material: ShaderMaterial) -> void:
 	material.set_shader_parameter("route_origin", marking["origin"])
 	material.set_shader_parameter("route_axis", marking["axis"])
 	material.set_shader_parameter("route_half_length", marking["half_length"])
+	material.set_shader_parameter("route_bend", marking["bend"])
+	material.set_shader_parameter("route_bend_extent", marking["bend_extent"])
 	material.set_shader_parameter("route_strength", marking["strength"])
 
 
