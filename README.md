@@ -9,7 +9,7 @@ and [`docs/README.md`](docs/README.md) for the documentation map.
 
 ## Run from source
 
-Godot 4.4+ is required. For one local server and two clients, the helper defaults to the temporary development binary when present:
+Godot 4.4+ is required. The source helpers use `godot` from `PATH` by default. For one local server and two clients, run:
 
 ```bash
 ./tools/run_multiplayer_demo.sh
@@ -17,10 +17,10 @@ Godot 4.4+ is required. For one local server and two clients, the helper default
 
 This starts one headless authoritative server and two graphical clients on UDP 9077. Focus one client window at a time. Press Ctrl-C in the launching terminal to stop the complete session.
 
-Override the engine path or port when needed:
+Set `GODOT_BIN` to another command name or an absolute path, or override the port, when needed:
 
 ```bash
-GODOT_BIN=/path/to/Godot SKOOSH_PORT=9078 ./tools/run_multiplayer_demo.sh
+GODOT_BIN=godot4 SKOOSH_PORT=9078 ./tools/run_multiplayer_demo.sh
 ```
 
 SKOOSH uses Forward+ with the balanced presentation profile by default. Compare its feature tiers with:

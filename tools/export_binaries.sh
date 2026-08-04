@@ -4,6 +4,11 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GODOT_BIN="${GODOT_BIN:-godot}"
 
+if ! command -v "$GODOT_BIN" >/dev/null 2>&1; then
+  echo "Godot 4.4+ was not found on PATH. Install godot or set GODOT_BIN to a command name or absolute path." >&2
+  exit 1
+fi
+
 cd "$ROOT"
 rm -rf build/dist
 mkdir -p build/linux build/windows build/macos build/server build/dist

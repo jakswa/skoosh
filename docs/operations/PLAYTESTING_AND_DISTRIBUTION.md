@@ -10,10 +10,10 @@ From the repository root:
 ./tools/run_multiplayer_demo.sh
 ```
 
-This starts a headless authoritative server and two graphical clients. Override the engine or UDP port when needed:
+This starts a headless authoritative server and two graphical clients using `godot` from `PATH`. Set `GODOT_BIN` to another command name or an absolute path, or override the UDP port, when needed:
 
 ```bash
-GODOT_BIN=/path/to/Godot SKOOSH_PORT=9078 ./tools/run_multiplayer_demo.sh
+GODOT_BIN=godot4 SKOOSH_PORT=9078 ./tools/run_multiplayer_demo.sh
 ```
 
 Logs are written under the ignored `.tmp/skoosh-network` directory. Ctrl-C in the launching terminal stops the whole group. The two clients are assigned to opposing teams, so TEAM voice commands are intentionally private; press G in the open V menu to send a GLOBAL command that both clients can hear.
@@ -80,11 +80,13 @@ There is currently no authentication, encryption, moderation, ban list, or denia
 
 ## 4. Exporting client and server binaries
 
-Install matching Godot 4.4 export templates, then run:
+Install matching Godot 4.4 export templates, then run with the default `godot` command:
 
 ```bash
-GODOT_BIN=/path/to/Godot ./tools/export_binaries.sh
+./tools/export_binaries.sh
 ```
+
+As with the other source helpers, `GODOT_BIN` may name another command on `PATH` or an absolute executable path.
 
 The script exports and packages:
 

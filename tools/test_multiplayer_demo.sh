@@ -2,12 +2,22 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-GODOT_BIN="${GODOT_BIN:-/tmp/godot-skoosh/Godot_v4.4.1-stable_linux.x86_64}"
+GODOT_BIN="${GODOT_BIN:-godot}"
 CLIENT_BIN="${SKOOSH_CLIENT_BIN:-$GODOT_BIN}"
 PORT="${SKOOSH_TEST_PORT:-19077}"
 TEST_SECONDS="${SKOOSH_TEST_SECONDS:-50}"
 CLIENT_TEST_SECONDS=$((TEST_SECONDS + 1))
 LOG_DIR="${SKOOSH_TEST_LOG_DIR:-$ROOT/.tmp/skoosh-network-test}"
+
+if ! command -v "$GODOT_BIN" >/dev/null 2>&1; then
+  echo "Godot 4.4+ was not found on PATH. Install godot or set GODOT_BIN to a command name or absolute path." >&2
+  exit 1
+fi
+if ! command -v "$CLIENT_BIN" >/dev/null 2>&1; then
+  echo "The client executable was not found on PATH. Set SKOOSH_CLIENT_BIN to a command name or absolute path." >&2
+  exit 1
+fi
+
 rm -rf "$LOG_DIR"
 mkdir -p "$LOG_DIR"
 
