@@ -92,12 +92,20 @@ func _process(_delta: float) -> void:
 
 
 func _queue_capture(capture_name: String) -> void:
-	if _queued.has(capture_name):
+	if _queued.has(capture_name) or not _capture_state_is_valid(capture_name):
 		return
 	_queued[capture_name] = true
 	_capture_queue.append(capture_name)
 	if not _writing:
 		call_deferred("_drain_capture_queue")
+
+
+func _capture_state_is_valid(capture_name: String) -> bool:
+	if _lobby_only:
+		return capture_name == "00-lobby"
+	if _player == null:
+		return false
+	return _player.dead == (capture_name == "20-eliminated")
 
 
 func _drain_capture_queue() -> void:
@@ -108,6 +116,9 @@ func _drain_capture_queue() -> void:
 		var capture_name: String = _capture_queue.pop_front()
 		await get_tree().process_frame
 		await RenderingServer.frame_post_draw
+		if not _capture_state_is_valid(capture_name):
+			_queued.erase(capture_name)
+			continue
 		var image := get_viewport().get_texture().get_image()
 		var path := _output_dir.path_join(capture_name + ".png")
 		var error := image.save_png(path)

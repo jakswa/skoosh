@@ -28,7 +28,9 @@ build/visual-qa/current/logs/
 
 The private-Wayland path retains a `weston-<pid>.log` for each rendered process alongside the Godot logs.
 
-The suite captures the lobby plus real first-person states around spawn, combat, traversal, flag carry, round result, and late match. Elimination is also event-captured if the rendered player dies. Event-driven images are included only when the match reaches that state. The command fails if the rendered client exits unsuccessfully or fewer than five images are produced.
+The suite captures the lobby plus real first-person states around spawn, combat, traversal, flag carry, round result, and late match. Elimination is also event-captured if the rendered player dies. Captures other than elimination are written only while the rendered player is alive, including a state check after the rendered frame, so weapon and combat names cannot be satisfied by the death/reboot overlay.
+
+The command fails if a rendered client exits unsuccessfully, any Godot log contains `SCRIPT ERROR` or `ERROR:`, or any required named state is absent. Required states are lobby, spawn, team comms, grenade, general combat, projectile flight, combat effect, gatling, sniper, traversal, and late match. Elimination, flag-carrier, and round-result captures remain optional because they are event-driven.
 
 Override the engine, output directory, port, or capture duration when needed:
 
