@@ -47,7 +47,9 @@ Connect two local clients to any direct host with:
 ./tools/run_remote_clients.sh play.example.com
 ```
 
-The lobby and `--join=HOST --port=PORT` arguments also support one-client connections.
+The lobby and `--join=HOST --port=PORT` arguments also support one-client
+connections. Space-separated values such as `--join HOST --port PORT` are
+accepted too.
 
 ## Run from a GitHub Release
 
@@ -83,19 +85,28 @@ Clients are balanced between RED and BLUE. Take the opposing flag and return to 
 ## Automated checks
 
 ```bash
-./tools/test_ground_jet.sh
-./tools/test_oob_recovery.sh
-./tools/test_competitive_maps.sh
-./tools/test_map_mismatch.sh
-./tools/test_score_limit_cli.sh
-./tools/test_multiplayer_demo.sh       # about 111 seconds
-./tools/test_map_rotation.sh           # about 75 seconds
-./tools/test_network_bootstrap.sh
-./tools/test_rotation_ready_timeout.sh
-./tools/test_rotation_prepare_disconnect.sh
+./tools/run_headless_tests.sh          # all scenarios, up to two at a time
+./tools/run_headless_tests.sh fast     # short contracts only
+./tools/run_headless_tests.sh long     # multiplayer/rotation scenarios
+./tools/run_headless_tests.sh map-rotation network-bootstrap
 ```
 
-The multiplayer test takes about 111 seconds and validates two-team spawning, all four authoritative weapon paths, cross-peer global voice relay, death/respawn, ski/jet movement, full-map capture accumulation without an early win, score-limit victory, intermission/reset, and duplicate-award rejection. Set `SKOOSH_TEST_MAP=cairn_steps` to run it on the second production map. The rotation checks cover two live map changes, compatibility/bootstrap, a join during preparation, and bounded disconnect/timeout behavior.
+The runner prepares the source checkout once, isolates ports and logs, and runs
+up to two concurrent scenarios; set `SKOOSH_TEST_JOBS=1` for minimum resource
+use or up to `4` on a larger machine. Deadline-sensitive transition/admission
+fixtures remain serialized so CPU contention cannot manufacture protocol
+timeout failures. The runner preserves per-scenario output under the reported
+`.tmp/skoosh-headless-suite-*` directory and prints failed output immediately.
+Use `--list` for scenario names; every underlying `tools/test_*.sh` remains
+directly runnable for focused debugging.
+
+The suite runs full multiplayer acceptance on both production maps. Those
+scenarios validate two-team spawning, all four authoritative weapon paths,
+cross-peer global voice relay, death/respawn, ski/jet movement, full-map capture
+accumulation without an early win, score-limit victory, intermission/reset, and
+duplicate-award rejection. The rotation checks cover two live map changes,
+compatibility/bootstrap, a join during preparation, and bounded
+disconnect/timeout behavior.
 
 Before running source checks directly in a fresh checkout, prepare Godot's class and asset import cache with `./tools/prepare_source_checkout.sh`. The graphical source launchers run this helper automatically.
 

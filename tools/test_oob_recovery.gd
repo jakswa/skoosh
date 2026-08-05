@@ -1,7 +1,7 @@
 extends SceneTree
 
 const MapCatalog = preload("res://scripts/map_catalog.gd")
-const TEST_PORT := 19080
+const DEFAULT_TEST_PORT := 19080
 const TEST_PEER_ID := 42
 const TEAM_BLUE := 1
 const FLAG_HOME := 0
@@ -32,7 +32,7 @@ func _run() -> void:
 		return
 	if not _require(arena.terrain.map_id == expected_map_id, "Terrain selected the wrong map"):
 		return
-	arena.start_server(TEST_PORT)
+	arena.start_server(_test_port_from_args())
 	await process_frame
 	arena._spawn_avatar(TEST_PEER_ID)
 	await process_frame
@@ -103,6 +103,13 @@ func _run() -> void:
 		expected_map_id, BOUNDARY_DIRECTIONS.size(),
 	])
 	quit()
+
+
+func _test_port_from_args() -> int:
+	for argument in OS.get_cmdline_user_args():
+		if argument.begins_with("--test-port="):
+			return int(argument.trim_prefix("--test-port="))
+	return DEFAULT_TEST_PORT
 
 
 func _boundary_point(terrain: Node, direction: Vector2) -> Vector2:

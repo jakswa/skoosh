@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GODOT_BIN="${GODOT_BIN:-godot}"
+PORT="${SKOOSH_OOB_TEST_PORT:-19080}"
 LOG_DIR="${SKOOSH_OOB_TEST_LOG_DIR:-${TMPDIR:-/tmp}/skoosh-oob-recovery}"
 
 if ! command -v "$GODOT_BIN" >/dev/null 2>&1; then
@@ -17,7 +18,7 @@ mkdir -p "$LOG_DIR"
 for map_id in faultline_basin cairn_steps; do
   log_file="$LOG_DIR/$map_id.log"
   "$GODOT_BIN" --headless --path . --script res://tools/test_oob_recovery.gd -- \
-    --map="$map_id" >"$log_file" 2>&1
+    --map="$map_id" --test-port="$PORT" >"$log_file" 2>&1
   cat "$log_file"
 
   respawns="$(grep -c "COMBAT respawn peer=42" "$log_file" || true)"

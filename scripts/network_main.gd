@@ -277,9 +277,18 @@ func _parse_command_line() -> void:
 	var port := DEFAULT_PORT
 	var score_limit_option := ""
 	var score_limit_option_seen := false
-	for arg in args:
+	var arg_index := 0
+	while arg_index < args.size():
+		var arg := args[arg_index]
 		if arg == "--server" or arg == "--host":
 			mode = "server"
+		elif arg == "--join":
+			if arg_index + 1 >= args.size() or args[arg_index + 1].begins_with("--"):
+				_fail_startup("--join requires a server address")
+				return
+			arg_index += 1
+			mode = "client"
+			address = args[arg_index]
 		elif arg == "--bot":
 			_bot_mode = true
 		elif arg == "--require-combat":
@@ -303,6 +312,12 @@ func _parse_command_line() -> void:
 		elif arg.begins_with("--join="):
 			mode = "client"
 			address = arg.trim_prefix("--join=")
+		elif arg == "--port":
+			if arg_index + 1 >= args.size() or args[arg_index + 1].begins_with("--"):
+				_fail_startup("--port requires a value")
+				return
+			arg_index += 1
+			port = int(args[arg_index])
 		elif arg.begins_with("--port="):
 			port = int(arg.trim_prefix("--port="))
 		elif arg.begins_with("--test-seconds="):
@@ -313,6 +328,7 @@ func _parse_command_line() -> void:
 				return
 			score_limit_option_seen = true
 			score_limit_option = arg.trim_prefix("--score-limit=")
+		arg_index += 1
 
 	if score_limit_option_seen:
 		if mode != "server":

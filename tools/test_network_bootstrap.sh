@@ -27,7 +27,7 @@ implicit_cairn_port="$BASE_PORT"
 server_pid=$!
 pids+=("$server_pid")
 sleep 1
-"$GODOT_BIN" --headless --path "$ROOT" -- --join=127.0.0.1 --port="$implicit_cairn_port" \
+"$GODOT_BIN" --headless --path "$ROOT" -- --join 127.0.0.1 --port "$implicit_cairn_port" \
 	--test-seconds=6 >"$LOG_DIR/implicit-cairn-client.log" 2>&1
 wait "$server_pid"
 pids=()
