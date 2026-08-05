@@ -72,6 +72,10 @@ if grep -Eq "ERROR:|SCRIPT ERROR|rejected" "$LOG_DIR"/*.log; then
   echo "Multiplayer acceptance logged an error or rejected launch. Logs: $LOG_DIR" >&2
   status=1
 fi
+if ! grep -q "MAP selected id=$MAP_ID .*status=production" "$LOG_DIR/server.log"; then
+  echo "Server did not run the requested production map '$MAP_ID'. Logs: $LOG_DIR" >&2
+  status=1
+fi
 for client in 1 2; do
   if ! grep -q "VOICE received.*scope=GLOBAL" "$LOG_DIR/client-$client.log"; then
     echo "Client $client did not receive a global voice command. Logs: $LOG_DIR" >&2
@@ -89,10 +93,17 @@ if ! perl -ne '$relayed = 1 if /VOICE received listener=(\d+) speaker=(\d+)/ && 
 fi
 if ! perl -ne '
   BEGIN { $accumulation_ok = 1 }
-  if (/CTF capture .* score=(\d+)-(\d+)/ && !$won) {
+  if (/CTF capture .* score=(\d+)-(\d+) route=(\S+)/ && !$won) {
     $captures++;
     $accumulation_ok = 0 if $1 + $2 != $captures;
+    $full_route = 1 if $captures == 1 && $3 eq "full";
+    $accelerated_captures++ if $3 eq "acceptance_contacts";
   }
+  if (/ACCEPT CTF acceleration enabled .*after_full_route_captures=1/) {
+    $acceleration_after_route = 1 if $full_route && $captures == 1;
+  }
+  if (/ACCEPT CTF contact positioned .*contact=pickup/) { $accelerated_pickups++ }
+  if (/ACCEPT CTF contact positioned .*contact=capture/) { $accelerated_contacts++ }
   if (/CTF objective ready score=/ && !$won) { $objective_resets++ }
   if (/CTF win .* score=(\d+)-(\d+)/ && !$won) {
     $won = 1;
@@ -100,10 +111,15 @@ if ! perl -ne '
   }
   if (/CTF match started match=2 score=0-0/) { $match_reset = 1 }
   END {
-    exit($captures == 3 && $accumulation_ok != 0 && $objective_resets == 2 && $limit_win && $match_reset ? 0 : 1)
+    exit(
+      $captures == 3 && $accumulation_ok != 0 && $full_route
+      && $acceleration_after_route && $accelerated_captures == 2
+      && $accelerated_pickups == 2 && $accelerated_contacts == 2
+      && $objective_resets == 2 && $limit_win && $match_reset ? 0 : 1
+    )
   }
 ' "$LOG_DIR/server.log"; then
-  echo "Authoritative score accumulation/limit/intermission/reset sequence was not observed. Logs: $LOG_DIR" >&2
+  echo "Full-route capture followed by authoritative accelerated-contact score/limit/reset evidence was not observed. Logs: $LOG_DIR" >&2
   status=1
 fi
 if [[ $status -ne 0 ]]; then

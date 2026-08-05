@@ -378,6 +378,12 @@ Implemented on `feature/match-loop`:
 - Hardened capture award eligibility against stale or duplicate calls and
   extended headless acceptance through accumulation, no early win, limit win,
   intermission/reset, and duplicate rejection.
+- Combined map/match acceptance now requires the first capture on each selected
+  production map to visit every authored bot-route waypoint before scoring. Only
+  after that server-observed `route=full` capture may the explicit acceptance
+  seam position the carrier for normal authoritative pickup/capture contacts,
+  keeping each map run to roughly 116 wall-clock seconds while proving the full
+  limit loop.
 
 Automatic rotation remains pending a disposable world-generation seam. No
 placeholder rotation code was retained. See

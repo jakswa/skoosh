@@ -23,6 +23,10 @@ const MAP_AGREEMENT_TIMEOUT_MS := 5000
 const VOICE_COMMAND_COOLDOWN_TICKS := 60
 const VOICE_CHANNEL_COOLDOWN_TICKS := 30
 const TEST_SERVER_SHUTDOWN_GRACE_SECONDS := 3.0
+const ACCEPTANCE_ROUTE_CONTACT_RADIUS := 24.0
+const ACCEPTANCE_CAPTURE_IDLE := 0
+const ACCEPTANCE_CAPTURE_PICKUP := 1
+const ACCEPTANCE_CAPTURE_HOME := 2
 const VOICE_COMMANDS := VoiceCommandLibrary.COMMANDS
 
 @export var player_scene: PackedScene
@@ -91,6 +95,8 @@ var _objective_resets_completed := 0
 var _match_resets := 0
 var _duplicate_capture_checks := 0
 var _duplicate_capture_awards := 0
+var _full_route_captures := 0
+var _accelerated_captures := 0
 var _peak_server_speed := 0.0
 var _server_saw_jet := false
 var _peak_rollback_ticks := 0
@@ -107,6 +113,13 @@ var _last_global_voice_tick := -100000
 var _approved_map_peers: Dictionary = {}
 var _map_agreement_deadlines: Dictionary = {}
 var _map_mismatch := false
+var _acceptance_route_carrier := 0
+var _acceptance_route_next_index := -1
+var _acceptance_route_step := 0
+var _acceptance_route_points_observed := 0
+var _acceptance_route_complete := false
+var _acceptance_capture_phase := ACCEPTANCE_CAPTURE_IDLE
+var _acceptance_acceleration_started := false
 
 
 func _ready() -> void:
@@ -800,6 +813,7 @@ func _physics_process(_delta: float) -> void:
 		if NetworkTime.tick >= objective_reset_tick:
 			_finish_objective_reset()
 		return
+	_advance_acceptance_capture_contacts()
 	_update_ctf_state()
 
 
@@ -808,6 +822,7 @@ func _update_ctf_state() -> void:
 	_validate_flag_carrier(TEAM_BLUE)
 	_return_expired_flag(TEAM_RED)
 	_return_expired_flag(TEAM_BLUE)
+	_observe_acceptance_full_route()
 	for avatar in avatars.values():
 		var player := avatar as SkooshNetworkPlayer
 		if player.dead or player.team < 0:
@@ -848,6 +863,101 @@ func _take_flag(flag_team: int, player: SkooshNetworkPlayer) -> void:
 	print("CTF pickup player=%d team=%s flag=%s" % [
 		player.peer_id, get_team_name(player.team), get_team_name(flag_team)
 	])
+	if _acceptance_mode and _require_ctf and _ctf_captures == 0:
+		var route := MapCatalog.get_route(map_config, str(map_config["bot_route"]))
+		var waypoints := route["waypoints"] as Array
+		_acceptance_route_carrier = player.peer_id
+		_acceptance_route_step = -1 if player.team == TEAM_RED else 1
+		_acceptance_route_next_index = waypoints.size() - 2 if player.team == TEAM_RED else 1
+		_acceptance_route_points_observed = 1
+		_acceptance_route_complete = false
+		print("ACCEPT CTF full-route tracking player=%d map=%s route=%s waypoint=pickup points=1/%d" % [
+			player.peer_id, map_id, route["id"], waypoints.size(),
+		])
+
+
+func _observe_acceptance_full_route() -> void:
+	if (
+		not _acceptance_mode
+		or not _require_ctf
+		or _full_route_captures > 0
+		or _acceptance_route_complete
+		or _acceptance_route_carrier == 0
+	):
+		return
+	var player := avatars.get(_acceptance_route_carrier) as SkooshNetworkPlayer
+	if player == null:
+		return
+	var enemy_team := TEAM_BLUE if player.team == TEAM_RED else TEAM_RED
+	if (
+		_get_flag_state(enemy_team) != FLAG_CARRIED
+		or _get_flag_carrier(enemy_team) != player.peer_id
+	):
+		return
+	var route := MapCatalog.get_route(map_config, str(map_config["bot_route"]))
+	var waypoints := route["waypoints"] as Array
+	if _acceptance_route_next_index < 0 or _acceptance_route_next_index >= waypoints.size():
+		return
+	var waypoint := waypoints[_acceptance_route_next_index] as Vector2
+	var player_planar := Vector2(player.global_position.x, player.global_position.z)
+	if player_planar.distance_to(waypoint) > ACCEPTANCE_ROUTE_CONTACT_RADIUS:
+		return
+	_acceptance_route_points_observed += 1
+	print("ACCEPT CTF full-route waypoint player=%d map=%s route=%s index=%d points=%d/%d" % [
+		player.peer_id, map_id, route["id"], _acceptance_route_next_index,
+		_acceptance_route_points_observed, waypoints.size(),
+	])
+	_acceptance_route_next_index += _acceptance_route_step
+	if _acceptance_route_next_index < 0 or _acceptance_route_next_index >= waypoints.size():
+		_acceptance_route_complete = true
+		print("ACCEPT CTF full-route validated player=%d map=%s route=%s points=%d/%d" % [
+			player.peer_id, map_id, route["id"], _acceptance_route_points_observed, waypoints.size(),
+		])
+
+
+func _advance_acceptance_capture_contacts() -> void:
+	if (
+		not _acceptance_mode
+		or not _require_ctf
+		or _full_route_captures != 1
+		or _ctf_captures < 1
+		or _ctf_captures >= score_limit
+		or round_over
+	):
+		return
+	var player := avatars.get(_acceptance_route_carrier) as SkooshNetworkPlayer
+	if player == null or player.dead:
+		return
+	var enemy_team := TEAM_BLUE if player.team == TEAM_RED else TEAM_RED
+	if _acceptance_capture_phase == ACCEPTANCE_CAPTURE_IDLE:
+		if _get_flag_state(enemy_team) != FLAG_HOME or _get_flag_state(player.team) != FLAG_HOME:
+			return
+		if not _acceptance_acceleration_started:
+			_acceptance_acceleration_started = true
+			print("ACCEPT CTF acceleration enabled player=%d after_full_route_captures=%d" % [
+				player.peer_id, _full_route_captures,
+			])
+		player.apply_acceptance_contact_position(_acceptance_contact_position(enemy_team))
+		_acceptance_capture_phase = ACCEPTANCE_CAPTURE_PICKUP
+		print("ACCEPT CTF contact positioned player=%d contact=pickup capture_target=%d" % [
+			player.peer_id, _ctf_captures + 1,
+		])
+	elif (
+		_acceptance_capture_phase == ACCEPTANCE_CAPTURE_PICKUP
+		and _get_flag_state(enemy_team) == FLAG_CARRIED
+		and _get_flag_carrier(enemy_team) == player.peer_id
+	):
+		player.apply_acceptance_contact_position(_acceptance_contact_position(player.team))
+		_acceptance_capture_phase = ACCEPTANCE_CAPTURE_HOME
+		print("ACCEPT CTF contact positioned player=%d contact=capture capture_target=%d" % [
+			player.peer_id, _ctf_captures + 1,
+		])
+
+
+func _acceptance_contact_position(team: int) -> Vector3:
+	var home := red_home if team == TEAM_RED else blue_home
+	var surface_y := red_platform_surface_y if team == TEAM_RED else blue_platform_surface_y
+	return Vector3(home.x, surface_y + 0.08, home.z)
 
 
 func _capture_flag(player: SkooshNetworkPlayer, enemy_flag_team: int) -> bool:
@@ -862,14 +972,29 @@ func _capture_flag(player: SkooshNetworkPlayer, enemy_flag_team: int) -> bool:
 		or _get_flag_carrier(enemy_flag_team) != player.peer_id
 	):
 		return false
+	var full_route_capture := (
+		_ctf_captures == 0
+		and player.peer_id == _acceptance_route_carrier
+		and _acceptance_route_complete
+	)
+	var accelerated_capture := (
+		_acceptance_capture_phase == ACCEPTANCE_CAPTURE_HOME
+		and player.peer_id == _acceptance_route_carrier
+	)
 	if player.team == TEAM_RED:
 		red_score += 1
 	else:
 		blue_score += 1
 	_ctf_captures += 1
-	print("CTF capture player=%d team=%s score=%d-%d" % [
-		player.peer_id, get_team_name(player.team), red_score, blue_score
+	if full_route_capture:
+		_full_route_captures += 1
+	if accelerated_capture:
+		_accelerated_captures += 1
+	var route_evidence := "full" if full_route_capture else ("acceptance_contacts" if accelerated_capture else "standard")
+	print("CTF capture player=%d team=%s score=%d-%d route=%s" % [
+		player.peer_id, get_team_name(player.team), red_score, blue_score, route_evidence,
 	])
+	_acceptance_capture_phase = ACCEPTANCE_CAPTURE_IDLE
 	if red_score >= score_limit or blue_score >= score_limit:
 		_limit_wins += 1
 		_reset_objectives("match won")
@@ -1076,11 +1201,12 @@ func _finish_automated_test() -> void:
 		if (avatar as SkooshNetworkPlayer).has_character_visual_shell():
 			character_visual_shells += 1
 	var character_resources_cached := SkooshNetworkPlayer.character_variant_resources_cached()
-	print("ACCEPT multiplayer peer=%d peak_avatars=%d current_avatars=%d kills=%d deaths=%d disc_impacts=%d disc_damage=%d weapon_fires=%s weapon_impacts=%s weapon_hits=%s voice=%d captures=%d non_winning_captures=%d limit_wins=%d objective_resets=%d completed_matches=%d match_resets=%d duplicate_checks=%d duplicate_awards=%d score_limit=%d current_variant_peers=%d current_variants=%d assigned_variant_peers=%d assigned_variants=%d observed_variant_peers=%d observed_variants=%d peak_speed=%.1f jet=%s max_rollback=%d peak_net_ms=%.2f elapsed_ms=%d" % [
+	print("ACCEPT multiplayer peer=%d peak_avatars=%d current_avatars=%d kills=%d deaths=%d disc_impacts=%d disc_damage=%d weapon_fires=%s weapon_impacts=%s weapon_hits=%s voice=%d captures=%d full_route_captures=%d accelerated_captures=%d non_winning_captures=%d limit_wins=%d objective_resets=%d completed_matches=%d match_resets=%d duplicate_checks=%d duplicate_awards=%d score_limit=%d current_variant_peers=%d current_variants=%d assigned_variant_peers=%d assigned_variants=%d observed_variant_peers=%d observed_variants=%d peak_speed=%.1f jet=%s max_rollback=%d peak_net_ms=%.2f elapsed_ms=%d" % [
 		peer_id, _peak_avatars, avatars.size(), total_kills, total_deaths,
 		_disc_impacts, _disc_damage_events, _weapon_fires, _weapon_impacts, _weapon_hits,
 		_voice_commands_relayed,
-		_ctf_captures, _non_winning_captures, _limit_wins, _objective_resets_completed,
+		_ctf_captures, _full_route_captures, _accelerated_captures,
+		_non_winning_captures, _limit_wins, _objective_resets_completed,
 		_completed_rounds, _match_resets, _duplicate_capture_checks, _duplicate_capture_awards,
 		score_limit,
 		current_character_variants.size(), current_variant_ids.size(),
@@ -1098,6 +1224,8 @@ func _finish_automated_test() -> void:
 	var movement_failed := _require_movement and (_peak_server_speed < 10.0 or not _server_saw_jet)
 	var ctf_failed := _require_ctf and (
 		_ctf_captures < score_limit
+		or (_acceptance_mode and _full_route_captures != 1)
+		or (_acceptance_mode and _accelerated_captures != score_limit - 1)
 		or _non_winning_captures < score_limit - 1
 		or _limit_wins < 1
 		or _objective_resets_completed < score_limit - 1

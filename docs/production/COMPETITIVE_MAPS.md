@@ -54,3 +54,14 @@ balance. The maps still need repeated offense/defense route timing, spawn
 pressure, skiing feel, visibility, impairment, minimum-spec, and spectator
 playtests. The procedural terrain/material and primitive landmarks establish a
 coherent production map direction, not final production art.
+
+Each multiplayer map run reserves its first capture for a collision-driven bot
+traversal of every waypoint on that map's authored acceptance route. The server
+tags that capture `route=full`; the harness rejects acceleration unless it sees
+that evidence first. The explicit `--acceptance-mode --require-ctf` seam then
+server-positions the same carrier for separate normal pickup and capture-volume
+contacts. This keeps `_capture_flag()` eligibility and authority intact while
+proving scores 1-2-3, both two-second objective rearms, the five-second
+intermission, zero-score reset, and duplicate rejection in one roughly
+116-second wall-clock run per map: a 110-second timed scenario, three-second
+coordinated shutdown grace, and process launch/teardown overhead.

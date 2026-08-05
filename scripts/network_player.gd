@@ -404,6 +404,17 @@ func request_authoritative_respawn(
 	print("COMBAT respawn peer=%d position=%s" % [peer_id, respawn_position])
 
 
+func apply_acceptance_contact_position(world_position: Vector3) -> void:
+	if not multiplayer.is_server():
+		return
+	respawn_position = world_position
+	teleport_tick = NetworkTime.tick
+	global_position = world_position
+	head.rotation = Vector3.ZERO
+	reset_movement_state()
+	tick_interpolator.teleport()
+
+
 func add_kill() -> void:
 	if multiplayer.is_server():
 		kills += 1
