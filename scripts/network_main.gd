@@ -881,9 +881,19 @@ func _finish_automated_test() -> void:
 		get_tree().quit(1)
 	elif _server_mode and _require_character_variants:
 		print("ACCEPT server shutdown grace=%.1fs for client variant validation" % TEST_SERVER_SHUTDOWN_GRACE_SECONDS)
-		get_tree().create_timer(TEST_SERVER_SHUTDOWN_GRACE_SECONDS).timeout.connect(get_tree().quit)
+		get_tree().create_timer(TEST_SERVER_SHUTDOWN_GRACE_SECONDS).timeout.connect(_finish_server_automated_test)
 	elif _require_character_variants:
-		print("ACCEPT client shutdown grace=%.1fs for server completion" % TEST_SERVER_SHUTDOWN_GRACE_SECONDS)
-		get_tree().create_timer(TEST_SERVER_SHUTDOWN_GRACE_SECONDS).timeout.connect(get_tree().quit)
+		print("ACCEPT client awaiting coordinated shutdown")
 	else:
 		get_tree().quit()
+
+
+func _finish_server_automated_test() -> void:
+	_finish_client_automated_test.rpc()
+	get_tree().quit()
+
+
+@rpc("authority", "reliable", "call_remote")
+func _finish_client_automated_test() -> void:
+	_on_connection_stopped()
+	get_tree().create_timer(0.25).timeout.connect(get_tree().quit)
