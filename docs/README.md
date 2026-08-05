@@ -36,6 +36,15 @@ They are evidence, not active task lists.
 | [Asset pipeline exploration](decisions/ASSET_PIPELINE_EXPLORATION.md) | Completed pipeline experiments, conclusions, and remaining production risks. |
 | [Visual bake-off report](decisions/BAKE_OFF_REPORT.md) | Use the selected Kestrel, STRATOS, and Khepri hybrid. |
 
+## Research
+
+Research preserves exploratory evidence and possibilities without making them
+current project truth or roadmap commitments.
+
+| Area | Purpose |
+|---|---|
+| [Exploratory research](research/README.md) | Game-mode concepts, evaluation methods, and engineering-lineage findings. |
+
 ## Archive
 
 `archive/` preserves superseded plans, completed experiments, and early
