@@ -227,6 +227,12 @@ func _after_fire(_projectile: Node3D) -> void:
 	last_fire_tick = NetworkTime.tick
 	_muzzle_time = 0.08
 	var arena := player.get_game_root()
+	var client_audio := player.get_client_audio()
+	if client_audio != null:
+		client_audio.weapon_fired(
+			weapon_slot, muzzle_origin.global_position,
+			input.is_multiplayer_authority(), arena.world_generation
+		)
 	if multiplayer.is_server() and arena.has_method("record_weapon_fire"):
 		arena.record_weapon_fire(weapon_slot)
 	if input.is_multiplayer_authority():
@@ -339,6 +345,11 @@ func _present_disc_impact(
 	)
 	if hit_enemy:
 		color = Color("#fff08a")
+	var client_audio := player.get_client_audio()
+	if client_audio != null:
+		client_audio.weapon_impact(weapon_slot, position, hit_enemy, generation)
+		if hit_enemy and input.is_multiplayer_authority():
+			client_audio.confirm_hit()
 	arena.get_effect_container().add_child(effect)
 	effect.global_position = position
 

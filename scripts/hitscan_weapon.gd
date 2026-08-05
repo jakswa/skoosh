@@ -52,6 +52,12 @@ func _network_tick(_delta: float, _tick: int) -> void:
 	_muzzle_time = 0.06
 	player.present_weapon_fire(weapon_slot)
 	player.hud.flash_shot()
+	var client_audio := player.get_client_audio()
+	if client_audio != null:
+		client_audio.weapon_fired(
+			weapon_slot, muzzle_origin.global_position, true,
+			player.get_game_root().world_generation
+		)
 	_request_fire.rpc_id(1, player.get_game_root().world_generation, NetworkTime.tick)
 
 
@@ -96,8 +102,9 @@ func _request_fire(generation: int, request_tick: int) -> void:
 	query.collide_with_areas = false
 	var result := get_world_3d().direct_space_state.intersect_ray(query)
 	var end_position := ray_origin + direction * maximum_range
+	var did_collide := not result.is_empty()
 	var hit_enemy := false
-	if not result.is_empty():
+	if did_collide:
 		end_position = result.get("position", end_position) as Vector3
 		var target := result.get("collider") as SkooshNetworkPlayer
 		if (
@@ -113,10 +120,10 @@ func _request_fire(generation: int, request_tick: int) -> void:
 		arena.record_weapon_fire(weapon_slot)
 	if hit_enemy and arena.has_method("record_weapon_hit"):
 		arena.record_weapon_hit(weapon_slot)
-	_present_fire(generation, muzzle_origin.global_position, end_position, hit_enemy)
+	_present_fire(generation, muzzle_origin.global_position, end_position, did_collide, hit_enemy)
 	for peer_id in arena.get_gameplay_peer_ids():
 		_present_fire.rpc_id(
-			peer_id, generation, muzzle_origin.global_position, end_position, hit_enemy
+			peer_id, generation, muzzle_origin.global_position, end_position, did_collide, hit_enemy
 		)
 
 
@@ -147,7 +154,7 @@ func _spread_direction(direction: Vector3, sequence: int) -> Vector3:
 
 @rpc("authority", "reliable", "call_local")
 func _present_fire(
-	generation: int, origin: Vector3, end_position: Vector3, hit_enemy: bool
+	generation: int, origin: Vector3, end_position: Vector3, did_collide: bool, hit_enemy: bool
 ) -> void:
 	var arena := player.get_game_root()
 	if generation != arena.world_generation or not arena.is_node_in_active_world(player):
@@ -171,6 +178,14 @@ func _present_fire(
 	arena.get_effect_container().add_child(tracer)
 	tracer.global_position = origin.lerp(end_position, 0.5)
 	tracer.global_basis = Basis.looking_at(origin.direction_to(end_position), Vector3.UP)
+	var client_audio := player.get_client_audio()
+	if client_audio != null:
+		if not input.is_multiplayer_authority():
+			client_audio.weapon_fired(weapon_slot, origin, false, generation)
+		if did_collide:
+			client_audio.weapon_impact(weapon_slot, end_position, hit_enemy, generation)
+		if hit_enemy and input.is_multiplayer_authority():
+			client_audio.confirm_hit()
 	var tween := tracer.create_tween()
 	tween.tween_property(material, "albedo_color", Color(weapon_color, 0.0), 0.12)
 	tween.tween_callback(tracer.queue_free)

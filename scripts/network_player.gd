@@ -530,6 +530,13 @@ func get_game_root() -> Node:
 	return null
 
 
+func get_client_audio() -> SkooshClientAudio:
+	var arena := get_game_root()
+	if arena == null:
+		return null
+	return arena.get_node_or_null("ClientAudio") as SkooshClientAudio
+
+
 func retire_for_rotation() -> void:
 	if _retired:
 		return

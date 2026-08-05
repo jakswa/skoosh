@@ -319,7 +319,8 @@ func _build() -> void:
 
 	_voice_audio = AudioStreamPlayer.new()
 	_voice_audio.name = "VoiceCommandAudio"
-	_voice_audio.volume_db = -1.5
+	_voice_audio.bus = &"Voice"
+	_voice_audio.volume_db = 0.0
 	add_child(_voice_audio)
 
 

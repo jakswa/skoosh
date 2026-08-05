@@ -18,6 +18,7 @@ long_tests=(
 fast_tests=(
 	asset-pipeline
 	character-variants
+	client-audio
 	competitive-maps
 	ground-jet
 	map-mismatch
@@ -144,6 +145,9 @@ run_scenario() {
 				SKOOSH_CHARACTER_TEST_PORT="$((PORT_BASE + 4))" \
 				SKOOSH_CHARACTER_TEST_LOG_DIR="$artifact_dir" \
 				"$ROOT/tools/test_character_variants.sh"
+			;;
+		client-audio)
+			run_bounded 60s env "${isolated_env[@]}" "$ROOT/tools/test_client_audio.sh"
 			;;
 		competitive-maps)
 			run_bounded 60s env "${isolated_env[@]}" "$ROOT/tools/test_competitive_maps.sh"
