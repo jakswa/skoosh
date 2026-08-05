@@ -9,7 +9,9 @@ and [`docs/README.md`](docs/README.md) for the documentation map.
 
 ## Run from source
 
-Godot 4.4+ is required. The source helpers use `godot` from `PATH` by default. For one local server and two clients, run:
+Godot 4.4+ is required. The source helpers use `godot` from `PATH` by default. On a fresh or updated checkout, the client launchers automatically refresh Godot's ignored class and asset import cache before starting. Opening the project in the Godot editor prepares the same cache.
+
+For one local server and two clients, run:
 
 ```bash
 ./tools/run_multiplayer_demo.sh
@@ -94,6 +96,8 @@ Clients are balanced between RED and BLUE. Take the opposing flag and return to 
 ```
 
 The multiplayer test takes about 111 seconds and validates two-team spawning, all four authoritative weapon paths, cross-peer global voice relay, death/respawn, ski/jet movement, full-map capture accumulation without an early win, score-limit victory, intermission/reset, and duplicate-award rejection. Set `SKOOSH_TEST_MAP=cairn_steps` to run it on the second production map. The rotation checks cover two live map changes, compatibility/bootstrap, a join during preparation, and bounded disconnect/timeout behavior.
+
+Before running source checks directly in a fresh checkout, prepare Godot's class and asset import cache with `./tools/prepare_source_checkout.sh`. The graphical source launchers run this helper automatically.
 
 For off-screen visual and UX review, Compatibility uses `./tools/capture_visual_qa.sh`; Forward+ uses `./tools/capture_visual_qa_private_wayland.sh` with a private headless Weston compositor. Neither opens desktop windows or captures the host mouse. See [`docs/production/VISUAL_QA.md`](docs/production/VISUAL_QA.md).
 

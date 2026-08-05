@@ -17,6 +17,8 @@ if ! command -v "$GODOT_BIN" >/dev/null 2>&1; then
   exit 1
 fi
 
+GODOT_BIN="$GODOT_BIN" "$ROOT/tools/prepare_source_checkout.sh"
+
 mkdir -p "$LOG_DIR"
 pids=()
 cleanup() {

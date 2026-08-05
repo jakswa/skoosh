@@ -372,7 +372,11 @@ func start_server(port: int) -> void:
 	var peer := ENetMultiplayerPeer.new()
 	var error := peer.create_server(port, MAX_CLIENTS)
 	if error != OK:
-		lobby.show_error("COULD NOT LISTEN ON UDP %d\n%s" % [port, error_string(error)])
+		var message := "COULD NOT LISTEN ON UDP %d\n%s" % [port, error_string(error)]
+		printerr("NETWORK server start failed port=%d error=%s" % [port, error_string(error)])
+		lobby.show_error(message)
+		if DisplayServer.get_name().contains("headless"):
+			get_tree().quit(1)
 		return
 	peer.host.compress(ENetConnection.COMPRESS_RANGE_CODER)
 	multiplayer.multiplayer_peer = peer

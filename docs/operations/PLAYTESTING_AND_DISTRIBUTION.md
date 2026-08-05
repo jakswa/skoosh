@@ -10,7 +10,7 @@ From the repository root:
 ./tools/run_multiplayer_demo.sh
 ```
 
-This starts a headless authoritative server and two graphical clients using `godot` from `PATH`. Set `GODOT_BIN` to another command name or an absolute path, or override the UDP port, when needed:
+This starts a headless authoritative server and two graphical clients using `godot` from `PATH`. On a fresh or updated source checkout, it first refreshes Godot's ignored class and asset cache. Set `GODOT_BIN` to another command name or an absolute path, or override the UDP port, when needed:
 
 ```bash
 GODOT_BIN=godot4 SKOOSH_PORT=9078 ./tools/run_multiplayer_demo.sh
@@ -28,6 +28,9 @@ Logs are written under the ignored `.tmp/skoosh-network` directory. Ctrl-C in th
 To run the processes separately:
 
 ```bash
+# Once per fresh checkout, or open the project in the Godot editor
+./tools/prepare_source_checkout.sh
+
 # Terminal 1
 /path/to/Godot --headless --path . -- --server --port=9077 --map=faultline_basin
 
