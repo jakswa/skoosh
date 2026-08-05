@@ -4,6 +4,7 @@ const VoiceCommandLibrary = preload("res://scripts/voice_command_library.gd")
 const MapCatalog = preload("res://scripts/map_catalog.gd")
 const TerrainScript = preload("res://scripts/terrain.gd")
 const LandmarksScript = preload("res://scripts/map_landmarks.gd")
+const NetworkAcceptanceScript = preload("res://scripts/network_acceptance.gd")
 const DEFAULT_PORT := 9077
 const MAX_CLIENTS := 16
 const TEAM_RED := 0
@@ -147,9 +148,7 @@ var _rotation_map_history: Array[String] = []
 var _rotation_peer_ids: Array[int] = []
 var _rotation_team_assignments: Dictionary = {}
 var _rotation_character_assignments: Dictionary = {}
-var _generation_movement: Dictionary = {}
-var _generation_combat: Dictionary = {}
-var _generation_captures: Dictionary = {}
+var _acceptance: SkooshNetworkAcceptance = NetworkAcceptanceScript.new()
 var _bot_mode := false
 var _server_mode := false
 var _test_seconds := 0.0
@@ -160,33 +159,8 @@ var _require_map_baseline := false
 var _require_voice := false
 var _test_started_at := 0
 var _test_timer_started := false
-var _peak_avatars := 0
-var _combat_kills := 0
-var _combat_deaths := 0
-var _disc_impacts := 0
-var _disc_damage_events := 0
-var _weapon_fires: Array[int] = [0, 0, 0, 0]
-var _weapon_impacts: Array[int] = [0, 0, 0, 0]
-var _weapon_hits: Array[int] = [0, 0, 0, 0]
-var _voice_commands_relayed := 0
-var _ctf_captures := 0
-var _completed_rounds := 0
-var _non_winning_captures := 0
-var _limit_wins := 0
-var _objective_resets_completed := 0
-var _match_resets := 0
-var _duplicate_capture_checks := 0
-var _duplicate_capture_awards := 0
-var _full_route_captures := 0
-var _accelerated_captures := 0
-var _peak_server_speed := 0.0
-var _server_saw_jet := false
-var _peak_rollback_ticks := 0
-var _peak_network_loop_ms := 0.0
 var _require_character_variants := false
 var _acceptance_mode := false
-var _server_assigned_character_variants: Dictionary = {}
-var _observed_character_variants: Dictionary = {}
 var _oob_recovery_safe_frames: Dictionary = {}
 var _last_voice_command_tick: Dictionary = {}
 var _last_voice_request_tick: Dictionary = {}
@@ -1028,9 +1002,8 @@ func _spawn_avatar(id: int, assigned_team: int = -1, assigned_character_variant:
 	)
 	avatar.set_gameplay_admitted(_approved_map_peers.has(id))
 	if multiplayer.is_server():
-		_server_assigned_character_variants[id] = assigned_character_variant
 		avatar.rollback_synchronizer.visibility_filter.update_visibility()
-	_peak_avatars = maxi(_peak_avatars, avatars.size())
+	_acceptance.record_avatar_spawn(id, assigned_character_variant, avatars.size(), multiplayer.is_server())
 	print("NETWORK avatar spawned id=%d team=%s variant=%d variant_name=%s local_bot=%s node=%s" % [
 		id, get_team_name(assigned_team), avatar.character_variant,
 		SkooshNetworkPlayer.character_variant_name(avatar.character_variant), local_bot, avatar.get_path()
@@ -1097,13 +1070,12 @@ func record_character_variant_observation(observed_peer_id: int, variant_id: int
 		and player.character_variant == variant_id
 		and SkooshNetworkPlayer.is_character_variant_valid(variant_id)
 	):
-		_observed_character_variants[observed_peer_id] = variant_id
+		_acceptance.record_character_observation(observed_peer_id, variant_id)
 
 
 func _remove_avatar(id: int, immediate: bool = false) -> void:
 	_oob_recovery_safe_frames.erase(id)
-	_server_assigned_character_variants.erase(id)
-	_observed_character_variants.erase(id)
+	_acceptance.remove_avatar(id)
 	if not avatars.has(id):
 		return
 	var avatar := avatars[id] as Node
@@ -1165,7 +1137,7 @@ func _rebuild_world(generation: int, next_map_id: String, peer_ids: Array[int]) 
 	_replace_bootstrap_world = false
 	avatars.clear()
 	_oob_recovery_safe_frames.clear()
-	_observed_character_variants.clear()
+	_acceptance.clear_character_observations()
 	add_child(next_world)
 	world = next_world
 	terrain = world.get_node("Terrain")
@@ -1308,46 +1280,43 @@ func award_kill(attacker_peer_id: int, victim_peer_id: int) -> void:
 	var victim := avatars.get(victim_peer_id) as SkooshNetworkPlayer
 	if attacker != null and victim != null and attacker.team != victim.team:
 		attacker.add_kill()
-		_combat_kills += 1
+		_acceptance.record_kill()
 		print("COMBAT kill attacker=%d victim=%d kills=%d" % [attacker_peer_id, victim_peer_id, attacker.kills])
 
 
 func record_death() -> void:
 	if multiplayer.is_server():
-		_combat_deaths += 1
+		_acceptance.record_death()
 
 
 func record_disc_impact(damaged_enemies: int) -> void:
 	if not multiplayer.is_server():
 		return
-	_disc_impacts += 1
-	_disc_damage_events += damaged_enemies
-	print("COMBAT disc impact=%d damaged=%d" % [_disc_impacts, damaged_enemies])
+	var impact_count := _acceptance.record_disc_impact(damaged_enemies)
+	print("COMBAT disc impact=%d damaged=%d" % [impact_count, damaged_enemies])
 
 
 func record_weapon_fire(slot: int) -> void:
-	if not multiplayer.is_server() or slot < 0 or slot >= _weapon_fires.size():
+	if not multiplayer.is_server() or slot < 0 or slot >= _acceptance.weapon_fires.size():
 		return
-	_weapon_fires[slot] += 1
-	_generation_combat[world_generation] = true
-	print("COMBAT weapon fire slot=%d count=%d" % [slot + 1, _weapon_fires[slot]])
+	var fire_count := _acceptance.record_weapon_fire(slot, world_generation)
+	print("COMBAT weapon fire slot=%d count=%d" % [slot + 1, fire_count])
 
 
 func record_weapon_impact(slot: int, damaged_enemies: int) -> void:
-	if not multiplayer.is_server() or slot < 0 or slot >= _weapon_impacts.size():
+	if not multiplayer.is_server() or slot < 0 or slot >= _acceptance.weapon_impacts.size():
 		return
-	_weapon_impacts[slot] += 1
-	_weapon_hits[slot] += damaged_enemies
+	var impact_count := _acceptance.record_weapon_impact(slot, damaged_enemies)
 	print("COMBAT weapon impact slot=%d count=%d damaged=%d" % [
-		slot + 1, _weapon_impacts[slot], damaged_enemies,
+		slot + 1, impact_count, damaged_enemies,
 	])
 
 
 func record_weapon_hit(slot: int) -> void:
-	if not multiplayer.is_server() or slot < 0 or slot >= _weapon_hits.size():
+	if not multiplayer.is_server() or slot < 0 or slot >= _acceptance.weapon_hits.size():
 		return
-	_weapon_hits[slot] += 1
-	print("COMBAT weapon hit slot=%d count=%d" % [slot + 1, _weapon_hits[slot]])
+	var hit_count := _acceptance.record_weapon_hit(slot)
+	print("COMBAT weapon hit slot=%d count=%d" % [slot + 1, hit_count])
 
 
 func find_target_for(peer_id: int) -> SkooshNetworkPlayer:
@@ -1515,7 +1484,7 @@ func _broadcast_voice_command(speaker_peer_id: int, command_id: int, scope: int)
 			return
 		_last_team_voice_tick[speaker.team] = NetworkTime.tick
 	_last_voice_command_tick[speaker_peer_id] = NetworkTime.tick
-	_voice_commands_relayed += 1
+	_acceptance.record_voice_relay()
 	for avatar_variant in avatars.values():
 		var listener := avatar_variant as SkooshNetworkPlayer
 		if (
@@ -1573,8 +1542,10 @@ func _process(_delta: float) -> void:
 		_check_prepare_timeout()
 	elif multiplayer.is_server() and world_phase == WORLD_WAITING_FOR_READY:
 		_check_ready_barrier()
-	_peak_rollback_ticks = maxi(_peak_rollback_ticks, NetworkPerformance.get_rollback_ticks())
-	_peak_network_loop_ms = maxf(_peak_network_loop_ms, NetworkPerformance.get_network_loop_duration_ms())
+	_acceptance.sample_network(
+		NetworkPerformance.get_rollback_ticks(),
+		NetworkPerformance.get_network_loop_duration_ms()
+	)
 	_present_flags()
 
 
@@ -1616,10 +1587,7 @@ func _physics_process(_delta: float) -> void:
 		var player := avatar as SkooshNetworkPlayer
 		if not player.gameplay_admitted:
 			continue
-		_peak_server_speed = maxf(_peak_server_speed, player.total_speed)
-		_server_saw_jet = _server_saw_jet or player.jet_active
-		if player.total_speed >= 10.0 and player.jet_active:
-			_generation_movement[world_generation] = true
+		_acceptance.sample_movement(world_generation, player.total_speed, player.jet_active)
 		var position: Vector3 = player.global_position
 		var outside: bool = not terrain.is_within_playable_boundary(Vector2(position.x, position.z))
 		var far_below := position.y < float(terrain.height_at(position.x, position.z)) - 35.0
@@ -1664,9 +1632,12 @@ func _physics_process(_delta: float) -> void:
 
 func _drive_rotation_acceptance() -> bool:
 	if (
-		not bool(_generation_movement.get(world_generation, false))
-		or not bool(_generation_combat.get(world_generation, false))
-		or (world_generation >= 3 and int(_generation_captures.get(world_generation, 0)) >= 1)
+		not bool(_acceptance.generation_movement.get(world_generation, false))
+		or not bool(_acceptance.generation_combat.get(world_generation, false))
+		or (
+			world_generation >= 3
+			and int(_acceptance.generation_captures.get(world_generation, 0)) >= 1
+		)
 	):
 		return false
 	var red_player: SkooshNetworkPlayer
@@ -1732,7 +1703,7 @@ func _take_flag(flag_team: int, player: SkooshNetworkPlayer) -> void:
 	print("CTF pickup player=%d team=%s flag=%s" % [
 		player.peer_id, get_team_name(player.team), get_team_name(flag_team)
 	])
-	if _acceptance_mode and _require_ctf and _ctf_captures == 0:
+	if _acceptance_mode and _require_ctf and _acceptance.ctf_captures == 0:
 		var route := MapCatalog.get_route(map_config, str(map_config["bot_route"]))
 		var waypoints := route["waypoints"] as Array
 		_acceptance_route_carrier = player.peer_id
@@ -1749,7 +1720,7 @@ func _observe_acceptance_full_route() -> void:
 	if (
 		not _acceptance_mode
 		or not _require_ctf
-		or _full_route_captures > 0
+		or _acceptance.full_route_captures > 0
 		or _acceptance_route_complete
 		or _acceptance_route_carrier == 0
 	):
@@ -1788,9 +1759,9 @@ func _advance_acceptance_capture_contacts() -> void:
 	if (
 		not _acceptance_mode
 		or not _require_ctf
-		or _full_route_captures != 1
-		or _ctf_captures < 1
-		or _ctf_captures >= score_limit
+		or _acceptance.full_route_captures != 1
+		or _acceptance.ctf_captures < 1
+		or _acceptance.ctf_captures >= score_limit
 		or round_over
 	):
 		return
@@ -1804,12 +1775,12 @@ func _advance_acceptance_capture_contacts() -> void:
 		if not _acceptance_acceleration_started:
 			_acceptance_acceleration_started = true
 			print("ACCEPT CTF acceleration enabled player=%d after_full_route_captures=%d" % [
-				player.peer_id, _full_route_captures,
+				player.peer_id, _acceptance.full_route_captures,
 			])
 		player.apply_acceptance_contact_position(_acceptance_contact_position(enemy_team))
 		_acceptance_capture_phase = ACCEPTANCE_CAPTURE_PICKUP
 		print("ACCEPT CTF contact positioned player=%d contact=pickup capture_target=%d" % [
-			player.peer_id, _ctf_captures + 1,
+			player.peer_id, _acceptance.ctf_captures + 1,
 		])
 	elif (
 		_acceptance_capture_phase == ACCEPTANCE_CAPTURE_PICKUP
@@ -1819,7 +1790,7 @@ func _advance_acceptance_capture_contacts() -> void:
 		player.apply_acceptance_contact_position(_acceptance_contact_position(player.team))
 		_acceptance_capture_phase = ACCEPTANCE_CAPTURE_HOME
 		print("ACCEPT CTF contact positioned player=%d contact=capture capture_target=%d" % [
-			player.peer_id, _ctf_captures + 1,
+			player.peer_id, _acceptance.ctf_captures + 1,
 		])
 
 
@@ -1842,7 +1813,7 @@ func _capture_flag(player: SkooshNetworkPlayer, enemy_flag_team: int) -> bool:
 	):
 		return false
 	var full_route_capture := (
-		_ctf_captures == 0
+		_acceptance.ctf_captures == 0
 		and player.peer_id == _acceptance_route_carrier
 		and _acceptance_route_complete
 	)
@@ -1854,31 +1825,27 @@ func _capture_flag(player: SkooshNetworkPlayer, enemy_flag_team: int) -> bool:
 		red_score += 1
 	else:
 		blue_score += 1
-	_ctf_captures += 1
-	_generation_captures[world_generation] = int(_generation_captures.get(world_generation, 0)) + 1
-	if full_route_capture:
-		_full_route_captures += 1
-	if accelerated_capture:
-		_accelerated_captures += 1
+	_acceptance.record_capture(world_generation, full_route_capture, accelerated_capture)
 	var route_evidence := "full" if full_route_capture else ("acceptance_contacts" if accelerated_capture else "standard")
 	print("CTF capture player=%d team=%s score=%d-%d route=%s" % [
 		player.peer_id, get_team_name(player.team), red_score, blue_score, route_evidence,
 	])
 	_acceptance_capture_phase = ACCEPTANCE_CAPTURE_IDLE
 	if red_score >= score_limit or blue_score >= score_limit:
-		_limit_wins += 1
+		_acceptance.record_capture_outcome(true)
 		_reset_objectives("match won")
 		_end_round(player.team)
 	else:
-		_non_winning_captures += 1
+		_acceptance.record_capture_outcome(false)
 		_start_objective_reset()
 	if _require_ctf or _require_map_baseline:
 		# Replay the just-consumed contact once to prove stale delivery cannot score.
 		var score_after_award := Vector2i(red_score, blue_score)
-		if not _capture_flag(player, enemy_flag_team) and Vector2i(red_score, blue_score) == score_after_award:
-			_duplicate_capture_checks += 1
-		else:
-			_duplicate_capture_awards += 1
+		var duplicate_rejected := (
+			not _capture_flag(player, enemy_flag_team)
+			and Vector2i(red_score, blue_score) == score_after_award
+		)
+		_acceptance.record_duplicate_capture(duplicate_rejected)
 	return true
 
 
@@ -1893,7 +1860,7 @@ func _start_objective_reset() -> void:
 func _finish_objective_reset() -> void:
 	objective_reset_tick = -1
 	_reset_objectives("objective ready")
-	_objective_resets_completed += 1
+	_acceptance.objective_resets_completed += 1
 	print("CTF objective ready score=%d-%d" % [red_score, blue_score])
 
 
@@ -1906,7 +1873,7 @@ func _end_round(team: int) -> void:
 	round_over = true
 	winner_team = team
 	round_restart_tick = NetworkTime.tick + ROUND_RESTART_TICKS
-	_completed_rounds += 1
+	_acceptance.completed_rounds += 1
 	print("CTF win team=%s round=%d score=%d-%d restart_tick=%d" % [
 		get_team_name(team), round_number, red_score, blue_score, round_restart_tick
 	])
@@ -2180,7 +2147,7 @@ func _activate_world(generation: int) -> void:
 	winner_team = -1
 	round_restart_tick = -1
 	round_number += 1
-	_match_resets += 1
+	_acceptance.match_resets += 1
 	match_state_generation = world_generation
 	_return_flag_home(TEAM_RED, "rotated world")
 	_return_flag_home(TEAM_BLUE, "rotated world")
@@ -2236,7 +2203,7 @@ func _start_new_round() -> void:
 	winner_team = -1
 	round_restart_tick = -1
 	round_number += 1
-	_match_resets += 1
+	_acceptance.match_resets += 1
 	_return_flag_home(TEAM_RED, "new round")
 	_return_flag_home(TEAM_BLUE, "new round")
 	for avatar in avatars.values():
@@ -2366,18 +2333,18 @@ func _finish_automated_test() -> void:
 	var status := multiplayer.multiplayer_peer.get_connection_status()
 	var peer_id := multiplayer.get_unique_id() if status == MultiplayerPeer.CONNECTION_CONNECTED else 0
 	if _server_mode:
-		total_kills = _combat_kills
-		total_deaths = _combat_deaths
+		total_kills = _acceptance.combat_kills
+		total_deaths = _acceptance.combat_deaths
 	var current_character_variants: Dictionary = {}
 	for id in avatars:
 		var player := avatars[id] as SkooshNetworkPlayer
 		if SkooshNetworkPlayer.is_character_variant_valid(player.character_variant):
 			current_character_variants[id] = player.character_variant
 	var assigned_variant_ids: Dictionary = {}
-	for variant_id in _server_assigned_character_variants.values():
+	for variant_id in _acceptance.server_assigned_character_variants.values():
 		assigned_variant_ids[int(variant_id)] = true
 	var observed_variant_ids: Dictionary = {}
-	for variant_id in _observed_character_variants.values():
+	for variant_id in _acceptance.observed_character_variants.values():
 		observed_variant_ids[int(variant_id)] = true
 	var current_variant_ids: Dictionary = {}
 	for variant_id in current_character_variants.values():
@@ -2388,46 +2355,30 @@ func _finish_automated_test() -> void:
 			character_visual_shells += 1
 	var character_resources_cached := SkooshNetworkPlayer.character_variant_resources_cached()
 	print("ACCEPT multiplayer peer=%d peak_avatars=%d current_avatars=%d kills=%d deaths=%d disc_impacts=%d disc_damage=%d weapon_fires=%s weapon_impacts=%s weapon_hits=%s voice=%d captures=%d full_route_captures=%d accelerated_captures=%d non_winning_captures=%d limit_wins=%d objective_resets=%d completed_matches=%d match_resets=%d duplicate_checks=%d duplicate_awards=%d score_limit=%d current_variant_peers=%d current_variants=%d assigned_variant_peers=%d assigned_variants=%d observed_variant_peers=%d observed_variants=%d peak_speed=%.1f jet=%s max_rollback=%d peak_net_ms=%.2f elapsed_ms=%d" % [
-		peer_id, _peak_avatars, avatars.size(), total_kills, total_deaths,
-		_disc_impacts, _disc_damage_events, _weapon_fires, _weapon_impacts, _weapon_hits,
-		_voice_commands_relayed,
-		_ctf_captures, _full_route_captures, _accelerated_captures,
-		_non_winning_captures, _limit_wins, _objective_resets_completed,
-		_completed_rounds, _match_resets, _duplicate_capture_checks, _duplicate_capture_awards,
+		peer_id, _acceptance.peak_avatars, avatars.size(), total_kills, total_deaths,
+		_acceptance.disc_impacts, _acceptance.disc_damage_events,
+		_acceptance.weapon_fires, _acceptance.weapon_impacts, _acceptance.weapon_hits,
+		_acceptance.voice_commands_relayed,
+		_acceptance.ctf_captures, _acceptance.full_route_captures,
+		_acceptance.accelerated_captures, _acceptance.non_winning_captures,
+		_acceptance.limit_wins, _acceptance.objective_resets_completed,
+		_acceptance.completed_rounds, _acceptance.match_resets,
+		_acceptance.duplicate_capture_checks, _acceptance.duplicate_capture_awards,
 		score_limit,
 		current_character_variants.size(), current_variant_ids.size(),
-		_server_assigned_character_variants.size(), assigned_variant_ids.size(),
-		_observed_character_variants.size(), observed_variant_ids.size(),
-		_peak_server_speed, _server_saw_jet,
-		_peak_rollback_ticks, _peak_network_loop_ms, Time.get_ticks_msec() - _test_started_at
+		_acceptance.server_assigned_character_variants.size(), assigned_variant_ids.size(),
+		_acceptance.observed_character_variants.size(), observed_variant_ids.size(),
+		_acceptance.peak_server_speed, _acceptance.server_saw_jet,
+		_acceptance.peak_rollback_ticks, _acceptance.peak_network_loop_ms,
+		Time.get_ticks_msec() - _test_started_at
 	])
-	var combat_failed: bool = _require_combat and (
-		_peak_avatars < 2 or total_deaths < 1 or total_kills < 1
-		or _disc_impacts < 1 or _disc_damage_events < 1
-		or _weapon_fires.min() < 1 or _weapon_impacts[1] < 1 or _weapon_hits[1] < 1
-		or _weapon_hits[2] < 1 or _weapon_hits[3] < 1
+	var combat_failed := _acceptance.combat_failed(_require_combat, total_deaths, total_kills)
+	var movement_failed := _acceptance.movement_failed(_require_movement)
+	var ctf_failed := _acceptance.ctf_failed(
+		_require_ctf, score_limit, _acceptance_mode, _require_rotation
 	)
-	var movement_failed := _require_movement and (_peak_server_speed < 10.0 or not _server_saw_jet)
-	var ctf_failed := _require_ctf and (
-		_ctf_captures < score_limit
-		or (_acceptance_mode and not _require_rotation and _full_route_captures != 1)
-		or (_acceptance_mode and not _require_rotation and _accelerated_captures != score_limit - 1)
-		or _non_winning_captures < score_limit - 1
-		or _limit_wins < 1
-		or _objective_resets_completed < score_limit - 1
-		or _completed_rounds < 1
-		or _match_resets < 1
-		or _duplicate_capture_checks < score_limit
-		or _duplicate_capture_awards > 0
-	)
-	var map_baseline_failed := _require_map_baseline and (
-		_ctf_captures < 1
-		or _non_winning_captures < 1
-		or _objective_resets_completed < 1
-		or _duplicate_capture_checks < 1
-		or _duplicate_capture_awards > 0
-	)
-	var voice_failed := _require_voice and _voice_commands_relayed < 1
+	var map_baseline_failed := _acceptance.map_baseline_failed(_require_map_baseline)
+	var voice_failed := _acceptance.voice_failed(_require_voice)
 	var variants_failed := false
 	if _require_character_variants:
 		if _server_mode:
@@ -2435,14 +2386,15 @@ func _finish_automated_test() -> void:
 				current_character_variants.size() != avatars.size()
 				or current_character_variants.size() < 2
 				or current_variant_ids.size() < 2
-				or _server_assigned_character_variants != current_character_variants
-				or not _observed_character_variants.is_empty()
+				or _acceptance.server_assigned_character_variants != current_character_variants
+				or not _acceptance.observed_character_variants.is_empty()
 				or character_visual_shells != 0
 				or character_resources_cached
 			)
 			print("ACCEPT character variants role=server result=%s current=%s assigned=%s observed=%s visual_shells=%d resources_cached=%s" % [
 				"FAIL" if variants_failed else "PASS", current_character_variants,
-				_server_assigned_character_variants, _observed_character_variants,
+				_acceptance.server_assigned_character_variants,
+				_acceptance.observed_character_variants,
 				character_visual_shells, character_resources_cached,
 			])
 		else:
@@ -2450,11 +2402,11 @@ func _finish_automated_test() -> void:
 				current_character_variants.size() != avatars.size()
 				or current_character_variants.size() < 2
 				or current_variant_ids.size() < 2
-				or _observed_character_variants != current_character_variants
+				or _acceptance.observed_character_variants != current_character_variants
 			)
 			print("ACCEPT character variants role=client result=%s current=%s observed=%s" % [
 				"FAIL" if variants_failed else "PASS", current_character_variants,
-				_observed_character_variants,
+				_acceptance.observed_character_variants,
 			])
 	var rotation_failed := false
 	if _require_rotation:
@@ -2478,15 +2430,15 @@ func _finish_automated_test() -> void:
 				or _rotation_character_assignments != _peer_character_variants
 				or avatars.size() != _approved_peer_ids().size()
 				or avatars.size() != 2
-				or int(_generation_captures.get(1, 0)) < score_limit
-				or int(_generation_captures.get(2, 0)) < score_limit
-				or int(_generation_captures.get(3, 0)) < 1
-				or not bool(_generation_movement.get(1, false))
-				or not bool(_generation_movement.get(2, false))
-				or not bool(_generation_movement.get(3, false))
-				or not bool(_generation_combat.get(1, false))
-				or not bool(_generation_combat.get(2, false))
-				or not bool(_generation_combat.get(3, false))
+				or int(_acceptance.generation_captures.get(1, 0)) < score_limit
+				or int(_acceptance.generation_captures.get(2, 0)) < score_limit
+				or int(_acceptance.generation_captures.get(3, 0)) < 1
+				or not bool(_acceptance.generation_movement.get(1, false))
+				or not bool(_acceptance.generation_movement.get(2, false))
+				or not bool(_acceptance.generation_movement.get(3, false))
+				or not bool(_acceptance.generation_combat.get(1, false))
+				or not bool(_acceptance.generation_combat.get(2, false))
+				or not bool(_acceptance.generation_combat.get(3, false))
 				or _world_contract_failed
 				or not _retired_worlds.is_empty()
 				or get_node_or_null("World_1") != null
@@ -2505,7 +2457,8 @@ func _finish_automated_test() -> void:
 			"server" if _server_mode else "client", "FAIL" if rotation_failed else "PASS",
 			world_generation, map_id, match_state_generation, _rotation_map_history,
 			_approved_peer_ids(), avatars.size(),
-			_generation_movement, _generation_combat, _generation_captures,
+			_acceptance.generation_movement, _acceptance.generation_combat,
+			_acceptance.generation_captures,
 		])
 	var test_failed := (
 		combat_failed or movement_failed or ctf_failed or map_baseline_failed
