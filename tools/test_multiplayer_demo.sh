@@ -34,6 +34,7 @@ trap cleanup EXIT INT TERM
 	--map="$MAP_ID" \
 	--acceptance-mode \
   --test-seconds="$TEST_SECONDS" --require-combat --require-movement --require-ctf \
+  --require-map-baseline \
   --require-voice --require-character-variants >"$LOG_DIR/server.log" 2>&1 &
 server_pid=$!
 pids+=("$server_pid")

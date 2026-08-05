@@ -188,6 +188,10 @@ properties/15/path = NodePath(".:objective_reset_tick")
 properties/15/spawn = true
 properties/15/sync = true
 properties/15/watch = true
+properties/16/path = NodePath(".:match_state_generation")
+properties/16/spawn = true
+properties/16/sync = true
+properties/16/watch = true
 
 [node name="NetworkDemo" type="Node3D"]
 script = ExtResource("1_main")

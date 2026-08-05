@@ -10,6 +10,7 @@ var source_team := -1
 var spawn_tick := -1
 var source_rid := RID()
 var weapon: Node
+var world_generation := -1
 
 
 func _ready() -> void:
@@ -33,6 +34,8 @@ func launch(
 	source_team = team
 	source_rid = shooter_rid
 	weapon = owner_weapon
+	var arena: Node = weapon.player.get_game_root() if is_instance_valid(weapon) else null
+	world_generation = arena.world_generation if arena != null else -1
 	spawn_tick = NetworkTime.tick
 
 
@@ -44,6 +47,7 @@ func apply_launch_data(data: Dictionary, fast_forward: bool = false) -> void:
 	source_peer_id = int(data.get("source_peer_id", 0))
 	source_team = int(data.get("source_team", -1))
 	spawn_tick = int(data.get("spawn_tick", NetworkTime.tick))
+	world_generation = int(data.get("generation", -1))
 	if fast_forward:
 		var elapsed_ticks := clampi(NetworkTime.tick - spawn_tick, 0, 12)
 		global_position += velocity * NetworkTime.ticktime * elapsed_ticks
@@ -57,11 +61,23 @@ func get_launch_data() -> Dictionary:
 		"source_peer_id": source_peer_id,
 		"source_team": source_team,
 		"spawn_tick": spawn_tick,
+		"generation": world_generation,
 	}
 
 
+func is_generation_active() -> bool:
+	if not is_instance_valid(weapon):
+		return false
+	var arena: Node = weapon.player.get_game_root()
+	return (
+		arena != null
+		and world_generation == arena.world_generation
+		and arena.is_node_in_active_world(self)
+	)
+
+
 func _network_tick(delta: float, tick: int) -> void:
-	if spawn_tick < 0:
+	if spawn_tick < 0 or not is_generation_active():
 		return
 	if tick - spawn_tick >= MAX_LIFETIME_TICKS:
 		queue_free()

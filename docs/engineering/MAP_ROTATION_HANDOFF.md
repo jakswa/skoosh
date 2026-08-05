@@ -1,165 +1,162 @@
-# Authoritative map rotation handoff
+# Authoritative map rotation
 
 ## Status
 
-Automatic rotation is intentionally not implemented on
-`feature/proper-maps-score-loop`. Faultline Basin and Cairn Steps are real map
-definitions in this branch, but the live scene still has no disposable-world
-boundary. A generation-based implementation completed the happy-path rotation
-in a discarded spike, then independent review and fault injection found unsafe
-admission, rollback-baseline, and timeout behavior. No partial rotation code was
-retained.
+Automatic production rotation is implemented. A dedicated server starting on
+Faultline Basin rotates to Cairn Steps after a score-limit match, then back to
+Faultline after the next match. `--map=faultline_basin` and
+`--map=cairn_steps` select the initial point in that rotation.
 
-The server-owned score-limit loop is complete and resets the current map after
-intermission. Runtime rotation remains separate work.
+Kestrel Basin remains the explicit legacy/test single-map opt-out because it is
+not a production rotation member. `--require-map-baseline` also suppresses
+rotation for the static-map acceptance fixture only. A client without `--map`
+follows the server's current production generation; an explicit client map is
+an exact startup assertion.
 
-## What was inspected
+## World seam
 
-- `scenes/network_demo.tscn` owns one static terrain, arena, flags, players,
-  projectiles, effects, root state synchronizer, lobby, and renderer profile.
-- `scripts/network_main.gd::_configure_map()` caches static
-  `@onready` terrain/platform/flag references and computes one set of homes and
-  spawn transforms.
-- `scripts/terrain.gd::generate()` is one-shot behind `_generated`; it creates
-  both the render mesh and trimesh collider directly under the static terrain
-  body. There is no teardown/reconfigure contract.
-- `scripts/network_main.gd::_spawn_avatar()` independently creates the same
-  named avatar on every peer. Each avatar owns rollback history and RPC paths.
-- `RollbackSynchronizer::_exit_tree()` disconnects rollback signals, and the
-  history transmitter frees its root's input-submission entry on predelete.
-  This makes fresh avatar instances plausible, but there is no game-level
-  generation barrier preventing old network messages from reaching reused
-  node paths.
-- `NetworkWeapon` retains predicted projectile IDs/data per avatar and uses
-  reliable RPCs on the weapon node. `SkooshDiscLauncher` puts projectile nodes
-  in the root `Projectiles` container, while impact RPCs put presentation in
-  `Effects`. None of those requests, accepts, declines, or impacts carries a
-  world generation.
-- `NetworkEvents` starts/stops the shared network clock with the ENet peer. A
-  whole-scene replacement would also replace the node that currently owns
-  connection handlers and the root synchronizer; this branch has no tested
-  persistent-session shell around it.
+`NetworkDemo` remains alive for the ENet peer, lobby, `NetworkTime`, connection
+handlers, match director, and root state synchronizer. Disposable gameplay
+state is rebuilt under monotonically named `World_N` children:
 
-## Explored options
-
-| Option | Result |
-|---|---|
-| Change or reload the main scene | Rejected. It couples ENet ownership, root RPC paths, netfox lifecycle, lobby, and world teardown without a peer-preservation handshake. |
-| Mutate terrain configuration and move the existing bases | Rejected. The terrain generator is one-shot, landmarks are static scene children, and changing selected catalog data would not replace the complete world safely. |
-| Rebuild selected children in place | Recommended after adding a disposable world seam and generation protocol. It can preserve the root node, ENet peer, `NetworkTime`, lobby, and replicated session state. |
-
-## Discarded spike findings
-
-The spike used generation-qualified worlds and bounded prepare/ready phases. It
-proved that terrain, collision, objectives, avatars, and presentation can be
-rebuilt while preserving ENet peer IDs, but it was not safe to merge:
-
-- A connection attempt froze existing players and cleared authoritative
-  projectiles before map/hash approval, allowing admission traffic to alter a
-  live match.
-- Hash report, world bootstrap, and avatar-path acknowledgement were separate
-  waits. Only the first had a deadline, so a peer could freeze the match after
-  reporting a valid hash.
-- Concurrent joins could receive different expected-peer snapshots and then
-  disagree permanently on the avatar set.
-- Clients acknowledged world readiness before receiving an authoritative
-  rollback transform/history baseline, producing stale post-rotation fire.
-- Joins during prepare/commit could miss activation or target generation paths
-  that did not exist locally.
-- Admission visibility initially gated regular replication but not all rollback
-  and projectile RPC traffic.
-
-The follow-up must keep admission isolated from active gameplay. Do not solve
-late join by globally pausing the match or deleting transient authoritative
-state. Every post-report phase needs an immutable deadline and retry/bootstrap
-semantics for peer-set changes.
-
-## Recommended seam
-
-Keep `NetworkDemo`, its ENet setup, connection handlers, match director, and
-session synchronizer alive. Move all disposable state under a generation-named
-container such as `World_7`:
-
-- Terrain render mesh and collider.
-- Arena collision, flags, platforms, and all landmarks.
+- Deterministic terrain render mesh and trimesh collider.
+- Platforms, flags, landmarks, curved OOB data, and map presentation.
 - `Players`, `Projectiles`, and `Effects` containers.
-- Map-specific environment presentation if the two maps differ there.
+- Fresh avatars, rollback histories, interpolators, and generation-qualified
+  RPC paths.
 
-Use the existing `SkooshMapCatalog` definitions as inputs to a typed disposable
-world builder. It must own or reference the full terrain/world scene, base and
-flag transforms, team spawns, landmarks, objective bounds, and map-specific
-out-of-bounds contract. Build a fresh world instance for every generation
-instead of mutating `SkooshTerrain._generated`.
+Team and character assignments live at the persistent root and are restored in
+stable peer-ID order. The active world supplies map bounds, terrain queries,
+objective homes, spawn transforms, bot routes, and transient containers.
 
-Split the current responsibilities at these points:
+Retired worlds become invisible and collisionless immediately. Their netfox
+rollback/interpolation processing is deactivated, but their paths remain as
+inert tombstones for ten seconds so delayed reliable packets resolve against an
+old generation rather than a newly reused path. Generation checks reject that
+traffic. The tombstone and netfox input-submission state are then freed.
 
-- `network_main.gd::_configure_compact_arena()` becomes world-definition
-  application and validation.
-- `_spawn_avatar()` and `_remove_avatar()` become generation-aware and target
-  the current world's `Players` node.
-- `get_team_spawn_transform()` reads validated transforms from the active map.
-- `_physics_process()` reads map-owned bounds/terrain queries rather than the
-  static `terrain` reference.
-- `network_weapon.gd` and `hitscan_weapon.gd` resolve generation-owned
-  projectile/effect containers and attach the generation to every gameplay or
-  presentation RPC.
+## Compatibility
 
-Use generation-qualified node paths until old traffic is outside every
-relevant lifetime. Reusing `/NetworkDemo/Players/Player_2/...` immediately can
-let a delayed reliable weapon RPC address a new avatar with the same path.
+`SkooshMapCatalog.get_definition_hash()` computes a SHA-256 digest over the
+complete map definition and explicit revisions for:
 
-## Bounded protocol
+- Map-bootstrap protocol.
+- Deterministic terrain generation.
+- Landmark generation.
+- Disposable-world construction.
 
-Use explicit phases such as `ACTIVE`, `PREPARING`, `COMMITTING`, and
-`WAITING_FOR_WORLD`. The server is the only phase/map/generation authority.
+Clients compute their own digest. A same-ID incompatible build is disconnected
+before any avatar is created. Changes to those systems that are not represented
+in map data must bump the corresponding revision in `scripts/map_catalog.gd`.
 
-1. At match end, the server selects the other real map ID, increments a
-   monotonic generation, freezes objective/combat requests, and sends a
-   reliable prepare message containing generation, map ID, definition hash,
-   and an absolute deadline.
-2. Each client validates that map ID/hash, quiesces input, clears predicted
-   projectiles/effects, and reliably acknowledges that exact generation.
-   Stale generations are ignored; a skipped generation requests a fresh
-   bootstrap instead of guessing.
-3. The server tracks a finite set of currently connected peer IDs. Disconnects
-   are removed from the barrier. A late join receives the current phase and
-   generation bootstrap and is added to the pending set only with the same
-   bounded deadline.
-4. On all acknowledgements, or after disconnecting peers that miss the
-   operator-defined timeout, the server sends a reliable commit with a future
-   network tick. An unbounded wait is not acceptable.
-5. At the commit tick every peer frees the old generation container, waits for
-   deletion/physics flush, instantiates the target map under its generation
-   name, and recreates one avatar per connected peer in stable peer-ID order.
-   The server supplies preserved team and presentation assignments; gameplay
-   state starts fresh.
-6. Clients acknowledge world readiness with generation and definition hash.
-   The server resumes `ACTIVE` only after the bounded readiness barrier. Peers
-   that cannot build the agreed world are disconnected rather than allowed to
-   simulate a different map.
+## Admission
 
-Every fire request, projectile accept/decline/impact, voice or objective event
-that can cross the transition must include the generation and reject a mismatch.
-Match/objective replicated state must also carry generation so late snapshots
-cannot overwrite the new world.
+Admission is isolated from active gameplay and serialized by the server. A
+connection attempt never pauses the match or clears live projectiles/effects.
 
-## Required acceptance
+1. New peers enter a queue. Admission begins only while the world is `ACTIVE`;
+   joins during preparation, commit, or readiness wait for the next active
+   generation.
+2. The server offers generation, map ID, definition hash, and the immutable
+   admitted-peer snapshot. One five-second absolute deadline covers map report,
+   world bootstrap, avatar-path confirmation, and rollback baseline readiness.
+3. The joining client builds the offered generation and creates the advertised
+   avatar paths. Existing peers create the joining avatar while all gameplay
+   replication to and from that peer remains hidden. Provisional avatars are
+   collisionless and authoritative rollback, damage, targeting, objectives, and
+   voice ignore them.
+4. The server sends a reliable authoritative rollback state baseline for every
+   current avatar. Only after the client applies it and all existing observers
+   acknowledge the new avatar path does the server mark the peer admitted.
+5. Input, combat, voice, objectives, rollback state, projectile accepts, and
+   root match state all exclude unadmitted peers. Concurrent joins cannot form
+   different peer snapshots because only one admission is active at a time.
 
-- Complete matches rotate `faultline_basin` to `cairn_steps` and back using the
-  real map definitions.
-- Connected ENet peer IDs and connection status are unchanged across at least
-  two rotations; each peer has exactly one recreated avatar afterward.
-- Server and all clients log the same generation, map ID, and definition hash.
-- Old avatars, rollback synchronizers, input-submission entries, projectiles,
-  effects, terrain mesh/collider RIDs, platforms, flags, and landmarks are gone.
-- New collision samples, objective transforms, spawn transforms, and landmarks
-  match the selected map on server and clients.
-- A client joining during preparation reaches the committed generation; a
-  disconnect cannot stall the barrier.
-- Duplicate/stale prepare, acknowledgement, commit, fire, projectile, impact,
-  and objective messages are ignored by generation.
-- A non-acknowledging or map-mismatched peer is handled by a finite timeout and
-  cannot keep the server between maps indefinitely.
-- The full multiplayer acceptance still proves movement, combat, score-limit
-  accumulation, intermission/reset, and no duplicate capture awards after each
-  rebuild.
+If a match ends during an active admission, that incomplete peer is disconnected
+before the immutable transition peer set is captured. Queued peers remain
+connected and bootstrap against the committed generation afterward.
+An admitted-peer departure also terminates the one incomplete admission rather
+than letting its immutable avatar snapshot drift. Timeout and mismatch rejection
+clear admission state synchronously before transport teardown, so a late
+acknowledgement cannot race the rejection.
+
+## Rotation protocol
+
+The server owns `ACTIVE`, `PREPARING`, `COMMITTING`, and
+`WAITING_FOR_READY`, plus map ID and monotonic generation.
+
+1. A score-limit win freezes gameplay, snapshots admitted peer IDs, chooses the
+   next production map, and sends generation/map/hash prepare data. The prepare
+   barrier has a four-second deadline.
+2. At the existing five-second intermission tick, non-acknowledging peers are
+   disconnected and the server commits the remaining immutable peer set.
+3. Every peer retires the old world, builds the new map, and recreates avatars
+   in peer-ID order with server-preserved assignments.
+4. Clients acknowledge path/world construction. The first build acknowledgement
+   establishes a current-tick server rollback baseline; clients apply it and
+   acknowledge readiness under one immutable eight-second ready deadline.
+5. Missing peers are disconnected. After disconnect delivery is observed, or a
+   bounded one-second flush expires, the server sends one final current-tick
+   baseline immediately before the reliable activation message.
+6. Match/objective state resets, its replicated generation is set to the active
+   world generation, root state visibility resumes, and rollback/input resume
+   after a one-second warmup.
+
+The final baseline avoids a netfox history-window overflow when terrain
+construction or a ready timeout advances synchronized time by more than the
+128-tick rollback history.
+
+## Traffic boundaries
+
+The following cross-transition traffic carries or validates generation and
+rejects a mismatch:
+
+- Projectile request, accept, decline, and impact presentation.
+- Hitscan request and tracer/hit presentation.
+- Grenade impact presentation.
+- Voice request and delivery.
+- Prepare, build, baseline-ready, commit, and activation messages.
+- Replicated match/objective state carries `match_state_generation`; root
+  replication is hidden during construction and the HUD suppresses state whose
+  generation does not match the active world.
+
+The generic netfox weapon proxy now delegates generation validation and RPC
+target selection to `SkooshDiscLauncher`. Projectile accepts target admitted
+gameplay peers rather than broadcasting to every ENet connection. This prevents
+a queued join from receiving a `World_N/.../Weapon/Node` RPC before map approval
+has created that path.
+
+## Acceptance
+
+- `tools/test_map_rotation.sh`: two connected peers complete
+  `Faultline -> Cairn -> Faultline`; generation/map/hash/world signatures match
+  on server and clients; peer IDs and assignments persist; acceptance bots and
+  the authoritative contact seam prove fire, movement, and scoring still execute
+  in all three generations; retired worlds are gone.
+- `tools/test_network_bootstrap.sh`: an independently computed incompatible hash
+  is rejected without an avatar, and a default-map client joining during Cairn
+  preparation is queued then admitted directly into generation 2 without ghost
+  paths or preapproval gameplay RPCs.
+- `tools/test_rotation_ready_timeout.sh`: a client that builds but withholds its
+  baseline-ready acknowledgement is disconnected within the bounded deadline;
+  the remaining peer activates without rollback or packet errors.
+- `tools/test_rotation_prepare_disconnect.sh`: a disconnect during preparation
+  is removed from the immutable barrier and the remaining peer activates on
+  Cairn.
+- `tools/test_multiplayer_demo.sh`: the static-map fixture still proves the full
+  authored route, score accumulation, score-limit win/reset, combat, movement,
+  voice, and character variants without invoking rotation.
+
+All of the above pass headlessly, along with `tools/test_ground_jet.sh`,
+`tools/test_competitive_maps.sh`, `tools/test_map_mismatch.sh`, and
+`tools/test_score_limit_cli.sh`.
+
+## Remaining qualification
+
+- Artificial latency, jitter, and loss across prepare/build/baseline/activation.
+- Scale and bandwidth testing beyond two active clients plus one queued join.
+- Deterministic stale-message injection for every transition/gameplay RPC and
+  fault injection for admitted-peer departure during each admission subphase.
+- Human playtesting of match pacing across repeated map changes.
+- Operator tuning of the four-second prepare and eight-second readiness limits
+  on minimum-spec server/client hardware.

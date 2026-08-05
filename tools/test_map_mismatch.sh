@@ -40,8 +40,12 @@ if ! grep -q "MAP mismatch server=faultline_basin client=cairn_steps" "$LOG_DIR/
   exit 1
 fi
 if grep -q "NETWORK avatar spawned" "$LOG_DIR"/*.log; then
-  echo "A map-mismatched peer spawned an avatar. Logs: $LOG_DIR" >&2
-  exit 1
+	echo "A map-mismatched peer spawned an avatar. Logs: $LOG_DIR" >&2
+	exit 1
+fi
+if grep -Eq "ERROR:|SCRIPT ERROR|Node not found|Invalid packet|Unable to send packet" "$LOG_DIR"/*.log; then
+	echo "A rejected peer received or sent preapproval replication traffic. Logs: $LOG_DIR" >&2
+	exit 1
 fi
 
 echo "Map mismatch rejection passed. Logs: $LOG_DIR"

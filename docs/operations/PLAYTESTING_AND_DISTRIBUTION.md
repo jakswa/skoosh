@@ -16,10 +16,12 @@ This starts a headless authoritative server and two graphical clients using `god
 GODOT_BIN=godot4 SKOOSH_PORT=9078 ./tools/run_multiplayer_demo.sh
 ```
 
-Faultline Basin is the default. Set `SKOOSH_MAP_ID=cairn_steps` to launch the
-other production map. Direct launches pass the corresponding
-`--map=faultline_basin` or `--map=cairn_steps` argument to the server and every
-client. Map agreement is checked before a local playable avatar spawns.
+Faultline Basin is the default rotation start. Set `SKOOSH_MAP_ID=cairn_steps`
+to start on the other production map. Direct launches pass the corresponding
+`--map=faultline_basin` or `--map=cairn_steps` assertion to the server and every
+client. Map/hash agreement and a rollback baseline are checked before a local
+playable avatar is admitted. Score-limit matches alternate production maps
+without reconnecting clients.
 
 Logs are written under the ignored `.tmp/skoosh-network` directory. Ctrl-C in the launching terminal stops the whole group. The two clients are assigned to opposing teams, so TEAM voice commands are intentionally private; press G in the open V menu to send a GLOBAL command that both clients can hear.
 
@@ -117,7 +119,7 @@ godot --headless --path . --export-release "Linux Dedicated Server"
 
 This repository has Linux, Windows, and universal macOS client presets plus a Linux server preset. The macOS archive is ad-hoc signed but not notarized, so Gatekeeper may require right-clicking the app and selecting **Open**. Windows may likewise warn about an unknown unsigned publisher. A Windows dedicated-server preset is not needed for the planned Linux hosting path.
 
-Every push to `main` triggers `.github/workflows/integration.yml`. Linux, Windows, and macOS runners each export their native client, start a native headless server, and run two exported clients through the ground-jet and authoritative CTF acceptance scenarios. Other branches and pull requests do not trigger this matrix.
+Every push to `main` triggers `.github/workflows/integration.yml`. Linux, Windows, and macOS runners each export their native client, start a native headless server, and run two exported clients through the ground-jet and authoritative CTF acceptance scenarios. Source-only rotation, bootstrap, and transition fault-injection checks are listed in `docs/engineering/MAP_ROTATION_HANDOFF.md`. Other branches and pull requests do not trigger this matrix.
 
 Tags matching `v*` trigger `.github/workflows/release.yml`. It first requires a successful three-OS `main` integration run for the exact tagged commit, then exports all four targets with pinned Godot 4.4.1 templates, writes checksums, and publishes a GitHub Release. Create a playtest release with:
 

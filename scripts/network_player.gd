@@ -105,6 +105,8 @@ var _gatling_rail_kick := 0.0
 var _view_gatling_rotor_rest_position := Vector3.ZERO
 var _world_gatling_rotor_rest_position := Vector3.ZERO
 var _charge_fraction := 1.0
+var _retired := false
+var gameplay_admitted := false
 
 
 func _ready() -> void:
@@ -162,6 +164,14 @@ func configure_peer(
 	_report_character_variant()
 
 
+func set_gameplay_admitted(admitted: bool) -> void:
+	gameplay_admitted = admitted
+	collision_layer = 1 if admitted else 0
+	collision_mask = 1 if admitted else 0
+	if not admitted:
+		velocity = Vector3.ZERO
+
+
 func _finish_network_setup() -> void:
 	set_multiplayer_authority(1)
 	input.set_multiplayer_authority(peer_id)
@@ -188,7 +198,11 @@ func _rollback_tick(delta: float, tick: int, _is_fresh: bool) -> void:
 		rotation = Vector3(0.0, respawn_yaw, 0.0)
 		head.rotation = Vector3.ZERO
 		reset_movement_state()
-	if dead:
+	if dead or not gameplay_admitted:
+		velocity = Vector3.ZERO
+		return
+	var arena := get_game_root()
+	if arena != null and arena.has_method("is_world_active") and not arena.is_world_active():
 		velocity = Vector3.ZERO
 		return
 	set_requested_weapon_slot(input.weapon_slot, tick)
@@ -348,7 +362,7 @@ func _update_weapon_proxy_visibility() -> void:
 
 
 func apply_damage(amount: int, attacker_peer_id: int) -> void:
-	if not multiplayer.is_server() or dead:
+	if not multiplayer.is_server() or dead or not gameplay_admitted:
 		return
 	health = maxi(0, health - clampi(amount, 0, max_health))
 	last_attacker = attacker_peer_id
@@ -364,7 +378,7 @@ func _die() -> void:
 	deaths += 1
 	respawn_tick = NetworkTime.tick + respawn_delay_ticks
 	velocity = Vector3.ZERO
-	var arena := get_parent().get_parent()
+	var arena := get_game_root()
 	if arena.has_method("award_kill"):
 		arena.award_kill(last_attacker, peer_id)
 	if arena.has_method("record_death"):
@@ -382,7 +396,7 @@ func request_authoritative_respawn(
 		return
 	if count_death:
 		deaths += 1
-	var arena := get_parent().get_parent()
+	var arena := get_game_root()
 	# Resolve carried objectives before moving the body. Otherwise a reset or
 	# recovery can briefly put a carrier at their own base and satisfy capture.
 	if arena.has_method("prepare_player_respawn"):
@@ -421,26 +435,26 @@ func add_kill() -> void:
 
 
 func find_bot_target() -> SkooshNetworkPlayer:
-	var arena := get_parent().get_parent()
+	var arena := get_game_root()
 	if arena.has_method("find_target_for"):
 		return arena.find_target_for(peer_id)
 	return null
 
 
 func get_bot_objective_position() -> Vector3:
-	var arena := get_parent().get_parent()
+	var arena := get_game_root()
 	if arena.has_method("get_bot_objective_position"):
 		return arena.get_bot_objective_position(peer_id)
 	return global_position - global_transform.basis.z * 20.0
 
 
 func should_bot_fire() -> bool:
-	var arena := get_parent().get_parent()
+	var arena := get_game_root()
 	return arena.has_method("should_bot_fire") and arena.should_bot_fire(peer_id)
 
 
 func carries_enemy_flag() -> bool:
-	var arena := get_parent().get_parent()
+	var arena := get_game_root()
 	return arena.has_method("player_carries_enemy_flag") and arena.player_carries_enemy_flag(self)
 
 
@@ -502,9 +516,46 @@ func _report_character_variant() -> void:
 		multiplayer.get_unique_id(), peer_id, _presented_variant,
 		character_variant_name(_presented_variant), _model_root.name,
 	])
-	var arena := get_parent().get_parent()
+	var arena := get_game_root()
 	if arena.has_method("record_character_variant_observation"):
 		arena.record_character_variant_observation(peer_id, _presented_variant)
+
+
+func get_game_root() -> Node:
+	var candidate := get_parent()
+	while candidate != null:
+		if candidate.has_method("is_world_active"):
+			return candidate
+		candidate = candidate.get_parent()
+	return null
+
+
+func retire_for_rotation() -> void:
+	if _retired:
+		return
+	_retired = true
+	gameplay_admitted = false
+	collision_layer = 0
+	collision_mask = 0
+	camera.current = false
+	world_model.visible = false
+	view_gun.visible = false
+	hud.visible = false
+	rollback_synchronizer.deactivate()
+	tick_interpolator.deactivate()
+	var state_sync := get_node_or_null("MultiplayerSynchronizer") as MultiplayerSynchronizer
+	if state_sync != null:
+		state_sync.public_visibility = false
+	if NetworkTime.on_tick.is_connected(_network_tick):
+		NetworkTime.on_tick.disconnect(_network_tick)
+	if NetworkTime.after_tick_loop.is_connected(_after_tick_loop):
+		NetworkTime.after_tick_loop.disconnect(_after_tick_loop)
+	for weapon_node in weapons:
+		if weapon_node.has_method("deactivate"):
+			weapon_node.deactivate()
+		var tick_callable := Callable(weapon_node, "_network_tick")
+		if NetworkTime.on_tick.is_connected(tick_callable):
+			NetworkTime.on_tick.disconnect(tick_callable)
 
 
 func _update_team_presentation() -> void:

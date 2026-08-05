@@ -385,8 +385,31 @@ Implemented on `feature/match-loop`:
   keeping each map run to roughly 116 wall-clock seconds while proving the full
   limit loop.
 
-Automatic rotation remains pending a disposable world-generation seam. No
-placeholder rotation code was retained. See
-`docs/engineering/MAP_ROTATION_HANDOFF.md` for the recommended persistent
-session/world-container split, bounded generation protocol, and required
-acceptance.
+Automatic rotation was completed in the following implementation pass. See
+`docs/engineering/MAP_ROTATION_HANDOFF.md` for the persistent session/world
+split, bounded generation and admission protocols, acceptance, and remaining
+impairment qualification.
+
+## 19. Authoritative production-map rotation
+
+Implemented on `feature/proper-maps-score-loop`:
+
+- Score-limit matches rotate Faultline Basin to Cairn Steps and back while the
+  ENet session root, peer IDs, teams, and character assignments persist.
+- Every generation rebuilds terrain/collision, arena objectives, landmarks,
+  avatars and rollback histories, projectiles, effects, and map presentation
+  beneath a generation-qualified disposable world.
+- A server-owned SHA-256 compatibility contract, serialized admission queue,
+  immutable prepare/readiness deadlines, reliable rollback baselines, and
+  admitted-peer visibility prevent joins or delayed gameplay traffic from
+  mutating or addressing an unbuilt world.
+- Generation-qualified projectile, hitscan, impact, voice, transition, and
+  match-state traffic rejects stale data; retired paths remain inert for a
+  bounded grace period before normal netfox teardown.
+- Headless acceptance proves two rotations with stable peers and
+  acceptance-driven authoritative movement/fire/scoring after each rebuild,
+  same-ID incompatible-build rejection, a join during preparation, readiness
+  timeout recovery, and a disconnect during preparation.
+
+Remaining work is impairment, scale/bandwidth, minimum-spec timeout, and human
+match-pacing qualification rather than rotation architecture.

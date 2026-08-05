@@ -85,8 +85,10 @@ NETWORK server listening port=9077 max_clients=16
 NETWORK authoritative CTF server started peer=1 score_limit=3
 ```
 
-Use `--map=cairn_steps` instead for the second production map. Every client must
-launch with the same map ID; mismatched peers are rejected before spawning.
+Use `--map=cairn_steps` to start at the second production map. Completed matches
+alternate between the two production maps. Clients without an explicit map
+follow the server; an explicit client map is an exact startup assertion and a
+mismatch is rejected before admission.
 
 The score limit defaults to `3`. Operators may set `--score-limit=3`,
 `--score-limit=4`, or `--score-limit=5`; a missing `N`, malformed, or other value

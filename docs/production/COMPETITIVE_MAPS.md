@@ -2,8 +2,9 @@
 
 SKOOSH ships two maps in the competitive rotation. Both use deterministic,
 authored height functions, one render mesh, and one matching trimesh collider.
-The catalog drives the server and every client from the same `--map` ID; a peer
-that reports a different ID is disconnected before its playable avatar spawns.
+The catalog and compatibility hash drive the server and every client. A peer
+with an explicit conflicting ID or definition hash is disconnected before its
+playable avatar is admitted.
 
 ## Production Rotation
 
@@ -27,7 +28,7 @@ approach. OOB recovery remains a failsafe for exceptional launches over the rim.
 
 ## Selection
 
-Faultline is the default. Select Cairn explicitly on the server and every client:
+Faultline is the default rotation start. Select Cairn as the initial map:
 
 ```bash
 SKOOSH_MAP_ID=cairn_steps ./tools/run_multiplayer_demo.sh
@@ -35,13 +36,16 @@ SKOOSH_MAP_ID=cairn_steps ./tools/run_multiplayer_demo.sh
 
 Direct process arguments use `--map=faultline_basin` or `--map=cairn_steps`.
 `--map=kestrel_basin` remains available only as an explicit legacy/test arena;
-Kestrel is not in the production rotation.
+Kestrel is not in the production rotation. Clients without `--map` follow the
+server's current production generation, including joins during a transition.
 
 ## Automated Evidence
 
 ```bash
 ./tools/test_competitive_maps.sh
 ./tools/test_map_mismatch.sh
+./tools/test_map_rotation.sh
+./tools/test_network_bootstrap.sh
 SKOOSH_TEST_MAP=faultline_basin ./tools/test_multiplayer_demo.sh
 SKOOSH_TEST_MAP=cairn_steps ./tools/test_multiplayer_demo.sh
 ```

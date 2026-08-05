@@ -14,6 +14,14 @@ const SELECTABLE_MAP_IDS: Array[String] = [
 	LEGACY_MAP_ID,
 ]
 
+# Runtime script hashing is not portable across source and exported builds. These
+# revisions are the explicit compatibility contract and must be bumped whenever
+# their named gameplay behavior changes incompatibly.
+const NETWORK_PROTOCOL_REVISION := "map-bootstrap-v3"
+const TERRAIN_GENERATION_REVISION := "competitive-terrain-v2"
+const LANDMARK_GENERATION_REVISION := "competitive-landmarks-v1"
+const WORLD_BUILD_REVISION := "rotating-world-v3"
+
 const MAPS := {
 	"faultline_basin": {
 		"label": "Faultline Basin",
@@ -231,6 +239,31 @@ static func get_map(map_id: String) -> Dictionary:
 
 static func get_label(map_id: String) -> String:
 	return str(get_map(map_id)["label"])
+
+
+static func get_definition_hash(map_id: String) -> String:
+	var test_revision := ""
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--test-compatibility-revision="):
+			test_revision = arg.trim_prefix("--test-compatibility-revision=")
+	var context := HashingContext.new()
+	context.start(HashingContext.HASH_SHA256)
+	context.update(var_to_bytes({
+		"network_protocol": NETWORK_PROTOCOL_REVISION,
+		"terrain_generation": TERRAIN_GENERATION_REVISION,
+		"landmark_generation": LANDMARK_GENERATION_REVISION,
+		"world_build": WORLD_BUILD_REVISION,
+		"map_definition": get_map(map_id),
+		"test_revision": test_revision,
+	}))
+	return context.finish().hex_encode()
+
+
+static func get_next_rotation_id(map_id: String) -> String:
+	var index := ROTATION_MAP_IDS.find(map_id)
+	if index < 0:
+		return map_id
+	return ROTATION_MAP_IDS[(index + 1) % ROTATION_MAP_IDS.size()]
 
 
 static func get_route(map_config: Dictionary, route_id: String) -> Dictionary:

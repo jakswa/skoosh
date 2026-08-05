@@ -13,14 +13,20 @@ func _reconcile(projectile: Node3D, local_data: Dictionary, remote_data: Diction
 func resolve_disc_impact(projectile: SkooshDiscProjectile, collider: Object) -> void:
 	if not multiplayer.is_server():
 		return
-	var arena := player.get_parent().get_parent()
+	var arena := player.get_game_root()
+	if (
+		projectile.world_generation != arena.world_generation
+		or not arena.is_node_in_active_world(projectile)
+		or not arena.is_peer_gameplay_admitted(projectile.source_peer_id)
+	):
+		return
 	var impact_position := projectile.global_position
 	var projectile_id := get_projectile_id(projectile)
 	var direct_target := collider as SkooshNetworkPlayer
 	var damaged_enemies := 0
 	for avatar_variant in arena.avatars.values():
 		var target := avatar_variant as SkooshNetworkPlayer
-		if target == null or target.dead:
+		if target == null or not target.gameplay_admitted or target.dead:
 			continue
 		var is_self := target.peer_id == projectile.source_peer_id
 		if target.team == projectile.source_team and not is_self:
@@ -45,6 +51,12 @@ func resolve_disc_impact(projectile: SkooshDiscProjectile, collider: Object) -> 
 		target.apply_damage(amount, projectile.source_peer_id)
 	if arena.has_method("record_weapon_impact"):
 		arena.record_weapon_impact(weapon_slot, damaged_enemies)
-	_present_disc_impact.rpc(
-		projectile_id, impact_position, projectile.source_team, damaged_enemies > 0
+	_present_disc_impact(
+		arena.world_generation, projectile_id, impact_position,
+		projectile.source_team, damaged_enemies > 0
 	)
+	for peer_id in arena.get_gameplay_peer_ids():
+		_present_disc_impact.rpc_id(
+			peer_id, arena.world_generation, projectile_id, impact_position,
+			projectile.source_team, damaged_enemies > 0
+		)

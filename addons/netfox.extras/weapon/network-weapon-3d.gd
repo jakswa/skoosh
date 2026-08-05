@@ -23,6 +23,9 @@ func get_projectile_id(projectile: Node3D) -> String:
 func despawn_projectile(id: String):
 	_weapon.despawn_projectile(id)
 
+func deactivate() -> void:
+	_weapon.deactivate()
+
 func _init():
 	_weapon = _NetworkWeaponProxy.new()
 	add_child(_weapon, true, INTERNAL_MODE_BACK)
@@ -36,6 +39,10 @@ func _init():
 	_weapon.c_apply_data = _apply_data
 	_weapon.c_is_reconcilable = _is_reconcilable
 	_weapon.c_reconcile = _reconcile
+	_weapon.c_is_network_data_current = _is_network_data_current
+	_weapon.c_is_expected_request_decline = _is_expected_request_decline
+	_weapon.c_is_expected_use_decline = _is_expected_use_decline
+	_weapon.c_get_projectile_rpc_target_peers = _get_projectile_rpc_target_peers
 
 
 ## See [NetworkWeapon]
@@ -79,3 +86,18 @@ func _reconcile(projectile: Node3D, local_data: Dictionary, remote_data: Diction
 	var final_transform = remote_transform * relative_transform
 	
 	projectile.global_transform = final_transform
+
+func _is_network_data_current(_data: Dictionary) -> bool:
+	return true
+
+func _is_expected_request_decline(_data: Dictionary) -> bool:
+	return false
+
+func _is_expected_use_decline(_data: Dictionary, _sender: int) -> bool:
+	return false
+
+func _get_projectile_rpc_target_peers() -> Array[int]:
+	var peers: Array[int] = []
+	for peer_id in multiplayer.get_peers():
+		peers.append(peer_id)
+	return peers

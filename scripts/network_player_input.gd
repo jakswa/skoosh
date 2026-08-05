@@ -61,6 +61,17 @@ func _input(event: InputEvent) -> void:
 
 func _gather() -> void:
 	_configure_if_local()
+	var player := get_parent() as SkooshNetworkPlayer
+	var arena := player.get_game_root() if player != null else null
+	if (
+		arena != null
+		and (
+			not arena.is_world_active()
+			or not arena.is_peer_gameplay_admitted(player.peer_id)
+		)
+	):
+		_set_bot_idle()
+		return
 	if bot_mode:
 		_gather_bot()
 		return
@@ -76,7 +87,8 @@ func _gather() -> void:
 
 
 func _gather_bot() -> void:
-	var arena := get_parent().get_parent().get_parent()
+	var player := get_parent() as SkooshNetworkPlayer
+	var arena := player.get_game_root() if player != null else null
 	if not "avatars" in arena or arena.avatars.size() < 2:
 		_bot_start_tick = NetworkTime.tick
 		_set_bot_idle()
@@ -101,7 +113,6 @@ func _gather_bot() -> void:
 	weapon_slot = clampi(floori(float(bot_age) / 120.0), 0, 3)
 	reset = false
 	look_delta = Vector2.ZERO
-	var player := get_parent() as SkooshNetworkPlayer
 	if player == null or player.dead:
 		fire = false
 		_bot_aim_settled_ticks = 0

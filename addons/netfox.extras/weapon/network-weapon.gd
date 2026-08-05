@@ -16,6 +16,13 @@ func _ready():
 	_rng.randomize()
 	NetworkTime.before_tick_loop.connect(_before_tick_loop)
 
+func deactivate() -> void:
+	if NetworkTime.before_tick_loop.is_connected(_before_tick_loop):
+		NetworkTime.before_tick_loop.disconnect(_before_tick_loop)
+	_reconcile_buffer.clear()
+	_projectiles.clear()
+	_projectile_data.clear()
+
 ## Check whether this weapon can be fired.
 func can_fire() -> bool:
 	return _can_fire()
@@ -35,7 +42,7 @@ func fire() -> Node:
 	if not is_multiplayer_authority():
 		_request_projectile.rpc_id(get_multiplayer_authority(), id, NetworkTime.tick, data)
 	else:
-		_accept_projectile.rpc(id, NetworkTime.tick, data)
+		_broadcast_projectile_accept(id, NetworkTime.tick, data)
 
 	_logger.debug("Calling after fire hook for %s", [projectile.name])
 	_fired_tick = NetworkTime.tick
@@ -118,6 +125,31 @@ func _apply_data(projectile: Node, data: Dictionary):
 func _is_reconcilable(projectile: Node, request_data: Dictionary, local_data: Dictionary) -> bool:
 	return true
 
+## Reject stale world-generation payloads before spawning or logging them.
+func _is_network_data_current(_data: Dictionary) -> bool:
+	return true
+
+## Expected prediction races may be declined without treating them as errors.
+func _is_expected_request_decline(_data: Dictionary) -> bool:
+	return false
+
+## A structurally valid owner request can still lose an authoritative state or
+## cooldown race. It remains declined, but is not a protocol error.
+func _is_expected_use_decline(_data: Dictionary, _sender: int) -> bool:
+	return false
+
+## Override to keep world-qualified traffic away from peers that have not built
+## the weapon's node path yet.
+func _get_projectile_rpc_target_peers() -> Array[int]:
+	var peers: Array[int] = []
+	for peer_id in multiplayer.get_peers():
+		peers.append(peer_id)
+	return peers
+
+func _broadcast_projectile_accept(id: String, tick: int, data: Dictionary) -> void:
+	for peer_id in _get_projectile_rpc_target_peers():
+		_accept_projectile.rpc_id(peer_id, id, tick, data)
+
 ## Override this method to reconcile the initial local and remote projectile
 ## state.
 ## [br][br]
@@ -190,12 +222,18 @@ func _generate_id(length: int = 12, charset: String = "abcdefghijklmnopqrstuvwxy
 @rpc("any_peer", "reliable", "call_remote")
 func _request_projectile(id: String, tick: int, request_data: Dictionary):
 	var sender = multiplayer.get_remote_sender_id()
+	if not _is_network_data_current(request_data):
+		return
 
 	# Reject if sender can't use this input
 	_fired_tick = tick
-	if not _can_peer_use(sender) or not _can_fire():
-		_decline_projectile.rpc_id(sender, id)
-		_logger.error("Projectile %s rejected! Peer %s can't use this weapon now", [id, sender])
+	var peer_can_use := _can_peer_use(sender)
+	if not peer_can_use or not _can_fire():
+		_decline_projectile.rpc_id(sender, id, request_data)
+		if peer_can_use or _is_expected_use_decline(request_data, sender):
+			_logger.debug("Declining authoritative-state-race projectile %s from peer %s", [id, sender])
+		else:
+			_logger.error("Projectile %s rejected! Peer %s can't use this weapon now", [id, sender])
 		return
 	
 	# Validate incoming data
@@ -204,16 +242,21 @@ func _request_projectile(id: String, tick: int, request_data: Dictionary):
 	
 	if not _is_reconcilable(projectile, request_data, local_data):
 		projectile.queue_free()
-		_decline_projectile.rpc_id(sender, id)
-		_logger.error("Projectile %s rejected! Can't reconcile states: [%s, %s]", [id, request_data, local_data])
+		_decline_projectile.rpc_id(sender, id, request_data)
+		if _is_expected_request_decline(request_data):
+			_logger.debug("Declining unreconciled transition-warmup projectile %s", [id])
+		else:
+			_logger.error("Projectile %s rejected! Can't reconcile states: [%s, %s]", [id, request_data, local_data])
 		return
 	
 	_save_projectile(projectile, id, local_data)
-	_accept_projectile.rpc(id, tick, local_data)
+	_broadcast_projectile_accept(id, tick, local_data)
 	_after_fire(projectile)
 
 @rpc("authority", "reliable", "call_local")
 func _accept_projectile(id: String, tick: int, response_data: Dictionary):
+	if not _is_network_data_current(response_data):
+		return
 	if multiplayer.get_unique_id() == multiplayer.get_remote_sender_id():
 		# Projectile is local, nothing to do
 		return
@@ -233,7 +276,9 @@ func _accept_projectile(id: String, tick: int, response_data: Dictionary):
 		_after_fire(projectile)
 
 @rpc("authority", "reliable", "call_remote")
-func _decline_projectile(id: String):
+func _decline_projectile(id: String, request_data: Dictionary):
+	if not _is_network_data_current(request_data):
+		return
 	if not _projectiles.has(id):
 		return
 	
