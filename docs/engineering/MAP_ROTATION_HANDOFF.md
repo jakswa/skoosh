@@ -2,20 +2,22 @@
 
 ## Status
 
-Automatic rotation is intentionally not implemented on `feature/match-loop`.
-Neither `faultline_basin` nor `cairn_steps` exists in this branch, and the live
-world has no map-definition or disposable-world boundary. A string or terrain
-seed toggle would not exercise the requested maps or prove safe ENet peer
-preservation, so no partial rotation code was retained.
+Automatic rotation is intentionally not implemented on
+`feature/proper-maps-score-loop`. Faultline Basin and Cairn Steps are real map
+definitions in this branch, but the live scene still has no disposable-world
+boundary. A generation-based implementation completed the happy-path rotation
+in a discarded spike, then independent review and fault injection found unsafe
+admission, rollback-baseline, and timeout behavior. No partial rotation code was
+retained.
 
-The authoritative score-limit match loop is independent of this work and is
-intended to rebase onto the branch that introduces the real maps.
+The server-owned score-limit loop is complete and resets the current map after
+intermission. Runtime rotation remains separate work.
 
 ## What was inspected
 
 - `scenes/network_demo.tscn` owns one static terrain, arena, flags, players,
   projectiles, effects, root state synchronizer, lobby, and renderer profile.
-- `scripts/network_main.gd::_configure_compact_arena()` caches static
+- `scripts/network_main.gd::_configure_map()` caches static
   `@onready` terrain/platform/flag references and computes one set of homes and
   spawn transforms.
 - `scripts/terrain.gd::generate()` is one-shot behind `_generated`; it creates
@@ -43,8 +45,34 @@ intended to rebase onto the branch that introduces the real maps.
 | Option | Result |
 |---|---|
 | Change or reload the main scene | Rejected. It couples ENet ownership, root RPC paths, netfox lifecycle, lobby, and world teardown without a peer-preservation handshake. |
-| Mutate terrain seed and move the existing bases | Rejected. The terrain generator is one-shot, landmarks are static scene children, no real target map definitions exist, and this would be fake rotation. |
+| Mutate terrain configuration and move the existing bases | Rejected. The terrain generator is one-shot, landmarks are static scene children, and changing selected catalog data would not replace the complete world safely. |
 | Rebuild selected children in place | Recommended after adding a disposable world seam and generation protocol. It can preserve the root node, ENet peer, `NetworkTime`, lobby, and replicated session state. |
+
+## Discarded spike findings
+
+The spike used generation-qualified worlds and bounded prepare/ready phases. It
+proved that terrain, collision, objectives, avatars, and presentation can be
+rebuilt while preserving ENet peer IDs, but it was not safe to merge:
+
+- A connection attempt froze existing players and cleared authoritative
+  projectiles before map/hash approval, allowing admission traffic to alter a
+  live match.
+- Hash report, world bootstrap, and avatar-path acknowledgement were separate
+  waits. Only the first had a deadline, so a peer could freeze the match after
+  reporting a valid hash.
+- Concurrent joins could receive different expected-peer snapshots and then
+  disagree permanently on the avatar set.
+- Clients acknowledged world readiness before receiving an authoritative
+  rollback transform/history baseline, producing stale post-rotation fire.
+- Joins during prepare/commit could miss activation or target generation paths
+  that did not exist locally.
+- Admission visibility initially gated regular replication but not all rollback
+  and projectile RPC traffic.
+
+The follow-up must keep admission isolated from active gameplay. Do not solve
+late join by globally pausing the match or deleting transient authoritative
+state. Every post-report phase needs an immutable deadline and retry/bootstrap
+semantics for peer-set changes.
 
 ## Recommended seam
 
@@ -57,11 +85,11 @@ container such as `World_7`:
 - `Players`, `Projectiles`, and `Effects` containers.
 - Map-specific environment presentation if the two maps differ there.
 
-Introduce a typed map definition/resource keyed by the real IDs. It must own or
-reference the full terrain/world scene, base and flag transforms, team spawns,
-landmarks, objective bounds, and any map-specific out-of-bounds contract. Build
-a fresh world instance for every generation instead of mutating
-`SkooshTerrain._generated`.
+Use the existing `SkooshMapCatalog` definitions as inputs to a typed disposable
+world builder. It must own or reference the full terrain/world scene, base and
+flag transforms, team spawns, landmarks, objective bounds, and map-specific
+out-of-bounds contract. Build a fresh world instance for every generation
+instead of mutating `SkooshTerrain._generated`.
 
 Split the current responsibilities at these points:
 
