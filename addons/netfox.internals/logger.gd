@@ -31,6 +31,7 @@ enum {
 
 ## Default log level to fall back on, if not configured
 const DEFAULT_LOG_LEVEL := LOG_DEBUG
+const DEFAULT_RELEASE_LOG_LEVEL := LOG_WARN
 
 const _LEVEL_PREFIXES: Array[String] = [
 	"",
@@ -98,11 +99,12 @@ static func free_tag(tag: Callable) -> void:
 	_ordered_tags.erase(tag)
 
 static func _static_init():
-	log_level = ProjectSettings.get_setting(&"netfox/logging/log_level", DEFAULT_LOG_LEVEL)
+	var default_log_level := DEFAULT_LOG_LEVEL if OS.is_debug_build() else DEFAULT_RELEASE_LOG_LEVEL
+	log_level = ProjectSettings.get_setting(&"netfox/logging/log_level", default_log_level)
 	module_log_level = {
-		"netfox": ProjectSettings.get_setting(&"netfox/logging/netfox_log_level", DEFAULT_LOG_LEVEL),
-		"netfox.noray": ProjectSettings.get_setting(&"netfox/logging/netfox_noray_log_level", DEFAULT_LOG_LEVEL),
-		"netfox.extras": ProjectSettings.get_setting(&"netfox/logging/netfox_extras_log_level", DEFAULT_LOG_LEVEL)
+		"netfox": ProjectSettings.get_setting(&"netfox/logging/netfox_log_level", default_log_level),
+		"netfox.noray": ProjectSettings.get_setting(&"netfox/logging/netfox_noray_log_level", default_log_level),
+		"netfox.extras": ProjectSettings.get_setting(&"netfox/logging/netfox_extras_log_level", default_log_level)
 	}
 
 static func _for_netfox(p_name: String) -> NetfoxLogger:

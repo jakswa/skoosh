@@ -44,7 +44,7 @@ func fire() -> Node:
 	else:
 		_broadcast_projectile_accept(id, NetworkTime.tick, data)
 
-	_logger.debug("Calling after fire hook for %s", [projectile.name])
+	_logger.trace("Calling after fire hook for %s", [projectile.name])
 	_fired_tick = NetworkTime.tick
 	_after_fire(projectile)
 
@@ -261,7 +261,7 @@ func _accept_projectile(id: String, tick: int, response_data: Dictionary):
 		# Projectile is local, nothing to do
 		return
 
-	_logger.info("Accepting projectile %s from %s", [id, multiplayer.get_remote_sender_id()])
+	_logger.trace("Accepting projectile %s from %s", [id, multiplayer.get_remote_sender_id()])
 	
 	if _projectiles.has(id):
 		var projectile = _projectiles[id]
