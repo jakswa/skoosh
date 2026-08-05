@@ -2,6 +2,7 @@ extends SceneTree
 
 const MapCatalog = preload("res://scripts/map_catalog.gd")
 const TerrainScript = preload("res://scripts/terrain.gd")
+const LandmarkScript = preload("res://scripts/map_landmarks.gd")
 
 var _failed := false
 var _terrains: Dictionary = {}
@@ -23,6 +24,7 @@ func _run() -> void:
 		_validate_bases_and_spawns(map_id, config, terrain)
 		_validate_routes(map_id, config, terrain)
 		_validate_landform_contract(map_id, terrain)
+		_validate_boundary_beacons(map_id, terrain)
 		terrain.generate()
 		_validate_generated_terrain(map_id, config, terrain)
 
@@ -64,7 +66,9 @@ func _validate_footprint(map_id: String, config: Dictionary, terrain: Node) -> v
 
 	var half_size := mesh_size * 0.5
 	for edge in [Vector2(half_size.x, 0.0), Vector2(-half_size.x, 0.0), Vector2(0.0, half_size.y), Vector2(0.0, -half_size.y)]:
-		_require(terrain.boundary_ratio(edge.x, edge.y) > 1.14, "%s mesh lacks visible terrain beyond OOB" % map_id)
+		var edge_ratio: float = terrain.boundary_ratio(edge.x, edge.y)
+		_require(edge_ratio > 1.06, "%s mesh lacks a collision margin beyond OOB" % map_id)
+		_require(edge_ratio < 1.14, "%s exposes a deceptive dead-terrain band beyond OOB" % map_id)
 
 	var boundary := config["boundary"] as Dictionary
 	var inner_points: Array[Vector2] = []
@@ -173,6 +177,22 @@ func _validate_landform_contract(map_id: String, terrain: Node) -> void:
 		_require(terrain.height_at(0.0, 0.0) - terrain.height_at(0.0, 110.0) > 10.0, "Cairn lacks its transverse escarpment")
 		_require(terrain.height_at(0.0, 0.0) - terrain.height_at(94.0, 0.0) > 13.0, "Cairn east chute is not exposed below the saddle")
 		_require(terrain.height_at(-48.0, 0.0) - terrain.height_at(-112.0, 0.0) > 18.0, "Cairn switchback is not terrain-screened")
+
+
+func _validate_boundary_beacons(map_id: String, terrain: Node) -> void:
+	var landmarks = LandmarkScript.new()
+	landmarks.configure(map_id, terrain)
+	var beacon_count := 0
+	for child in landmarks.get_children():
+		if child.name.begins_with("BoundaryBeacon_"):
+			beacon_count += 1
+			var planar := Vector2(child.position.x, child.position.z)
+			_require(
+				absf(terrain.boundary_ratio(planar.x, planar.y) - 0.94) < 0.01,
+				"%s boundary beacon is not aligned with the playable rim" % map_id
+			)
+	_require(beacon_count == 16, "%s does not expose sixteen perimeter beacons" % map_id)
+	landmarks.free()
 
 
 func _validate_generated_terrain(map_id: String, config: Dictionary, terrain: Node) -> void:

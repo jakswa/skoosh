@@ -171,8 +171,10 @@ func is_within_playable_boundary(position: Vector2) -> bool:
 
 func _perimeter_rise(x: float, z: float) -> float:
 	var ratio := boundary_ratio(x, z)
-	var wall := smoothstep(0.78, 1.08, ratio) * 48.0
-	return wall + smoothstep(1.0, 1.32, ratio) * 18.0
+	# Put the physical crest just inside the recovery line so terrain, rather
+	# than an invisible teleport plane, stops ordinary skiing and jetting.
+	var wall := smoothstep(0.80, 0.98, ratio) * 52.0
+	return wall + smoothstep(0.98, 1.10, ratio) * 14.0
 
 
 func get_mesh_size() -> Vector2:

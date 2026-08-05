@@ -13,6 +13,7 @@ func configure(map_id: String, terrain: Node) -> void:
 		_signal_material.emission = Color("#594c83")
 		_signal_material.emission_energy_multiplier = 0.75
 		_build_fault_spires(terrain)
+		_build_boundary_beacons(terrain)
 	elif map_id == "cairn_steps":
 		_dark_material.albedo_color = Color("#292b2c")
 		_dark_material.roughness = 0.76
@@ -21,6 +22,7 @@ func configure(map_id: String, terrain: Node) -> void:
 		_signal_material.emission = Color("#9d956f")
 		_signal_material.emission_energy_multiplier = 0.42
 		_build_survey_cairns(terrain)
+		_build_boundary_beacons(terrain)
 
 
 func _build_fault_spires(terrain: Node) -> void:
@@ -51,6 +53,37 @@ func _build_survey_cairns(terrain: Node) -> void:
 		var blade := PrismMesh.new()
 		blade.size = Vector3(1.1, 8.0, 0.8)
 		_add_mesh("SurveyBlade", blade, Vector3(x, ground + 11.0, 0.0), 0.0, _signal_material)
+
+
+func _build_boundary_beacons(terrain: Node) -> void:
+	for index in 16:
+		var angle := TAU * index / 16.0
+		var direction := Vector2(cos(angle), sin(angle))
+		var location := _boundary_point(terrain, direction, 0.94)
+		var ground: float = terrain.height_at(location.x, location.y)
+		var beacon := PrismMesh.new()
+		beacon.size = Vector3(1.6, 11.0, 1.6)
+		_add_mesh(
+			"BoundaryBeacon_%02d" % index,
+			beacon,
+			Vector3(location.x, ground + 5.5, location.y),
+			-angle,
+			_signal_material
+		)
+
+
+func _boundary_point(terrain: Node, direction: Vector2, target_ratio: float) -> Vector2:
+	var low := 0.0
+	var mesh_size: Vector2 = terrain.get_mesh_size()
+	var high: float = mesh_size.length()
+	for _iteration in 32:
+		var midpoint: float = (low + high) * 0.5
+		var point := direction * midpoint
+		if terrain.boundary_ratio(point.x, point.y) <= target_ratio:
+			low = midpoint
+		else:
+			high = midpoint
+	return direction * low
 
 
 func _add_mesh(

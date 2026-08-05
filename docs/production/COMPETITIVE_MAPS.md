@@ -17,10 +17,13 @@ four-meter intervals and require stable landing normals at named recovery points
 Team red and blue remain route/objective accents; biome colors do not replace
 team navigation.
 
-The playable boundaries begin rising inside OOB and continue as visible terrain
-beyond it. Faultline uses a capsule boundary and Cairn a superellipse, avoiding
-the former square-box edge. The server evaluates these curved boundaries and
-owns recovery and carried-flag return.
+The playable boundaries begin rising inside OOB and leave only a 20-24 m
+collision margin before the visible mesh edge. Faultline uses a capsule boundary
+and Cairn a superellipse, avoiding both the former square-box edge and a
+deceptive expanse of rendered-but-unplayable terrain. The server evaluates these
+curved boundaries and owns recovery and carried-flag return. A steep collidable
+terrain crest is the primary stop; sixteen neutral signal beacons mark its inner
+approach. OOB recovery remains a failsafe for exceptional launches over the rim.
 
 ## Selection
 
