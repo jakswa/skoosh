@@ -131,6 +131,9 @@ func _gather_bot() -> void:
 	var desired_pitch := asin(clampf(direction.y, -1.0, 1.0)) if fire else 0.0
 	look_delta.x = clampf(angle_difference(player.rotation.y, desired_yaw), -0.2, 0.2)
 	look_delta.y = clampf(desired_pitch - player.head.rotation.x, -0.15, 0.15)
+	# Do not predict a shot while the replicated aim is still converging.
+	if fire and (absf(look_delta.x) > 0.1 or absf(look_delta.y) > 0.1):
+		fire = false
 
 
 func _weapon_key_index(keycode: Key) -> int:
