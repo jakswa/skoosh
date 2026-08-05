@@ -85,6 +85,13 @@ jobs:
         run: |
           mkdir -p build/linux build/windows build/macos
           "$GODOT_BIN" --headless --path . --export-release "${{ matrix.preset }}"
+          if [[ "$RUNNER_OS" == Linux ]]; then
+            # Official 4.4.1 GCC/LTO release templates corrupt internal signal
+            # bookkeeping on exit (godotengine/godot#95512). Retain the release
+            # export but test a debug binary.
+            "$GODOT_BIN" --headless --path . --export-debug "${{ matrix.preset }}" \
+              "$PWD/build/linux/skoosh-integration.x86_64"
+          fi
 
       - name: Locate exported client
         shell: bash
@@ -92,7 +99,7 @@ jobs:
           set -euo pipefail
           case "$RUNNER_OS" in
             Linux)
-              client_bin="$PWD/build/linux/skoosh.x86_64"
+              client_bin="$PWD/build/linux/skoosh-integration.x86_64"
               chmod +x "$client_bin"
               ;;
             Windows)

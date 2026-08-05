@@ -2,6 +2,7 @@ extends BaseNetInput
 class_name SkooshNetworkInput
 
 const VoiceCommandLibrary = preload("res://scripts/voice_command_library.gd")
+const BOT_AIM_SETTLE_TICKS := 6
 
 @export var mouse_sensitivity: float = 0.0023
 
@@ -20,6 +21,7 @@ var _reset_buffered := false
 var _configured := false
 var _bot_start_tick := -1
 var _bot_voice_sent := false
+var _bot_aim_settled_ticks := 0
 var visual_qa_lock := false
 
 
@@ -88,6 +90,7 @@ func _gather_bot() -> void:
 		weapon_slot = 0
 		reset = false
 		look_delta = Vector2.ZERO
+		_bot_aim_settled_ticks = 0
 		return
 	var movement_phase := bot_age >= 480
 	movement = Vector2.ZERO
@@ -100,6 +103,7 @@ func _gather_bot() -> void:
 	var player := get_parent() as SkooshNetworkPlayer
 	if player == null or player.dead:
 		fire = false
+		_bot_aim_settled_ticks = 0
 		return
 	var target := player.find_bot_target()
 	if movement_phase:
@@ -131,8 +135,10 @@ func _gather_bot() -> void:
 	var desired_pitch := asin(clampf(direction.y, -1.0, 1.0)) if fire else 0.0
 	look_delta.x = clampf(angle_difference(player.rotation.y, desired_yaw), -0.2, 0.2)
 	look_delta.y = clampf(desired_pitch - player.head.rotation.x, -0.15, 0.15)
-	# Do not predict a shot while the replicated aim is still converging.
-	if fire and (absf(look_delta.x) > 0.1 or absf(look_delta.y) > 0.1):
+	var aim_settled := absf(look_delta.x) <= 0.1 and absf(look_delta.y) <= 0.1
+	_bot_aim_settled_ticks = _bot_aim_settled_ticks + 1 if aim_settled else 0
+	# Cover the measured four-tick request skew after the local aim converges.
+	if fire and _bot_aim_settled_ticks < BOT_AIM_SETTLE_TICKS:
 		fire = false
 
 
