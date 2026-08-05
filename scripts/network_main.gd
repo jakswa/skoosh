@@ -24,6 +24,7 @@ const ROUND_RESTART_TICKS := 300
 const OOB_RECOVERY_SAFE_FRAMES := 3
 const OOB_RECOVERY_RETRY_FRAMES := 30
 const MAP_AGREEMENT_TIMEOUT_MS := 5000
+const MAP_BOOTSTRAP_TIMEOUT_MS := 8000
 const WORLD_PREPARE_TIMEOUT_MS := 4000
 const WORLD_READY_TIMEOUT_MS := 8000
 const WORLD_DISCONNECT_FLUSH_MS := 1000
@@ -184,6 +185,8 @@ var _bootstrap_generation := -1
 var _bootstrap_definition_hash := ""
 var _bootstrap_confirmed := false
 var _skip_transition_ready_for_test := false
+var _skip_admission_ready_for_test := false
+var _test_bootstrap_minimum_ms := 0
 var _admission_queue: Array[int] = []
 var _admission_peer_id := 0
 var _admission_baseline_ready := false
@@ -309,6 +312,12 @@ func _parse_command_line() -> void:
 			_acceptance_mode = true
 		elif arg == "--test-skip-transition-ready":
 			_skip_transition_ready_for_test = true
+		elif arg == "--test-skip-admission-ready":
+			_skip_admission_ready_for_test = true
+		elif arg.begins_with("--test-bootstrap-minimum-ms="):
+			_test_bootstrap_minimum_ms = maxi(
+				0, int(arg.trim_prefix("--test-bootstrap-minimum-ms="))
+			)
 		elif arg.begins_with("--join="):
 			mode = "client"
 			address = arg.trim_prefix("--join=")
@@ -492,9 +501,7 @@ func _offer_server_map(
 		_approved_map_peers.clear()
 		for approved_peer_id in approved_peer_ids:
 			_approved_map_peers[approved_peer_id] = true
-		if server_generation != world_generation or server_map_id != map_id:
-			_rebuild_world(server_generation, server_map_id, [])
-		else:
+		if server_generation == world_generation and server_map_id == map_id:
 			_replace_bootstrap_world = false
 		if new_server_session:
 			_rotation_map_history.assign([server_map_id])
@@ -516,7 +523,12 @@ func _report_client_map(requested_map_id: String, offered_generation: int, local
 	if not multiplayer.is_server():
 		return
 	var peer_id := multiplayer.get_remote_sender_id()
-	if peer_id <= 1 or not _is_admission_live(peer_id) or _approved_map_peers.has(peer_id):
+	if (
+		peer_id <= 1
+		or not _is_admission_live(peer_id)
+		or _approved_map_peers.has(peer_id)
+		or _peer_teams.has(peer_id)
+	):
 		return
 	if offered_generation != world_generation:
 		return
@@ -538,6 +550,7 @@ func _report_client_map(requested_map_id: String, offered_generation: int, local
 		])
 		_reject_admission(peer_id, "map_mismatch")
 		return
+	_map_agreement_deadlines[peer_id] = Time.get_ticks_msec() + MAP_BOOTSTRAP_TIMEOUT_MS
 	var existing_peer_ids := _approved_peer_ids()
 	var assigned_team := _assign_balanced_team()
 	var assigned_character_variant := _assign_balanced_character_variant(peer_id)
@@ -576,7 +589,14 @@ func _approve_map_peer(
 	_peer_teams[peer_id] = assigned_team
 	_peer_character_variants[peer_id] = assigned_character_variant
 	if server_generation != world_generation or server_map_id != map_id:
+		var build_started_at := Time.get_ticks_msec()
 		_rebuild_world(server_generation, server_map_id, _approved_peer_ids())
+		var build_elapsed_ms := Time.get_ticks_msec() - build_started_at
+		if _test_bootstrap_minimum_ms > build_elapsed_ms:
+			OS.delay_msec(_test_bootstrap_minimum_ms - build_elapsed_ms)
+		if _test_bootstrap_minimum_ms > 0:
+			print("TEST bootstrap minimum ms=%d" % _test_bootstrap_minimum_ms)
+			_test_bootstrap_minimum_ms = 0
 	_spawn_avatar(peer_id, assigned_team, assigned_character_variant)
 	if not multiplayer.is_server():
 		_confirm_avatar_path.rpc_id(1, server_generation, peer_id)
@@ -593,6 +613,11 @@ func _maybe_confirm_map_bootstrap() -> void:
 	for peer_id in _bootstrap_expected_peer_ids:
 		if not avatars.has(peer_id):
 			return
+	if _skip_admission_ready_for_test:
+		print("MAP bootstrap ready intentionally skipped peer=%d generation=%d" % [
+			multiplayer.get_unique_id(), world_generation,
+		])
+		return
 	_bootstrap_confirmed = true
 	_confirm_map_bootstrap.rpc_id(
 		1, world_generation, MapCatalog.get_definition_hash(map_id), avatars.size()
@@ -1552,8 +1577,13 @@ func _process(_delta: float) -> void:
 			var peer_id := int(peer_variant)
 			if now < int(_map_agreement_deadlines[peer_id]):
 				continue
-			print("MAP agreement timeout peer=%d server=%s rejection=disconnect" % [peer_id, map_id])
-			_reject_admission(peer_id, "deadline")
+			var bootstrap_started := _peer_teams.has(peer_id)
+			print("MAP %s timeout peer=%d server=%s rejection=disconnect" % [
+				"bootstrap" if bootstrap_started else "agreement", peer_id, map_id,
+			])
+			_reject_admission(
+				peer_id, "bootstrap_deadline" if bootstrap_started else "agreement_deadline"
+			)
 	if multiplayer.is_server() and world_phase == WORLD_PREPARING:
 		_check_prepare_timeout()
 	elif multiplayer.is_server() and world_phase == WORLD_WAITING_FOR_READY:

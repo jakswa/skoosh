@@ -23,18 +23,23 @@ trap cleanup EXIT INT TERM
 
 implicit_cairn_port="$BASE_PORT"
 "$GODOT_BIN" --headless --path "$ROOT" -- --server --port="$implicit_cairn_port" \
-	--map=cairn_steps --test-seconds=9 >"$LOG_DIR/implicit-cairn-server.log" 2>&1 &
+	--map=cairn_steps --test-seconds=16 >"$LOG_DIR/implicit-cairn-server.log" 2>&1 &
 server_pid=$!
 pids+=("$server_pid")
 sleep 1
 "$GODOT_BIN" --headless --path "$ROOT" -- --join 127.0.0.1 --port "$implicit_cairn_port" \
-	--test-seconds=6 >"$LOG_DIR/implicit-cairn-client.log" 2>&1
+	--test-bootstrap-minimum-ms=6000 --test-seconds=12 \
+	>"$LOG_DIR/implicit-cairn-client.log" 2>&1
 wait "$server_pid"
 pids=()
 
 implicit_peer_id="$(perl -ne 'print $1 if /NETWORK client connected peer=(\d+)/' "$LOG_DIR/implicit-cairn-client.log")"
 if [[ -z "$implicit_peer_id" ]]; then
 	echo "The implicit Cairn client did not connect. Logs: $LOG_DIR" >&2
+	exit 1
+fi
+if ! grep -q "TEST bootstrap minimum ms=6000" "$LOG_DIR/implicit-cairn-client.log"; then
+	echo "The implicit Cairn client did not exercise delayed world construction. Logs: $LOG_DIR" >&2
 	exit 1
 fi
 if ! grep -q "MAP bootstrap ready peer=$implicit_peer_id generation=1 map=cairn_steps avatars=1" "$LOG_DIR/implicit-cairn-server.log"; then
@@ -51,7 +56,7 @@ if [[ -z "$implicit_server_world" || "$implicit_server_world" != "$implicit_clie
 	echo "Implicit generation-1 Cairn world differs from the server. Logs: $LOG_DIR" >&2
 	exit 1
 fi
-if grep -Eq "World_1@|@Node3D|ERROR:|SCRIPT ERROR|Node not found|Invalid packet|Unable to send packet" "$LOG_DIR"/implicit-cairn-*.log; then
+if grep -Eq "MAP (agreement|bootstrap) timeout|World_1@|@Node3D|ERROR:|SCRIPT ERROR|Node not found|Invalid packet|Unable to send packet" "$LOG_DIR"/implicit-cairn-*.log; then
 	echo "Implicit generation-1 Cairn bootstrap logged a renamed path or networking error. Logs: $LOG_DIR" >&2
 	exit 1
 fi
@@ -89,7 +94,61 @@ if grep -Eq "ERROR:|SCRIPT ERROR|Node not found|Invalid packet|Unable to send pa
 	exit 1
 fi
 
-late_port=$((BASE_PORT + 2))
+timeout_port=$((BASE_PORT + 2))
+"$GODOT_BIN" --headless --path "$ROOT" -- --server --port="$timeout_port" \
+	--map=cairn_steps --test-seconds=24 >"$LOG_DIR/bootstrap-timeout-server.log" 2>&1 &
+server_pid=$!
+pids+=("$server_pid")
+sleep 1
+"$GODOT_BIN" --headless --path "$ROOT" -- --join=127.0.0.1 --port="$timeout_port" \
+	--test-skip-admission-ready --test-seconds=12 \
+	>"$LOG_DIR/bootstrap-timeout-client.log" 2>&1 &
+timeout_client_pid=$!
+pids+=("$timeout_client_pid")
+for _attempt in $(seq 1 10); do
+	if grep -q "NETWORK client connected peer=" "$LOG_DIR/bootstrap-timeout-client.log"; then
+		break
+	fi
+	sleep 1
+done
+"$GODOT_BIN" --headless --path "$ROOT" -- --join=127.0.0.1 --port="$timeout_port" \
+	--test-seconds=12 >"$LOG_DIR/bootstrap-recovery-client.log" 2>&1
+wait "$timeout_client_pid"
+wait "$server_pid"
+pids=()
+
+timeout_peer_id="$(perl -ne 'print $1 if /NETWORK client connected peer=(\d+)/' "$LOG_DIR/bootstrap-timeout-client.log")"
+recovery_peer_id="$(perl -ne 'print $1 if /NETWORK client connected peer=(\d+)/' "$LOG_DIR/bootstrap-recovery-client.log")"
+if [[ -z "$timeout_peer_id" || -z "$recovery_peer_id" ]]; then
+	echo "The bootstrap timeout fixture did not connect both clients. Logs: $LOG_DIR" >&2
+	exit 1
+fi
+if ! grep -q "MAP bootstrap timeout peer=$timeout_peer_id .*rejection=disconnect" "$LOG_DIR/bootstrap-timeout-server.log"; then
+	echo "The server did not enforce the bounded bootstrap deadline. Logs: $LOG_DIR" >&2
+	exit 1
+fi
+if ! grep -q "MAP admission terminal peer=$timeout_peer_id reason=bootstrap_deadline rejection=disconnect" "$LOG_DIR/bootstrap-timeout-server.log"; then
+	echo "The timed-out bootstrap did not terminate synchronously. Logs: $LOG_DIR" >&2
+	exit 1
+fi
+if grep -q "MAP bootstrap ready peer=$timeout_peer_id" "$LOG_DIR/bootstrap-timeout-server.log"; then
+	echo "The timed-out peer completed admission after its deadline. Logs: $LOG_DIR" >&2
+	exit 1
+fi
+if ! grep -q "MAP admission queued peer=$recovery_peer_id phase=0 generation=1" "$LOG_DIR/bootstrap-timeout-server.log"; then
+	echo "The recovery client was not queued behind the delayed admission. Logs: $LOG_DIR" >&2
+	exit 1
+fi
+if ! grep -q "MAP bootstrap ready peer=$recovery_peer_id generation=1 map=cairn_steps avatars=1" "$LOG_DIR/bootstrap-timeout-server.log"; then
+	echo "Admission did not recover after the delayed client timed out. Logs: $LOG_DIR" >&2
+	exit 1
+fi
+if grep -Eq "ERROR:|SCRIPT ERROR|Node not found|Invalid packet|Unable to send packet" "$LOG_DIR"/bootstrap-*.log; then
+	echo "The bootstrap timeout/recovery fixture logged a networking error. Logs: $LOG_DIR" >&2
+	exit 1
+fi
+
+late_port=$((BASE_PORT + 3))
 "$GODOT_BIN" --headless --path "$ROOT" -- --server --port="$late_port" \
 	--map=faultline_basin --score-limit=3 --acceptance-mode --require-rotation \
 	--test-seconds=65 >"$LOG_DIR/late-server.log" 2>&1 &
@@ -154,4 +213,4 @@ if grep -Eq "ERROR:|SCRIPT ERROR|Node not found|Invalid packet|Unable to send pa
 	exit 1
 fi
 
-echo "Network bootstrap acceptance passed: implicit Cairn startup, independent hash rejection, and queued Cairn admission. Logs: $LOG_DIR"
+echo "Network bootstrap acceptance passed: delayed Cairn startup, bounded timeout recovery, hash rejection, and queued admission. Logs: $LOG_DIR"

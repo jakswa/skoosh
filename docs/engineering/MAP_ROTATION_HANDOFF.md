@@ -60,8 +60,10 @@ connection attempt never pauses the match or clears live projectiles/effects.
    joins during preparation, commit, or readiness wait for the next active
    generation.
 2. The server offers generation, map ID, definition hash, and the immutable
-   admitted-peer snapshot. One five-second absolute deadline covers map report,
-   world bootstrap, avatar-path confirmation, and rollback baseline readiness.
+   admitted-peer snapshot. The client has five seconds to report compatibility
+   before construction starts; an accepted report starts a separate eight-second
+   deadline for world bootstrap, avatar-path confirmation, and rollback baseline
+   readiness.
 3. The joining client builds the offered generation and creates the advertised
    avatar paths. Existing peers create the joining avatar while all gameplay
    replication to and from that peer remains hidden. Provisional avatars are
