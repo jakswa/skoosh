@@ -19,6 +19,7 @@ const FLAG_RETURN_TICKS := 600
 const OBJECTIVE_RESET_TICKS := 120
 const ROUND_RESTART_TICKS := 300
 const OOB_RECOVERY_SAFE_FRAMES := 3
+const OOB_RECOVERY_RETRY_FRAMES := 30
 const MAP_AGREEMENT_TIMEOUT_MS := 5000
 const VOICE_COMMAND_COOLDOWN_TICKS := 60
 const VOICE_CHANNEL_COOLDOWN_TICKS := 30
@@ -791,20 +792,29 @@ func _physics_process(_delta: float) -> void:
 		var far_below := position.y < float(terrain.height_at(position.x, position.z)) - 35.0
 		var needs_recovery: bool = outside or far_below
 		if needs_recovery:
-			# Rollback may briefly restore the pre-teleport OOB snapshot. Latch the
-			# recovery until several consecutive safe frames prevent repeated
-			# respawns and log bursts during that reconciliation window.
-			if not _oob_recovery_safe_frames.has(player.peer_id):
-				_oob_recovery_safe_frames[player.peer_id] = 0
+			var first_recovery := not _oob_recovery_safe_frames.has(player.peer_id)
+			var recovery_state := _oob_recovery_safe_frames.get(player.peer_id, {
+				"safe_frames": 0,
+				"unsafe_frames": 0,
+			}) as Dictionary
+			recovery_state["safe_frames"] = 0
+			var unsafe_frames := int(recovery_state["unsafe_frames"]) + 1
+			# Rollback may briefly restore a pre-teleport OOB snapshot. Suppress
+			# per-frame respawns, but retry if the authoritative body remains unsafe.
+			if first_recovery or unsafe_frames >= OOB_RECOVERY_RETRY_FRAMES:
 				player.request_authoritative_respawn(false, true)
-			else:
-				_oob_recovery_safe_frames[player.peer_id] = 0
+				unsafe_frames = 0
+			recovery_state["unsafe_frames"] = unsafe_frames
+			_oob_recovery_safe_frames[player.peer_id] = recovery_state
 		elif _oob_recovery_safe_frames.has(player.peer_id):
-			var safe_frames := int(_oob_recovery_safe_frames[player.peer_id]) + 1
+			var recovery_state := _oob_recovery_safe_frames[player.peer_id] as Dictionary
+			recovery_state["unsafe_frames"] = 0
+			var safe_frames := int(recovery_state["safe_frames"]) + 1
 			if safe_frames >= OOB_RECOVERY_SAFE_FRAMES:
 				_oob_recovery_safe_frames.erase(player.peer_id)
 			else:
-				_oob_recovery_safe_frames[player.peer_id] = safe_frames
+				recovery_state["safe_frames"] = safe_frames
+				_oob_recovery_safe_frames[player.peer_id] = recovery_state
 	if round_over:
 		if NetworkTime.tick >= round_restart_tick:
 			_start_new_round()
