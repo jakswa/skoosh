@@ -9,7 +9,12 @@ shortest path to running the game.
 | Document | Purpose |
 |---|---|
 | [Project checkpoint](CHECKPOINT.md) | Current product, technical, and validation state. |
+| [Maintainability roadmap](engineering/MAINTAINABILITY_ROADMAP.md) | Ordered, mainline-safe decomposition of the overloaded multiplayer root. |
+| [Acceptance boundary](engineering/ACCEPTANCE_BOUNDARY_PLAN.md) | Extract test policy and test-only world driving from production coordination. |
+| [Match director](engineering/MATCH_DIRECTOR_EXTRACTION_PLAN.md) | Extract authoritative CTF, score, objective-reset, and round rules. |
+| [Network lifecycle](engineering/NETWORK_LIFECYCLE_EXTRACTION_PLAN.md) | Split world construction, avatar membership, admission, and rotation behind stable RPC paths. |
 | [Combat networking roadmap](engineering/COMBAT_NETWORKING_ROADMAP.md) | Immediate networking and combat qualification work. |
+| [Projectile presentation review](engineering/PROJECTILE_PRESENTATION_REVIEW.md) | Audited projectile smoothing risks, implemented seam status, and measured follow-up stages. |
 | [Map rotation](engineering/MAP_ROTATION_HANDOFF.md) | Implemented world seam, bounded generation/admission protocols, acceptance, and remaining qualification. |
 | [Playtesting and distribution](operations/PLAYTESTING_AND_DISTRIBUTION.md) | Source, release, export, and playtest workflows. |
 | [Server deployment](operations/SERVER_DEPLOYMENT.md) | Dedicated-server operator runbook. |
