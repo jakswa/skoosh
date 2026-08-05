@@ -36,6 +36,7 @@ func _run() -> void:
 	await process_frame
 	arena._spawn_avatar(TEST_PEER_ID)
 	await process_frame
+	arena._admit_peer(TEST_PEER_ID, arena.world_generation)
 	var player = arena.avatars[TEST_PEER_ID]
 
 	# Exercise cardinal and diagonal exits against each map's actual curved
