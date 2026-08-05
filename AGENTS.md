@@ -8,3 +8,4 @@
 - Validate with `tools/test_ground_jet.sh` and `tools/test_multiplayer_demo.sh`.
 - Prefer headless checks; launch graphical clients only when requested.
 - Visual/UX work: run the private-Wayland Forward+ off-screen loop in `docs/production/VISUAL_QA.md`; keep scratch writes under the worktree's `.tmp/`.
+- If Godot or Weston is missing, ask the user to install it before building a local substitute; `GODOT_BIN` and `WESTON_BIN` are overrides, not substitutes.

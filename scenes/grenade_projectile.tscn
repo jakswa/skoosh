@@ -17,13 +17,19 @@ emission_energy_multiplier = 4.0
 
 [node name="GrenadeProjectile" type="Node3D"]
 script = ExtResource("1_projectile")
+presentation_spin_speed = 9.0
 
-[node name="Core" type="MeshInstance3D" parent="."]
+[node name="PresentationRoot" type="Node3D" parent="."]
+top_level = true
+
+[node name="SpinRoot" type="Node3D" parent="PresentationRoot"]
+
+[node name="Core" type="MeshInstance3D" parent="PresentationRoot/SpinRoot"]
 material_override = SubResource("GrenadeMaterial")
 mesh = SubResource("GrenadeMesh")
 cast_shadow = 0
 
-[node name="Glow" type="OmniLight3D" parent="."]
+[node name="Glow" type="OmniLight3D" parent="PresentationRoot"]
 light_color = Color(1, 0.32, 0.08, 1)
 light_energy = 3.5
 omni_range = 4.5

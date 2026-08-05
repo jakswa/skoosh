@@ -3,6 +3,11 @@ class_name SkooshDiscProjectile
 
 const MAX_LIFETIME_TICKS := 240
 
+@export var presentation_spin_speed := 13.0
+
+@onready var _presentation_root := $PresentationRoot as Node3D
+@onready var _spin_root := $PresentationRoot/SpinRoot as Node3D
+
 var velocity := Vector3.ZERO
 var launch_direction := Vector3.FORWARD
 var source_peer_id := 0
@@ -12,9 +17,20 @@ var source_rid := RID()
 var weapon: Node
 var world_generation := -1
 
+var _presentation_from := Transform3D.IDENTITY
+var _presentation_to := Transform3D.IDENTITY
+var _presentation_initialized := false
+
 
 func _ready() -> void:
 	NetworkTime.on_tick.connect(_network_tick)
+	NetworkTime.after_tick_loop.connect(_after_tick_loop)
+	set_process(not multiplayer.is_server())
+
+
+func _process(delta: float) -> void:
+	_update_presentation(clampf(NetworkTime.tick_factor, 0.0, 1.0))
+	_spin_root.rotate_object_local(Vector3.FORWARD, delta * presentation_spin_speed)
 
 
 func launch(
@@ -37,6 +53,7 @@ func launch(
 	var arena: Node = weapon.player.get_game_root() if is_instance_valid(weapon) else null
 	world_generation = arena.world_generation if arena != null else -1
 	spawn_tick = NetworkTime.tick
+	snap_presentation()
 
 
 func apply_launch_data(data: Dictionary, fast_forward: bool = false) -> void:
@@ -51,6 +68,35 @@ func apply_launch_data(data: Dictionary, fast_forward: bool = false) -> void:
 	if fast_forward:
 		var elapsed_ticks := clampi(NetworkTime.tick - spawn_tick, 0, 12)
 		global_position += velocity * NetworkTime.ticktime * elapsed_ticks
+	snap_presentation()
+
+
+func snap_presentation() -> void:
+	_presentation_from = global_transform
+	_presentation_to = global_transform
+	_presentation_initialized = true
+	_presentation_root.global_transform = global_transform
+
+
+func _record_presentation_target() -> void:
+	if not _presentation_initialized:
+		snap_presentation()
+		return
+	_presentation_from = _presentation_to
+	_presentation_to = global_transform
+
+
+func _after_tick_loop() -> void:
+	if spawn_tick >= 0 and is_generation_active():
+		_record_presentation_target()
+
+
+func _update_presentation(fraction: float) -> void:
+	if not _presentation_initialized:
+		return
+	_presentation_root.global_transform = _presentation_from.interpolate_with(
+		_presentation_to, clampf(fraction, 0.0, 1.0)
+	)
 
 
 func get_launch_data() -> Dictionary:
@@ -99,4 +145,3 @@ func _network_tick(delta: float, tick: int) -> void:
 			queue_free()
 			return
 	global_position = destination
-	rotate_object_local(Vector3.FORWARD, delta * 13.0)

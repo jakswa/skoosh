@@ -18,6 +18,7 @@ func fast_forward_presentation(elapsed_ticks: int) -> void:
 	var elapsed := float(elapsed_ticks) * NetworkTime.ticktime
 	global_position += velocity * elapsed + Vector3.DOWN * 0.5 * GRAVITY * elapsed * elapsed
 	velocity += Vector3.DOWN * GRAVITY * elapsed
+	snap_presentation()
 
 
 func _network_tick(delta: float, tick: int) -> void:
@@ -51,4 +52,3 @@ func _network_tick(delta: float, tick: int) -> void:
 	global_position = destination
 	if velocity.length_squared() > 0.001:
 		global_basis = Basis.looking_at(velocity.normalized(), Vector3.UP)
-	rotate_object_local(Vector3.FORWARD, delta * 9.0)

@@ -220,6 +220,7 @@ func _reconcile(projectile: Node3D, local_data: Dictionary, remote_data: Diction
 	var traveled := local_origin.distance_to(disc.global_position)
 	disc.apply_launch_data(remote_data)
 	disc.global_position += disc.velocity.normalized() * traveled
+	disc.snap_presentation()
 
 
 func _after_fire(_projectile: Node3D) -> void:

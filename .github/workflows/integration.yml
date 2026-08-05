@@ -119,6 +119,10 @@ jobs:
         shell: bash
         run: ./tools/test_ground_jet.sh
 
+      - name: Run projectile presentation test
+        shell: bash
+        run: ./tools/test_projectile_presentation.sh
+
       - name: Run OOB recovery test
         shell: bash
         run: ./tools/test_oob_recovery.sh
