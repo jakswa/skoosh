@@ -4,10 +4,21 @@ class_name BaseNetInput
 ## Base class for Input nodes used with rollback.
 
 func _ready():
-	NetworkTime.before_tick_loop.connect(func():
-		if is_multiplayer_authority():
-			_gather()
-	)
+	NetworkTime.before_tick_loop.connect(_before_tick_loop)
+
+
+func _before_tick_loop() -> void:
+	if is_multiplayer_authority():
+		_gather()
+
+
+func deactivate() -> void:
+	if NetworkTime.before_tick_loop.is_connected(_before_tick_loop):
+		NetworkTime.before_tick_loop.disconnect(_before_tick_loop)
+
+
+func _exit_tree() -> void:
+	deactivate()
 
 ## Method for gathering input.
 ##

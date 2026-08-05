@@ -541,6 +541,7 @@ func retire_for_rotation() -> void:
 	world_model.visible = false
 	view_gun.visible = false
 	hud.visible = false
+	input.deactivate()
 	rollback_synchronizer.deactivate()
 	tick_interpolator.deactivate()
 	var state_sync := get_node_or_null("MultiplayerSynchronizer") as MultiplayerSynchronizer

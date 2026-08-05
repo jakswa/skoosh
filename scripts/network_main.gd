@@ -52,27 +52,62 @@ const WORLD_WAITING_FOR_READY := 3
 @onready var red_flag := $CompactArena/RedFlag as SkooshNetworkFlag
 @onready var blue_flag := $CompactArena/BlueFlag as SkooshNetworkFlag
 @onready var neutral_landmarks := $NeutralLandmarks
-@onready var game_state_synchronizer := $GameStateSynchronizer as MultiplayerSynchronizer
+@onready var game_state := $ReplicatedGameState as SkooshNetworkMatchState
+@onready var game_state_synchronizer := $ReplicatedGameState/GameStateSynchronizer as MultiplayerSynchronizer
 
-# Match and objective state are written only by peer 1 and replicated by the
-# root MultiplayerSynchronizer. Clients present this state but never score it.
-var red_score := 0
-var blue_score := 0
-var score_limit := DEFAULT_SCORE_LIMIT
-var red_flag_state := FLAG_HOME
-var red_flag_carrier := 0
-var red_flag_position := Vector3.ZERO
-var red_flag_return_tick := -1
-var blue_flag_state := FLAG_HOME
-var blue_flag_carrier := 0
-var blue_flag_position := Vector3.ZERO
-var blue_flag_return_tick := -1
-var round_over := false
-var winner_team := -1
-var round_restart_tick := -1
-var round_number := 1
-var objective_reset_tick := -1
-var match_state_generation := 1
+# Match and objective state are written only by peer 1 and replicated from a
+# dedicated child so its visibility cannot hide the persistent root RPC seam.
+var red_score: int:
+	get: return game_state.red_score
+	set(value): game_state.red_score = value
+var blue_score: int:
+	get: return game_state.blue_score
+	set(value): game_state.blue_score = value
+var score_limit: int:
+	get: return game_state.score_limit
+	set(value): game_state.score_limit = value
+var red_flag_state: int:
+	get: return game_state.red_flag_state
+	set(value): game_state.red_flag_state = value
+var red_flag_carrier: int:
+	get: return game_state.red_flag_carrier
+	set(value): game_state.red_flag_carrier = value
+var red_flag_position: Vector3:
+	get: return game_state.red_flag_position
+	set(value): game_state.red_flag_position = value
+var red_flag_return_tick: int:
+	get: return game_state.red_flag_return_tick
+	set(value): game_state.red_flag_return_tick = value
+var blue_flag_state: int:
+	get: return game_state.blue_flag_state
+	set(value): game_state.blue_flag_state = value
+var blue_flag_carrier: int:
+	get: return game_state.blue_flag_carrier
+	set(value): game_state.blue_flag_carrier = value
+var blue_flag_position: Vector3:
+	get: return game_state.blue_flag_position
+	set(value): game_state.blue_flag_position = value
+var blue_flag_return_tick: int:
+	get: return game_state.blue_flag_return_tick
+	set(value): game_state.blue_flag_return_tick = value
+var round_over: bool:
+	get: return game_state.round_over
+	set(value): game_state.round_over = value
+var winner_team: int:
+	get: return game_state.winner_team
+	set(value): game_state.winner_team = value
+var round_restart_tick: int:
+	get: return game_state.round_restart_tick
+	set(value): game_state.round_restart_tick = value
+var round_number: int:
+	get: return game_state.round_number
+	set(value): game_state.round_number = value
+var objective_reset_tick: int:
+	get: return game_state.objective_reset_tick
+	set(value): game_state.objective_reset_tick = value
+var match_state_generation: int:
+	get: return game_state.match_state_generation
+	set(value): game_state.match_state_generation = value
 var world_generation := 1
 var world_phase := WORLD_ACTIVE
 var world_activation_tick := 0
@@ -179,6 +214,7 @@ var _admission_queue: Array[int] = []
 var _admission_peer_id := 0
 var _admission_baseline_ready := false
 var _admission_baseline_tick := -1
+var _replace_bootstrap_world := false
 
 
 func _ready() -> void:
@@ -354,6 +390,7 @@ func join_server(address: String, port: int) -> void:
 	if multiplayer.multiplayer_peer is ENetMultiplayerPeer:
 		return
 	_map_mismatch = false
+	_replace_bootstrap_world = true
 	var peer := ENetMultiplayerPeer.new()
 	var error := peer.create_client(address, port)
 	if error != OK:
@@ -449,6 +486,7 @@ func _offer_server_map(
 		"explicit" if _startup_map_explicit else "server_authoritative", local_hash,
 	])
 	if selection_compatible and definition_compatible:
+		var new_server_session := _replace_bootstrap_world
 		if server_phase in [WORLD_ACTIVE, WORLD_PREPARING, WORLD_WAITING_FOR_READY]:
 			world_phase = server_phase
 		_bootstrap_expected_peer_ids.assign(approved_peer_ids)
@@ -462,6 +500,10 @@ func _offer_server_map(
 			_approved_map_peers[approved_peer_id] = true
 		if server_generation != world_generation or server_map_id != map_id:
 			_rebuild_world(server_generation, server_map_id, [])
+		else:
+			_replace_bootstrap_world = false
+		if new_server_session:
+			_rotation_map_history.assign([server_map_id])
 	_report_client_map.rpc_id(1, requested_map_id, server_generation, local_hash)
 	if not selection_compatible:
 		_map_mismatch = true
@@ -696,10 +738,30 @@ func _apply_rollback_baseline(
 		multiplayer.is_server()
 		or generation != world_generation
 		or definition_hash != MapCatalog.get_definition_hash(map_id)
-		or states.size() != avatars.size()
 		or (admission and world_phase != WORLD_ACTIVE)
 		or (not admission and world_phase != WORLD_WAITING_FOR_READY)
 	):
+		return
+	if baseline_tick < 0:
+		return
+	for avatar_peer_variant in states:
+		var avatar_peer_id := int(avatar_peer_variant)
+		var avatar := avatars.get(avatar_peer_id) as SkooshNetworkPlayer
+		var state_variant: Variant = states[avatar_peer_variant]
+		if typeof(state_variant) != TYPE_DICTIONARY:
+			return
+		var state := state_variant as Dictionary
+		if avatar == null or state.is_empty():
+			return
+	for avatar_peer_variant in avatars.keys():
+		if states.has(avatar_peer_variant):
+			continue
+		var stale_peer_id := int(avatar_peer_variant)
+		_peer_teams.erase(stale_peer_id)
+		_peer_character_variants.erase(stale_peer_id)
+		_approved_map_peers.erase(stale_peer_id)
+		_remove_avatar(stale_peer_id)
+	if states.size() != avatars.size():
 		return
 	for avatar_peer_variant in states:
 		var avatar_peer_id := int(avatar_peer_variant)
@@ -714,6 +776,7 @@ func _apply_rollback_baseline(
 			return
 		avatar.tick_interpolator.teleport()
 	if admission:
+		NetworkRollback.enabled = true
 		_ack_admission_baseline.rpc_id(1, generation, definition_hash, baseline_tick)
 	else:
 		if _skip_transition_ready_for_test and generation > 1:
@@ -775,6 +838,7 @@ func _disconnect_map_peer(peer_id: int) -> void:
 func _on_peer_left(id: int) -> void:
 	print("NETWORK peer left id=%d" % id)
 	var forced_transition_disconnect := _transition_disconnects_pending.has(id)
+	var was_transition_peer := id in _transition_peer_ids
 	var interrupted_admission := (
 		_admission_peer_id
 		if multiplayer.is_server() and _approved_map_peers.has(id) and id != _admission_peer_id
@@ -810,7 +874,11 @@ func _on_peer_left(id: int) -> void:
 	if multiplayer.is_server():
 		if interrupted_admission != 0:
 			_reject_admission(interrupted_admission, "admitted_peer_set_changed")
-		if world_phase == WORLD_WAITING_FOR_READY and not forced_transition_disconnect:
+		if (
+			world_phase == WORLD_WAITING_FOR_READY
+			and was_transition_peer
+			and not forced_transition_disconnect
+		):
 			for peer_id in _transition_peer_ids:
 				_pending_ready_peers[peer_id] = true
 				_built_world_peers.erase(peer_id)
@@ -833,6 +901,31 @@ func _on_peer_left(id: int) -> void:
 
 
 func _on_connection_stopped() -> void:
+	var was_server := _server_mode
+	_reset_connection_state()
+	if was_server:
+		_reset_server_session()
+	call_deferred("_reset_multiplayer_peer")
+	if not DisplayServer.get_name().contains("headless") and not _map_mismatch:
+		lobby.show_lobby()
+		lobby.show_error("DISCONNECTED")
+
+
+func _reset_multiplayer_peer() -> void:
+	if not multiplayer.multiplayer_peer is OfflineMultiplayerPeer:
+		multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
+
+
+func _on_connection_failed() -> void:
+	print("NETWORK connection failed")
+	_reset_connection_state()
+	call_deferred("_reset_multiplayer_peer")
+	lobby.show_error("CONNECTION FAILED\nCHECK THE ADDRESS, UDP PORT, AND SERVER STATUS")
+
+
+func _reset_connection_state() -> void:
+	NetworkRollback.enabled = false
+	game_state_synchronizer.public_visibility = false
 	_approved_map_peers.clear()
 	_bootstrap_ready_peers.clear()
 	_pending_bootstrap_peers.clear()
@@ -847,25 +940,59 @@ func _on_connection_stopped() -> void:
 	_transition_peer_ids.clear()
 	_admission_queue.clear()
 	_admission_peer_id = 0
+	_admission_baseline_ready = false
+	_admission_baseline_tick = -1
+	_bootstrap_expected_peer_ids.clear()
+	_bootstrap_generation = -1
+	_bootstrap_definition_hash = ""
+	_bootstrap_confirmed = false
+	_transition_generation = -1
+	_transition_map_id = ""
+	_transition_definition_hash = ""
+	_transition_baseline_tick = -1
+	_prepare_deadline_ms = -1
+	_ready_deadline_ms = -1
+	_disconnect_flush_deadline_ms = -1
+	_rotation_map_history.clear()
+	_rotation_peer_ids.clear()
+	_rotation_team_assignments.clear()
+	_rotation_character_assignments.clear()
+	world_generation = 0
+	match_state_generation = 0
+	world_phase = WORLD_COMMITTING
+	_replace_bootstrap_world = true
 	for id in avatars.keys():
-		_remove_avatar(id)
-	call_deferred("_reset_multiplayer_peer")
-	if not DisplayServer.get_name().contains("headless") and not _map_mismatch:
-		lobby.show_lobby()
-		lobby.show_error("DISCONNECTED")
+		_remove_avatar(id, true)
+	for retired_world_variant in _retired_worlds.keys():
+		var retired_world := retired_world_variant as Node3D
+		_retired_worlds.erase(retired_world)
+		if is_instance_valid(retired_world):
+			retired_world.free()
 
 
-func _reset_multiplayer_peer() -> void:
-	if not multiplayer.multiplayer_peer is OfflineMultiplayerPeer:
-		multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
-
-
-func _on_connection_failed() -> void:
-	print("NETWORK connection failed")
-	for id in avatars.keys():
-		_remove_avatar(id)
-	call_deferred("_reset_multiplayer_peer")
-	lobby.show_error("CONNECTION FAILED\nCHECK THE ADDRESS, UDP PORT, AND SERVER STATUS")
+func _reset_server_session() -> void:
+	var no_peers: Array[int] = []
+	_rebuild_world(1, _startup_map_id, no_peers)
+	red_score = 0
+	blue_score = 0
+	red_flag_state = FLAG_HOME
+	red_flag_carrier = 0
+	red_flag_position = red_home
+	red_flag_return_tick = -1
+	blue_flag_state = FLAG_HOME
+	blue_flag_carrier = 0
+	blue_flag_position = blue_home
+	blue_flag_return_tick = -1
+	round_over = false
+	winner_team = -1
+	round_restart_tick = -1
+	round_number = 1
+	objective_reset_tick = -1
+	match_state_generation = 1
+	world_phase = WORLD_ACTIVE
+	world_activation_tick = NetworkTime.tick
+	_rotation_map_history.assign([map_id])
+	NetworkRollback.enabled = true
 
 
 func _spawn_avatar(id: int, assigned_team: int = -1, assigned_character_variant: int = -1) -> void:
@@ -877,6 +1004,10 @@ func _spawn_avatar(id: int, assigned_team: int = -1, assigned_character_variant:
 	avatar.set_multiplayer_authority(1)
 	var avatar_input := avatar.get_node("Input") as SkooshNetworkInput
 	avatar_input.set_multiplayer_authority(id)
+	var state_sync := avatar.get_node("MultiplayerSynchronizer") as MultiplayerSynchronizer
+	state_sync.public_visibility = false
+	var rollback := avatar.get_node("RollbackSynchronizer") as RollbackSynchronizer
+	rollback.visibility_filter.default_visibility = false
 	players.add_child(avatar)
 	avatars[id] = avatar
 	if assigned_team < 0:
@@ -894,7 +1025,6 @@ func _spawn_avatar(id: int, assigned_team: int = -1, assigned_character_variant:
 	avatar.set_gameplay_admitted(_approved_map_peers.has(id))
 	if multiplayer.is_server():
 		_server_assigned_character_variants[id] = assigned_character_variant
-		avatar.rollback_synchronizer.visibility_filter.default_visibility = false
 		avatar.rollback_synchronizer.visibility_filter.update_visibility()
 	_peak_avatars = maxi(_peak_avatars, avatars.size())
 	print("NETWORK avatar spawned id=%d team=%s variant=%d variant_name=%s local_bot=%s node=%s" % [
@@ -909,6 +1039,12 @@ func _set_peer_network_visibility(peer_id: int, visible: bool) -> void:
 	for avatar_variant in avatars.values():
 		var avatar := avatar_variant as SkooshNetworkPlayer
 		_set_avatar_peer_visibility(avatar, peer_id, visible)
+
+
+func _set_game_state_visibility(peer_ids: Array[int], visible: bool) -> void:
+	game_state_synchronizer.public_visibility = false
+	for peer_id in peer_ids:
+		game_state_synchronizer.set_visibility_for(peer_id, visible)
 
 
 func _set_avatar_peer_visibility(
@@ -960,7 +1096,7 @@ func record_character_variant_observation(observed_peer_id: int, variant_id: int
 		_observed_character_variants[observed_peer_id] = variant_id
 
 
-func _remove_avatar(id: int) -> void:
+func _remove_avatar(id: int, immediate: bool = false) -> void:
 	_oob_recovery_safe_frames.erase(id)
 	_server_assigned_character_variants.erase(id)
 	_observed_character_variants.erase(id)
@@ -969,7 +1105,10 @@ func _remove_avatar(id: int) -> void:
 	var avatar := avatars[id] as Node
 	avatars.erase(id)
 	if is_instance_valid(avatar):
-		avatar.queue_free()
+		if immediate:
+			avatar.free()
+		else:
+			avatar.queue_free()
 
 
 func _approved_peer_ids() -> Array[int]:
@@ -1016,6 +1155,10 @@ func _rebuild_world(generation: int, next_map_id: String, peer_ids: Array[int]) 
 
 	if is_instance_valid(old_world):
 		_retire_world(old_world)
+		if _replace_bootstrap_world:
+			_retired_worlds.erase(old_world)
+			old_world.free()
+	_replace_bootstrap_world = false
 	avatars.clear()
 	_oob_recovery_safe_frames.clear()
 	_observed_character_variants.clear()
@@ -1779,7 +1922,7 @@ func _begin_rotation() -> void:
 	_transition_definition_hash = MapCatalog.get_definition_hash(_transition_map_id)
 	world_phase = WORLD_PREPARING
 	NetworkRollback.enabled = false
-	game_state_synchronizer.public_visibility = false
+	_set_game_state_visibility(multiplayer.get_peers(), false)
 	if _rotation_peer_ids.is_empty():
 		_rotation_peer_ids = _approved_peer_ids()
 		_rotation_team_assignments = _peer_teams.duplicate()
@@ -2010,6 +2153,8 @@ func _check_ready_barrier() -> void:
 
 
 func _activate_world_for_ready_peers(generation: int) -> void:
+	if generation != world_generation or world_phase != WORLD_WAITING_FOR_READY:
+		return
 	_transition_baseline_tick = NetworkTime.tick
 	_seed_server_rollback_baseline(_transition_baseline_tick)
 	for peer_id in _transition_peer_ids:
@@ -2036,18 +2181,18 @@ func _activate_world(generation: int) -> void:
 	_return_flag_home(TEAM_RED, "rotated world")
 	_return_flag_home(TEAM_BLUE, "rotated world")
 	world_phase = WORLD_COMMITTING
-	get_tree().create_timer(1.0).timeout.connect(_enable_rollback_after_world_build, CONNECT_ONE_SHOT)
+	get_tree().create_timer(1.0).timeout.connect(
+		_enable_rollback_after_world_build.bind(generation), CONNECT_ONE_SHOT
+	)
 
 
-func _enable_rollback_after_world_build() -> void:
-	if world_phase == WORLD_COMMITTING:
+func _enable_rollback_after_world_build(generation: int) -> void:
+	if generation == world_generation and world_phase == WORLD_COMMITTING:
 		NetworkRollback.enabled = true
 		world_phase = WORLD_ACTIVE
 		world_activation_tick = NetworkTime.tick
 		if multiplayer.is_server():
-			game_state_synchronizer.public_visibility = true
-			for peer_id in _approved_peer_ids():
-				game_state_synchronizer.set_visibility_for(peer_id, true)
+			_set_game_state_visibility(_approved_peer_ids(), true)
 		if _rotation_map_history.is_empty() or _rotation_map_history.back() != map_id:
 			_rotation_map_history.append(map_id)
 		print("WORLD active peer=%d generation=%d map=%s hash=%s avatars=%d" % [
@@ -2065,6 +2210,14 @@ func _disconnect_transition_peer(peer_id: int) -> void:
 	_transition_peer_ids.erase(peer_id)
 	_approved_map_peers.erase(peer_id)
 	_bootstrap_ready_peers.erase(peer_id)
+	_peer_teams.erase(peer_id)
+	_peer_character_variants.erase(peer_id)
+	_drop_flags_carried_by(peer_id)
+	var avatar := avatars.get(peer_id) as SkooshNetworkPlayer
+	if avatar != null:
+		avatar.set_gameplay_admitted(false)
+		_set_peer_network_visibility(peer_id, false)
+	_remove_avatar(peer_id)
 	if peer_id in multiplayer.get_peers():
 		_transition_disconnects_pending[peer_id] = true
 		_disconnect_flush_deadline_ms = Time.get_ticks_msec() + WORLD_DISCONNECT_FLUSH_MS

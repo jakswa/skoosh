@@ -1,4 +1,4 @@
-[gd_scene load_steps=26 format=3]
+[gd_scene load_steps=27 format=3]
 
 [ext_resource type="Script" path="res://scripts/network_main.gd" id="1_main"]
 [ext_resource type="Script" path="res://scripts/terrain.gd" id="2_terrain"]
@@ -11,6 +11,7 @@
 [ext_resource type="Texture2D" path="res://assets/textures/environment/forward_plus_base_decal.png" id="9_base_decal"]
 [ext_resource type="Script" path="res://scripts/renderer_feature_profile.gd" id="10_renderer_profile"]
 [ext_resource type="Script" path="res://scripts/map_landmarks.gd" id="11_landmarks"]
+[ext_resource type="Script" path="res://scripts/network_match_state.gd" id="12_match_state"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial"]
 sky_top_color = Color(0.055, 0.105, 0.17, 1)
@@ -394,8 +395,12 @@ shadow_enabled = false
 
 [node name="Effects" type="Node3D" parent="."]
 
-[node name="GameStateSynchronizer" type="MultiplayerSynchronizer" parent="."]
+[node name="ReplicatedGameState" type="Node" parent="."]
+script = ExtResource("12_match_state")
+
+[node name="GameStateSynchronizer" type="MultiplayerSynchronizer" parent="ReplicatedGameState"]
 replication_config = SubResource("GameReplicationConfig")
+public_visibility = false
 
 [node name="NetworkLobby" parent="." instance=ExtResource("4_lobby")]
 

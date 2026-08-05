@@ -21,7 +21,46 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-incompatible_port="$BASE_PORT"
+implicit_cairn_port="$BASE_PORT"
+"$GODOT_BIN" --headless --path "$ROOT" -- --server --port="$implicit_cairn_port" \
+	--map=cairn_steps --test-seconds=9 >"$LOG_DIR/implicit-cairn-server.log" 2>&1 &
+server_pid=$!
+pids+=("$server_pid")
+sleep 1
+"$GODOT_BIN" --headless --path "$ROOT" -- --join=127.0.0.1 --port="$implicit_cairn_port" \
+	--test-seconds=6 >"$LOG_DIR/implicit-cairn-client.log" 2>&1
+wait "$server_pid"
+pids=()
+
+implicit_peer_id="$(perl -ne 'print $1 if /NETWORK client connected peer=(\d+)/' "$LOG_DIR/implicit-cairn-client.log")"
+if [[ -z "$implicit_peer_id" ]]; then
+	echo "The implicit Cairn client did not connect. Logs: $LOG_DIR" >&2
+	exit 1
+fi
+if ! grep -q "MAP bootstrap ready peer=$implicit_peer_id generation=1 map=cairn_steps avatars=1" "$LOG_DIR/implicit-cairn-server.log"; then
+	echo "The implicit client did not complete generation-1 Cairn admission. Logs: $LOG_DIR" >&2
+	exit 1
+fi
+if ! grep -q "NETWORK avatar spawned id=$implicit_peer_id .*node=/root/NetworkDemo/World_1/Players/Player_$implicit_peer_id" "$LOG_DIR/implicit-cairn-client.log"; then
+	echo "The implicit Cairn avatar did not use the authoritative World_1 RPC path. Logs: $LOG_DIR" >&2
+	exit 1
+fi
+implicit_server_world="$(perl -ne 'print "$1/$2/$3" and exit if /WORLD built generation=1 map=(cairn_steps) hash=(\S+) signature=(\S+).*contract=PASS/' "$LOG_DIR/implicit-cairn-server.log")"
+implicit_client_world="$(perl -ne 'print "$1/$2/$3" and exit if /WORLD built generation=1 map=(cairn_steps) hash=(\S+) signature=(\S+).*contract=PASS/' "$LOG_DIR/implicit-cairn-client.log")"
+if [[ -z "$implicit_server_world" || "$implicit_server_world" != "$implicit_client_world" ]]; then
+	echo "Implicit generation-1 Cairn world differs from the server. Logs: $LOG_DIR" >&2
+	exit 1
+fi
+if grep -Eq "World_1@|@Node3D|ERROR:|SCRIPT ERROR|Node not found|Invalid packet|Unable to send packet" "$LOG_DIR"/implicit-cairn-*.log; then
+	echo "Implicit generation-1 Cairn bootstrap logged a renamed path or networking error. Logs: $LOG_DIR" >&2
+	exit 1
+fi
+if [[ "${SKOOSH_BOOTSTRAP_QUICK:-0}" == "1" ]]; then
+	echo "Network bootstrap quick check passed: implicit generation-1 Cairn startup. Logs: $LOG_DIR"
+	exit 0
+fi
+
+incompatible_port=$((BASE_PORT + 1))
 "$GODOT_BIN" --headless --path "$ROOT" -- --server --port="$incompatible_port" \
 	--map=faultline_basin --test-seconds=7 >"$LOG_DIR/incompatible-server.log" 2>&1 &
 server_pid=$!
@@ -50,7 +89,7 @@ if grep -Eq "ERROR:|SCRIPT ERROR|Node not found|Invalid packet|Unable to send pa
 	exit 1
 fi
 
-late_port=$((BASE_PORT + 1))
+late_port=$((BASE_PORT + 2))
 "$GODOT_BIN" --headless --path "$ROOT" -- --server --port="$late_port" \
 	--map=faultline_basin --score-limit=3 --acceptance-mode --require-rotation \
 	--test-seconds=65 >"$LOG_DIR/late-server.log" 2>&1 &
@@ -115,4 +154,4 @@ if grep -Eq "ERROR:|SCRIPT ERROR|Node not found|Invalid packet|Unable to send pa
 	exit 1
 fi
 
-echo "Network bootstrap acceptance passed: independent hash rejection and queued join during Cairn preparation. Logs: $LOG_DIR"
+echo "Network bootstrap acceptance passed: implicit Cairn startup, independent hash rejection, and queued Cairn admission. Logs: $LOG_DIR"

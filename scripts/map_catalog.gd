@@ -17,10 +17,10 @@ const SELECTABLE_MAP_IDS: Array[String] = [
 # Runtime script hashing is not portable across source and exported builds. These
 # revisions are the explicit compatibility contract and must be bumped whenever
 # their named gameplay behavior changes incompatibly.
-const NETWORK_PROTOCOL_REVISION := "map-bootstrap-v3"
+const NETWORK_PROTOCOL_REVISION := "map-bootstrap-v4"
 const TERRAIN_GENERATION_REVISION := "competitive-terrain-v2"
 const LANDMARK_GENERATION_REVISION := "competitive-landmarks-v1"
-const WORLD_BUILD_REVISION := "rotating-world-v3"
+const WORLD_BUILD_REVISION := "rotating-world-v4"
 
 const MAPS := {
 	"faultline_basin": {

@@ -16,8 +16,10 @@ an exact startup assertion.
 ## World seam
 
 `NetworkDemo` remains alive for the ENet peer, lobby, `NetworkTime`, connection
-handlers, match director, and root state synchronizer. Disposable gameplay
-state is rebuilt under monotonically named `World_N` children:
+handlers, and match director. Replicated match state lives on a dedicated
+persistent child so its visibility can close without hiding root protocol RPCs.
+Disposable gameplay state is rebuilt under monotonically named `World_N`
+children:
 
 - Deterministic terrain render mesh and trimesh collider.
 - Platforms, flags, landmarks, curved OOB data, and map presentation.
@@ -134,9 +136,14 @@ has created that path.
   the authoritative contact seam prove fire, movement, and scoring still execute
   in all three generations; retired worlds are gone.
 - `tools/test_network_bootstrap.sh`: an independently computed incompatible hash
-  is rejected without an avatar, and a default-map client joining during Cairn
-  preparation is queued then admitted directly into generation 2 without ghost
-  paths or preapproval gameplay RPCs.
+  is rejected without an avatar; a default-map client joins a Cairn-first server
+  under the exact generation-1 RPC path; and a default-map client joining during
+  Cairn preparation is queued then admitted directly into generation 2 without
+  ghost paths or preapproval gameplay RPCs.
+- `tools/test_rotation_lifecycle.sh`: direct lifecycle contracts cover exact
+  generation-1 replacement and reconnect paths, session-state reset, queued-peer
+  departure isolation, synchronous timeout eviction, root-state visibility, and
+  retired input callback teardown.
 - `tools/test_rotation_ready_timeout.sh`: a client that builds but withholds its
   baseline-ready acknowledgement is disconnected within the bounded deadline;
   the remaining peer activates without rollback or packet errors.
