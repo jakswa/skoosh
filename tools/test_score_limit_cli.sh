@@ -6,6 +6,11 @@ GODOT_BIN="${GODOT_BIN:-godot}"
 BASE_PORT="${SKOOSH_SCORE_LIMIT_TEST_PORT:-19630}"
 LOG_DIR="${SKOOSH_SCORE_LIMIT_LOG_DIR:-$ROOT/.tmp/skoosh-score-limit-test}"
 
+if ! command -v "$GODOT_BIN" >/dev/null 2>&1; then
+  echo "Godot 4.4+ was not found on PATH. Install godot or set GODOT_BIN to a command name or absolute path." >&2
+  exit 1
+fi
+
 for limit in 3 4 5; do
   output="$($GODOT_BIN --headless --path "$ROOT" -- --server \
     --port="$((BASE_PORT + limit))" --score-limit="$limit" --test-seconds=0.2 2>&1)"
