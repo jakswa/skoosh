@@ -21,11 +21,8 @@ var _reset_buffered := false
 var _configured := false
 var _bot_start_tick := -1
 var _bot_voice_sent := false
-<<<<<<< HEAD
 var _bot_aim_settled_ticks := 0
-=======
 var _visual_qa_bot := false
->>>>>>> 2b57ccf (feat: add proper competitive CTF maps)
 var visual_qa_lock := false
 
 
