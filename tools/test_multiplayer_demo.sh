@@ -5,7 +5,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GODOT_BIN="${GODOT_BIN:-godot}"
 CLIENT_BIN="${SKOOSH_CLIENT_BIN:-$GODOT_BIN}"
 PORT="${SKOOSH_TEST_PORT:-19077}"
-TEST_SECONDS="${SKOOSH_TEST_SECONDS:-50}"
+MAP_ID="${SKOOSH_TEST_MAP:-faultline_basin}"
+TEST_SECONDS="${SKOOSH_TEST_SECONDS:-110}"
 CLIENT_TEST_SECONDS=$((TEST_SECONDS + 1))
 LOG_DIR="${SKOOSH_TEST_LOG_DIR:-$ROOT/.tmp/skoosh-network-test}"
 
@@ -30,6 +31,8 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 "$GODOT_BIN" --headless --path "$ROOT" -- --server --port="$PORT" \
+	--map="$MAP_ID" \
+	--acceptance-mode \
   --test-seconds="$TEST_SECONDS" --require-combat --require-movement --require-ctf \
   --require-voice --require-character-variants >"$LOG_DIR/server.log" 2>&1 &
 server_pid=$!
@@ -43,7 +46,8 @@ fi
 
 for client in 1 2; do
   "${client_command[@]}" -- --join=127.0.0.1 --port="$PORT" \
-    --bot --test-seconds="$CLIENT_TEST_SECONDS" --require-character-variants \
+		--map="$MAP_ID" \
+		--acceptance-mode --bot --test-seconds="$CLIENT_TEST_SECONDS" --require-character-variants \
     >"$LOG_DIR/client-$client.log" 2>&1 &
   pids+=("$!")
 done
@@ -84,4 +88,4 @@ if [[ $status -ne 0 ]]; then
   exit "$status"
 fi
 
-echo "Multiplayer acceptance passed. Logs: $LOG_DIR"
+echo "Multiplayer acceptance passed on $MAP_ID. Logs: $LOG_DIR"

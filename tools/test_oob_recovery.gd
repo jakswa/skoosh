@@ -5,7 +5,7 @@ const TEST_PEER_ID := 42
 const TEAM_BLUE := 1
 const FLAG_HOME := 0
 const FLAG_DROPPED := 2
-const FORCED_OOB_POSITION := Vector3(300.0, 0.0, 0.0)
+const FORCED_OOB_POSITION := Vector3(350.0, 0.0, 0.0)
 
 
 func _initialize() -> void:
@@ -44,7 +44,7 @@ func _run() -> void:
 
 	# Any other authoritative respawn must drop a carried flag before moving the
 	# player home, preventing reset-to-capture ordering bugs.
-	player.global_position = Vector3(0.0, arena.platform_surface_y, -207.0)
+	player.global_position = (arena.red_home + arena.blue_home) * 0.5
 	arena._take_flag(TEAM_BLUE, player)
 	player.request_authoritative_respawn(false)
 	arena._update_ctf_state()

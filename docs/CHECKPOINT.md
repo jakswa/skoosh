@@ -351,3 +351,15 @@ Implemented on `feature/combat-loadout`:
 - Extended acceptance bots and server counters to require accepted fire from every slot, a grenade impact, and confirmed gatling and sniper hits while preserving the movement, voice, CTF, and round-reset checks.
 
 Current limitation: hitscan is authoritative but not lag compensated. Historical player-capsule evaluation remains part of impairment qualification rather than this loadout implementation.
+
+## 17. Production competitive maps
+
+Implemented on `feature/proper-competitive-maps`:
+
+- Replaced the compact default with exactly two production rotation maps: default Faultline Basin and Cairn Steps. Kestrel Basin remains explicitly selectable as a legacy/test arena only.
+- Faultline uses a west-east capsule footprint, direct longitudinal fault trench, high basalt spine, screened recovery gully, recoverable raised perimeter, and violet night profile.
+- Cairn uses a north-south superellipse footprint, transverse stepped escarpment, exposed chute, screened switchback, central jet saddle, recoverable raised perimeter, and chalk/graphite day profile.
+- Map catalog data now drives deterministic terrain dimensions, curved authoritative OOB, bases, symmetric spawn sockets, bot routes, route marking, landmarks, material palette, atmosphere, and pre-spawn server/client map agreement.
+- Added automated contracts for production count/rotation, profile and swapped-axis topology distance, footprint/aspect, curved boundary recovery, base separation, route spacing/length/grade/landings, sightlines, symmetry, one-mesh/one-collider generation, and map mismatch rejection.
+
+These checks and automated CTF completions do not establish human balance or final production art. Both maps still require repeated human skiing, offense/defense, visibility, spawn-pressure, impairment, and minimum-spec evaluation. See `docs/production/COMPETITIVE_MAPS.md`.

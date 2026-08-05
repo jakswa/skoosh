@@ -54,9 +54,9 @@ Group=skoosh
 WorkingDirectory=/var/lib/skoosh
 Environment=HOME=/var/lib/skoosh
 # Prebuilt release binary:
-ExecStart=/opt/skoosh/skoosh-server --headless -- --server --port=9077
+ExecStart=/opt/skoosh/skoosh-server --headless -- --server --port=9077 --map=faultline_basin
 # For a Git checkout, replace ExecStart with:
-# ExecStart=/opt/skoosh/godot --headless --path /opt/skoosh -- --server --port=9077
+# ExecStart=/opt/skoosh/godot --headless --path /opt/skoosh -- --server --port=9077 --map=faultline_basin
 Restart=on-failure
 RestartSec=3
 NoNewPrivileges=true
@@ -84,6 +84,9 @@ A healthy startup includes:
 NETWORK server listening port=9077 max_clients=16
 NETWORK authoritative CTF server started peer=1 capture_limit=1
 ```
+
+Use `--map=cairn_steps` instead for the second production map. Every client must
+launch with the same map ID; mismatched peers are rejected before spawning.
 
 ## Network configuration
 

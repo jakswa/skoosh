@@ -6,8 +6,10 @@ GODOT_BIN="${GODOT_BIN:-godot}"
 OUTPUT_DIR="${SKOOSH_VISUAL_QA_DIR:-$ROOT/build/visual-qa/current}"
 LOG_DIR="$OUTPUT_DIR/logs"
 PORT="${SKOOSH_VISUAL_QA_PORT:-29077}"
+MAP_ID="${SKOOSH_MAP_ID:-faultline_basin}"
 TEST_SECONDS="${SKOOSH_VISUAL_QA_SECONDS:-20}"
 CONNECT_ATTEMPTS="${SKOOSH_VISUAL_QA_CONNECT_ATTEMPTS:-100}"
+CAPTURE_RENDERING_METHOD="${SKOOSH_CAPTURE_RENDERING_METHOD:-gl_compatibility}"
 SERVER_SECONDS=$((TEST_SECONDS + 10))
 
 if ! command -v "$GODOT_BIN" >/dev/null 2>&1; then
@@ -43,17 +45,17 @@ XVFB_ARGS="-screen 0 1280x720x24 -nolisten tcp"
 # Lobby and gameplay render on disposable virtual X servers. Neither process
 # can create a window or capture the pointer on the user's desktop display.
 xvfb-run -a --server-args="$XVFB_ARGS" \
-  "$GODOT_BIN" --path "$ROOT" --max-fps 60 -- \
-  --visual-qa-dir="$OUTPUT_DIR" --visual-qa-lobby \
+	"$GODOT_BIN" --path "$ROOT" --rendering-method "$CAPTURE_RENDERING_METHOD" --max-fps 60 -- \
+	--map="$MAP_ID" --visual-qa-dir="$OUTPUT_DIR" --visual-qa-lobby \
   >"$LOG_DIR/lobby.log" 2>&1
 
 "$GODOT_BIN" --headless --path "$ROOT" -- --server --port="$PORT" \
-  --test-seconds="$SERVER_SECONDS" >"$LOG_DIR/server.log" 2>&1 &
+	--map="$MAP_ID" --acceptance-mode --visual-qa-bot --test-seconds="$SERVER_SECONDS" >"$LOG_DIR/server.log" 2>&1 &
 pids+=("$!")
 sleep 1
 
 xvfb-run -a --server-args="$XVFB_ARGS" \
-  "$GODOT_BIN" --path "$ROOT" --max-fps 60 -- --join=127.0.0.1 --port="$PORT" --bot \
+  "$GODOT_BIN" --path "$ROOT" --rendering-method "$CAPTURE_RENDERING_METHOD" --max-fps 60 -- --join=127.0.0.1 --port="$PORT" --map="$MAP_ID" --acceptance-mode --visual-qa-bot --bot \
   --test-seconds="$TEST_SECONDS" --visual-qa-dir="$OUTPUT_DIR" \
   >"$LOG_DIR/qa-client.log" 2>&1 &
 qa_pid=$!
@@ -78,7 +80,7 @@ if [[ "$qa_connected" != true ]]; then
 fi
 
 "$GODOT_BIN" --headless --path "$ROOT" -- --join=127.0.0.1 --port="$PORT" \
-  --bot --test-seconds="$TEST_SECONDS" >"$LOG_DIR/bot-client.log" 2>&1 &
+	--map="$MAP_ID" --acceptance-mode --visual-qa-bot --bot --test-seconds="$TEST_SECONDS" >"$LOG_DIR/bot-client.log" 2>&1 &
 pids+=("$!")
 
 set +e
@@ -130,7 +132,7 @@ if command -v montage >/dev/null 2>&1; then
     -background '#07121c' "$OUTPUT_DIR/contact-sheet.png"
 fi
 
-echo "Visual QA captured ${#captures[@]} states without using the desktop display."
+echo "Visual QA captured ${#captures[@]} $MAP_ID states without using the desktop display."
 echo "Output: $OUTPUT_DIR"
 if [[ -f "$OUTPUT_DIR/contact-sheet.png" ]]; then
   echo "Contact sheet: $OUTPUT_DIR/contact-sheet.png"

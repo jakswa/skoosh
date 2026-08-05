@@ -5,6 +5,7 @@ signal server_requested(port: int)
 signal join_requested(address: String, port: int)
 
 @onready var panel := $Panel as PanelContainer
+@onready var title_label := $Panel/Layout/Title as Label
 @onready var address_input := $Panel/Layout/AddressRow/Address as LineEdit
 @onready var port_input := $Panel/Layout/AddressRow/Port as SpinBox
 @onready var status_label := $Panel/Layout/Status as Label
@@ -27,6 +28,10 @@ func set_status(message: String, connected: bool = false) -> void:
 	status_label.text = message
 	if connected:
 		visible = false
+
+
+func set_map_name(map_name: String) -> void:
+	title_label.text = map_name.to_upper()
 
 
 func show_error(message: String) -> void:

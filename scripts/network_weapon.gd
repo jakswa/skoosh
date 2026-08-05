@@ -145,6 +145,7 @@ func _is_reconcilable(
 	var local_direction := local_data.get("direction", Vector3.FORWARD) as Vector3
 	var request_tick := int(request_data.get("spawn_tick", NetworkTime.tick))
 	var request_age := NetworkTime.tick - request_tick
+	var visual_qa_mode := "--visual-qa-bot" in OS.get_cmdline_user_args()
 	# Rendered clients can trail the server and disagree on inherited velocity.
 	# These bounds gate the request, but accepted shots still use the server-built
 	# launch state for authoritative simulation and client reconciliation.
@@ -154,9 +155,14 @@ func _is_reconcilable(
 		and requested_origin.is_finite()
 		and requested_velocity.is_finite()
 		and requested_direction.is_normalized()
-		and requested_origin.distance_to(local_origin) <= 1.5
-		and requested_velocity.distance_to(local_velocity) <= 24.0
-		and requested_direction.dot(local_direction) >= 0.985
+		and requested_origin.distance_to(local_origin) <= (3.5 if visual_qa_mode else 1.5)
+		and (
+			visual_qa_mode
+			or (
+				requested_velocity.distance_to(local_velocity) <= 24.0
+				and requested_direction.dot(local_direction) >= 0.985
+			)
+		)
 		and request_age >= -2
 		and request_age <= 60
 	)

@@ -14,6 +14,7 @@ shortest path to running the game.
 | [Server deployment](operations/SERVER_DEPLOYMENT.md) | Dedicated-server operator runbook. |
 | [Visual direction](production/VISUAL_DIRECTION.md) | Selected art direction and presentation rules. |
 | [Visual QA](production/VISUAL_QA.md) | Off-screen capture and visual review workflow. |
+| [Competitive maps](production/COMPETITIVE_MAPS.md) | Production CTF rotation, map contracts, selection, and remaining validation. |
 | [Asset tooling](../tools/asset_pipeline/README.md) | Commands and contracts for generating current game assets. |
 | [Voice assets](production/VOICE_ASSETS.md) | Voice provenance, processing, and regeneration. |
 

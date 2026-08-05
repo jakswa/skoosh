@@ -1,4 +1,4 @@
-[gd_scene load_steps=27 format=3]
+[gd_scene load_steps=26 format=3]
 
 [ext_resource type="Script" path="res://scripts/network_main.gd" id="1_main"]
 [ext_resource type="Script" path="res://scripts/terrain.gd" id="2_terrain"]
@@ -10,6 +10,7 @@
 [ext_resource type="Script" path="res://scripts/team_base_visual.gd" id="8_base_visual"]
 [ext_resource type="Texture2D" path="res://assets/textures/environment/forward_plus_base_decal.png" id="9_base_decal"]
 [ext_resource type="Script" path="res://scripts/renderer_feature_profile.gd" id="10_renderer_profile"]
+[ext_resource type="Script" path="res://scripts/map_landmarks.gd" id="11_landmarks"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial"]
 sky_top_color = Color(0.055, 0.105, 0.17, 1)
@@ -83,18 +84,6 @@ emission_enabled = true
 emission = Color(0.025, 0.55, 1, 1)
 emission_energy_multiplier = 1.7
 roughness = 0.7
-
-[sub_resource type="FogMaterial" id="RedBaseFog"]
-density = 0.025
-albedo = Color(0.45, 0.28, 0.25, 1)
-emission = Color(0.035, 0.004, 0.002, 1)
-edge_fade = 0.55
-
-[sub_resource type="FogMaterial" id="BlueBaseFog"]
-density = 0.025
-albedo = Color(0.2, 0.34, 0.47, 1)
-emission = Color(0.002, 0.015, 0.035, 1)
-edge_fade = 0.55
 
 [sub_resource type="CylinderMesh" id="FlagPoleMesh"]
 top_radius = 0.055
@@ -209,8 +198,12 @@ directional_shadow_fade_start = 0.82
 
 [node name="Terrain" type="StaticBody3D" parent="."]
 script = ExtResource("2_terrain")
+consume_command_line_map = true
 
 [node name="CompactArena" type="Node3D" parent="."]
+
+[node name="NeutralLandmarks" type="Node3D" parent="."]
+script = ExtResource("11_landmarks")
 
 [node name="RedPlatform" type="StaticBody3D" parent="CompactArena"]
 collision_layer = 1
@@ -236,13 +229,6 @@ texture_albedo = ExtResource("9_base_decal")
 modulate = Color(0.68, 0.1, 0.065, 0.48)
 upper_fade = 0.15
 lower_fade = 0.15
-
-[node name="Atmosphere" type="FogVolume" parent="CompactArena/RedPlatform"]
-visible = false
-position = Vector3(0, 2.2, 0)
-size = Vector3(20, 8, 20)
-shape = 3
-material = SubResource("RedBaseFog")
 
 [node name="FillNorth" type="OmniLight3D" parent="CompactArena/RedPlatform"]
 position = Vector3(0, 2.2, -5.5)
@@ -297,13 +283,6 @@ texture_albedo = ExtResource("9_base_decal")
 modulate = Color(0.055, 0.32, 0.58, 0.48)
 upper_fade = 0.15
 lower_fade = 0.15
-
-[node name="Atmosphere" type="FogVolume" parent="CompactArena/BluePlatform"]
-visible = false
-position = Vector3(0, 2.2, 0)
-size = Vector3(20, 8, 20)
-shape = 3
-material = SubResource("BlueBaseFog")
 
 [node name="FillNorth" type="OmniLight3D" parent="CompactArena/BluePlatform"]
 position = Vector3(0, 2.2, -5.5)

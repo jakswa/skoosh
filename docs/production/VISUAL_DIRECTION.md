@@ -58,3 +58,9 @@ only when a map demonstrates visible benefit and records its cost.
 Themes own presentation only. Terrain topology/collision, movement, energy,
 combat, objective contact, score, and replication remain authoritative and may
 not vary with a visual theme.
+
+The current rotation applies that rule as two coherent packages: Faultline
+Basin uses the Khepri Night family for violet basalt and mineral haze, while
+Cairn Steps uses a restrained STRATOS Graphic family for chalk, graphite, and
+survey contours. See [Competitive CTF Maps](COMPETITIVE_MAPS.md). These packages
+do not alter movement or objective rules.

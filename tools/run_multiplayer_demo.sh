@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GODOT_BIN="${GODOT_BIN:-godot}"
 PORT="${SKOOSH_PORT:-9077}"
+MAP_ID="${SKOOSH_MAP_ID:-faultline_basin}"
 LOG_DIR="${SKOOSH_LOG_DIR:-$ROOT/.tmp/skoosh-network}"
 mkdir -p "$LOG_DIR"
 
@@ -21,18 +22,19 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 "$GODOT_BIN" --headless --path "$ROOT" -- --server --port="$PORT" \
+	--map="$MAP_ID" \
   >"$LOG_DIR/server.log" 2>&1 &
 pids+=("$!")
 sleep 1
 
-"$GODOT_BIN" --path "$ROOT" --position 60,80 -- --join=127.0.0.1 --port="$PORT" \
+"$GODOT_BIN" --path "$ROOT" --position 60,80 -- --join=127.0.0.1 --port="$PORT" --map="$MAP_ID" \
   >"$LOG_DIR/client-1.log" 2>&1 &
 pids+=("$!")
-"$GODOT_BIN" --path "$ROOT" --position 720,80 -- --join=127.0.0.1 --port="$PORT" \
+"$GODOT_BIN" --path "$ROOT" --position 720,80 -- --join=127.0.0.1 --port="$PORT" --map="$MAP_ID" \
   >"$LOG_DIR/client-2.log" 2>&1 &
 pids+=("$!")
 
-echo "SKOOSH network lab running on UDP $PORT"
+echo "SKOOSH network lab running $MAP_ID on UDP $PORT"
 echo "Logs: $LOG_DIR"
 echo "Clients are opponents: TEAM comms stay local; choose GLOBAL with G in the V menu."
 echo "Close both client windows or press Ctrl-C here to stop the server."

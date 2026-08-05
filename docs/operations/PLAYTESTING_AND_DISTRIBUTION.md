@@ -16,16 +16,21 @@ This starts a headless authoritative server and two graphical clients using `god
 GODOT_BIN=godot4 SKOOSH_PORT=9078 ./tools/run_multiplayer_demo.sh
 ```
 
+Faultline Basin is the default. Set `SKOOSH_MAP_ID=cairn_steps` to launch the
+other production map. Direct launches pass the corresponding
+`--map=faultline_basin` or `--map=cairn_steps` argument to the server and every
+client. Map agreement is checked before a local playable avatar spawns.
+
 Logs are written under the ignored `.tmp/skoosh-network` directory. Ctrl-C in the launching terminal stops the whole group. The two clients are assigned to opposing teams, so TEAM voice commands are intentionally private; press G in the open V menu to send a GLOBAL command that both clients can hear.
 
 To run the processes separately:
 
 ```bash
 # Terminal 1
-/path/to/Godot --headless --path . -- --server --port=9077
+/path/to/Godot --headless --path . -- --server --port=9077 --map=faultline_basin
 
 # Terminals 2 and 3
-/path/to/Godot --path . -- --join=127.0.0.1 --port=9077
+/path/to/Godot --path . -- --join=127.0.0.1 --port=9077 --map=faultline_basin
 ```
 
 Launching a client without arguments opens the lobby. Enter an address and port and press **JOIN SERVER**. **START SERVER** creates an authority-only server in that process; it does not create a local player, so two additional client processes are still required.
@@ -38,7 +43,8 @@ To open two local clients against one remote server:
 ./tools/run_remote_clients.sh play.example.com
 ```
 
-Override the port with `SKOOSH_PORT=9078`. To launch only one client from source:
+Override the port with `SKOOSH_PORT=9078` and select Cairn with
+`SKOOSH_MAP_ID=cairn_steps`. To launch only one client from source:
 
 ```bash
 /path/to/Godot --path . -- --join=play.example.com --port=9077
