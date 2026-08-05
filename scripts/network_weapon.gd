@@ -67,10 +67,12 @@ func _network_tick(_delta: float, _tick: int) -> void:
 
 
 func _can_fire() -> bool:
-	var arena := player.get_parent().get_parent()
+	var arena := player.get_game_root()
 	var round_active: bool = not arena.has_method("is_round_active") or bool(arena.is_round_active())
 	return (
 		not player.dead
+		and arena.is_node_in_active_world(player)
+		and arena.is_peer_gameplay_admitted(player.peer_id)
 		and round_active
 		and player.can_fire_weapon(weapon_slot)
 		and NetworkTime.tick - player.teleport_tick >= 15
@@ -79,7 +81,12 @@ func _can_fire() -> bool:
 
 
 func _can_peer_use(peer_id: int) -> bool:
-	if not multiplayer.is_server() or peer_id != player.peer_id:
+	var arena := player.get_game_root()
+	if (
+		not multiplayer.is_server()
+		or peer_id != player.peer_id
+		or not arena.is_peer_gameplay_admitted(peer_id)
+	):
 		return false
 	var previous_tick := int(_last_request_tick_by_peer.get(peer_id, -100000))
 	if NetworkTime.tick - previous_tick < 6:
@@ -90,9 +97,10 @@ func _can_peer_use(peer_id: int) -> bool:
 
 func _spawn() -> Node3D:
 	var projectile := projectile_scene.instantiate() as SkooshDiscProjectile
-	var arena := player.get_parent().get_parent()
-	var container := arena.get_node("Projectiles") as Node3D
+	var arena := player.get_game_root()
+	var container := arena.get_projectile_container() as Node3D
 	container.add_child(projectile)
+	projectile.world_generation = arena.world_generation
 	# Preserve center-reticle aiming while making the physical disc visibly leave
 	# the authored muzzle. The authoritative server uses this same convergence.
 	var aim_direction := -global_basis.z.normalized()
@@ -113,7 +121,44 @@ func _spawn() -> Node3D:
 
 
 func _get_data(projectile: Node3D) -> Dictionary:
-	return (projectile as SkooshDiscProjectile).get_launch_data()
+	var data := (projectile as SkooshDiscProjectile).get_launch_data()
+	data["generation"] = player.get_game_root().world_generation
+	return data
+
+
+func _is_network_data_current(data: Dictionary) -> bool:
+	var arena := player.get_game_root()
+	return (
+		arena != null
+		and arena.is_node_in_active_world(player)
+		and typeof(data.get("generation")) == TYPE_INT
+		and int(data["generation"]) == arena.world_generation
+	)
+
+
+func _is_expected_request_decline(data: Dictionary) -> bool:
+	var arena := player.get_game_root()
+	return (
+		arena != null
+		and int(data.get("generation", -1)) == arena.world_generation
+		and int(data.get("source_peer_id", -1)) == player.peer_id
+	)
+
+
+func _is_expected_use_decline(data: Dictionary, sender: int) -> bool:
+	var arena := player.get_game_root()
+	return (
+		arena != null
+		and int(data.get("generation", -1)) == arena.world_generation
+		and sender == player.peer_id
+	)
+
+
+func _get_projectile_rpc_target_peers() -> Array[int]:
+	var arena := player.get_game_root()
+	if arena == null:
+		return []
+	return arena.get_gameplay_peer_ids()
 
 
 func _apply_data(projectile: Node3D, data: Dictionary) -> void:
@@ -135,6 +180,7 @@ func _is_reconcilable(
 		or typeof(request_data.get("source_peer_id")) != TYPE_INT
 		or typeof(request_data.get("source_team")) != TYPE_INT
 		or typeof(request_data.get("spawn_tick")) != TYPE_INT
+		or typeof(request_data.get("generation")) != TYPE_INT
 	):
 		return false
 	var requested_origin := request_data.get("origin", Vector3.ZERO) as Vector3
@@ -145,6 +191,7 @@ func _is_reconcilable(
 	var local_direction := local_data.get("direction", Vector3.FORWARD) as Vector3
 	var request_tick := int(request_data.get("spawn_tick", NetworkTime.tick))
 	var request_age := NetworkTime.tick - request_tick
+	var visual_qa_mode := "--visual-qa-bot" in OS.get_cmdline_user_args()
 	# Rendered clients can trail the server and disagree on inherited velocity.
 	# These bounds gate the request, but accepted shots still use the server-built
 	# launch state for authoritative simulation and client reconciliation.
@@ -154,9 +201,14 @@ func _is_reconcilable(
 		and requested_origin.is_finite()
 		and requested_velocity.is_finite()
 		and requested_direction.is_normalized()
-		and requested_origin.distance_to(local_origin) <= 1.5
-		and requested_velocity.distance_to(local_velocity) <= 24.0
-		and requested_direction.dot(local_direction) >= 0.985
+		and requested_origin.distance_to(local_origin) <= (3.5 if visual_qa_mode else 1.5)
+		and (
+			visual_qa_mode
+			or (
+				requested_velocity.distance_to(local_velocity) <= 24.0
+				and requested_direction.dot(local_direction) >= 0.985
+			)
+		)
 		and request_age >= -2
 		and request_age <= 60
 	)
@@ -173,7 +225,7 @@ func _reconcile(projectile: Node3D, local_data: Dictionary, remote_data: Diction
 func _after_fire(_projectile: Node3D) -> void:
 	last_fire_tick = NetworkTime.tick
 	_muzzle_time = 0.08
-	var arena := player.get_parent().get_parent()
+	var arena := player.get_game_root()
 	if multiplayer.is_server() and arena.has_method("record_weapon_fire"):
 		arena.record_weapon_fire(weapon_slot)
 	if input.is_multiplayer_authority():
@@ -194,14 +246,25 @@ func _cooldown_ticks() -> int:
 func resolve_disc_impact(projectile: SkooshDiscProjectile, collider: Object) -> void:
 	if not multiplayer.is_server():
 		return
-	var arena := player.get_parent().get_parent()
+	var arena := player.get_game_root()
+	if (
+		projectile.world_generation != arena.world_generation
+		or not arena.is_node_in_active_world(projectile)
+		or not arena.is_peer_gameplay_admitted(projectile.source_peer_id)
+	):
+		return
 	var impact_position := projectile.global_position
 	var projectile_id := get_projectile_id(projectile)
 	var direct_target := collider as SkooshNetworkPlayer
 	var damaged_enemies := 0
 	for avatar_variant in arena.avatars.values():
 		var target := avatar_variant as SkooshNetworkPlayer
-		if target == null or target.dead or target.team == projectile.source_team:
+		if (
+			target == null
+			or not target.gameplay_admitted
+			or target.dead
+			or target.team == projectile.source_team
+		):
 			continue
 		var target_center := target.global_position + Vector3.UP * 1.1
 		var distance := target_center.distance_to(impact_position)
@@ -222,7 +285,15 @@ func resolve_disc_impact(projectile: SkooshDiscProjectile, collider: Object) -> 
 		arena.record_disc_impact(damaged_enemies)
 	if arena.has_method("record_weapon_impact"):
 		arena.record_weapon_impact(weapon_slot, damaged_enemies)
-	_present_disc_impact.rpc(projectile_id, impact_position, projectile.source_team, damaged_enemies > 0)
+	_present_disc_impact(
+		arena.world_generation, projectile_id, impact_position,
+		projectile.source_team, damaged_enemies > 0
+	)
+	for peer_id in arena.get_gameplay_peer_ids():
+		_present_disc_impact.rpc_id(
+			peer_id, arena.world_generation, projectile_id, impact_position,
+			projectile.source_team, damaged_enemies > 0
+		)
 
 
 func _world_blocks_splash(
@@ -246,14 +317,17 @@ func _world_blocks_splash(
 
 @rpc("authority", "reliable", "call_local")
 func _present_disc_impact(
+	generation: int,
 	projectile_id: String,
 	position: Vector3,
 	source_team: int,
 	hit_enemy: bool
 ) -> void:
+	var arena := player.get_game_root()
+	if generation != arena.world_generation or not arena.is_node_in_active_world(player):
+		return
 	if not projectile_id.is_empty():
 		despawn_projectile(projectile_id)
-	var arena := player.get_parent().get_parent()
 	var effect := Node3D.new()
 	effect.name = "DiscImpact"
 	var is_grenade := weapon_slot == 1
@@ -264,7 +338,7 @@ func _present_disc_impact(
 	)
 	if hit_enemy:
 		color = Color("#fff08a")
-	arena.get_node("Effects").add_child(effect)
+	arena.get_effect_container().add_child(effect)
 	effect.global_position = position
 
 	var core := MeshInstance3D.new()

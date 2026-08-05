@@ -4,6 +4,14 @@ render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 varying vec3 world_position;
 varying vec3 world_normal;
 
+uniform vec2 route_origin = vec2(0.0, -207.0);
+uniform vec2 route_axis = vec2(1.0, 0.0);
+uniform float route_half_length = 42.0;
+uniform float route_width = 3.25;
+uniform float route_strength = 0.38;
+uniform float contour_spacing = 3.25;
+uniform float contour_strength = 0.16;
+
 float hash21(vec2 p) {
 	p = fract(p * vec2(123.34, 456.21));
 	p += dot(p, p + 45.32);
@@ -31,7 +39,7 @@ void fragment() {
 	float broad = value_noise(world_position.xz / 38.0);
 	float crust = value_noise(world_position.xz / 3.7);
 	float wind = sin(world_position.x * 0.34 + world_position.z * 0.09 + broad * 2.5) * 0.5 + 0.5;
-	float strata = smoothstep(0.43, 0.57, fract((world_position.y + broad * 1.6) / 3.25));
+	float strata = smoothstep(0.43, 0.57, fract((world_position.y + broad * 1.6) / contour_spacing));
 	float hardpack = (crust - 0.5) * 0.11 + (wind - 0.5) * 0.055;
 	float rock_break = smoothstep(0.22, 0.58, slope) * mix(0.82, 1.08, strata);
 	vec3 snow_tint = COLOR.rgb * (0.96 + hardpack);
@@ -39,16 +47,21 @@ void fragment() {
 	vec3 color = mix(snow_tint, slate_tint, rock_break);
 
 	// STRATOS-derived grade and route grammar, restrained to physical field marks.
-	float contour = 1.0 - smoothstep(0.035, 0.11, abs(fract((world_position.y + 64.0) / 3.25) - 0.5));
-	color *= mix(1.0, 0.72, contour * (1.0 - rock_break * 0.55));
-	float field = 1.0 - smoothstep(30.0, 44.0, abs(world_position.z + 207.0));
-	float lane = 1.0 - smoothstep(2.55, 3.25, abs(world_position.z + 207.0));
-	float red_side = 1.0 - smoothstep(-3.0, 1.5, world_position.x);
-	float blue_side = smoothstep(-1.5, 3.0, world_position.x);
-	color = mix(color, vec3(0.42, 0.075, 0.045), lane * red_side * field * 0.38 * (1.0 - rock_break));
-	color = mix(color, vec3(0.035, 0.20, 0.38), lane * blue_side * field * 0.38 * (1.0 - rock_break));
-	float timing = 1.0 - smoothstep(0.035, 0.09, abs(fract((world_position.x + 3.0) / 12.0) - 0.5));
-	float timing_lane = 1.0 - smoothstep(3.25, 4.0, abs(world_position.z + 207.0));
+	float contour = 1.0 - smoothstep(0.035, 0.11, abs(fract((world_position.y + 96.0) / contour_spacing) - 0.5));
+	color *= mix(1.0, 1.0 - contour_strength, contour * (1.0 - rock_break * 0.55));
+	vec2 axis = normalize(route_axis);
+	vec2 across_axis = vec2(-axis.y, axis.x);
+	vec2 route_delta = world_position.xz - route_origin;
+	float along = dot(route_delta, axis);
+	float across = dot(route_delta, across_axis);
+	float field = 1.0 - smoothstep(route_half_length - 10.0, route_half_length, abs(along));
+	float lane = 1.0 - smoothstep(route_width * 0.78, route_width, abs(across));
+	float red_side = 1.0 - smoothstep(-3.0, 1.5, along);
+	float blue_side = smoothstep(-1.5, 3.0, along);
+	color = mix(color, vec3(0.42, 0.075, 0.045), lane * red_side * field * route_strength * (1.0 - rock_break));
+	color = mix(color, vec3(0.035, 0.20, 0.38), lane * blue_side * field * route_strength * (1.0 - rock_break));
+	float timing = 1.0 - smoothstep(0.035, 0.09, abs(fract((along + 3.0) / 12.0) - 0.5));
+	float timing_lane = 1.0 - smoothstep(route_width, route_width + 0.75, abs(across));
 	color = mix(color, vec3(0.055, 0.07, 0.075), timing * timing_lane * field * 0.68);
 	ALBEDO = color;
 	ROUGHNESS = mix(0.88, 0.72, rock_break) + (crust - 0.5) * 0.08;

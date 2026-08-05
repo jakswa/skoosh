@@ -39,6 +39,7 @@ GODOT_BIN=/path/to/Godot \
 SKOOSH_VISUAL_QA_DIR=.tmp/skoosh-visual-qa \
 SKOOSH_VISUAL_QA_PORT=29078 \
 SKOOSH_VISUAL_QA_SECONDS=24 \
+SKOOSH_MAP_ID=cairn_steps \
 ./tools/capture_visual_qa.sh
 ```
 
@@ -49,6 +50,13 @@ SKOOSH_RENDERING_METHOD=forward_plus \
 SKOOSH_RENDERER_PROFILE=balanced \
 ./tools/capture_visual_qa_private_wayland.sh
 ```
+
+Run the full suite once per production map with `SKOOSH_MAP_ID=faultline_basin`
+and `SKOOSH_MAP_ID=cairn_steps`. Automated gameplay captures use central
+acceptance-only combat sockets so weapon/effect states remain deterministic on
+large maps. The capture-only server accepts wider predicted launch presentation
+skew from the slow off-screen renderer but still constructs authoritative launch
+state; normal clients keep production spawn and launch-validation bounds.
 
 When profiling renderer throughput, `SKOOSH_GPU_PROFILE=1` disables VSync and the frame cap and prints one-second project FPS samples. This is diagnostic evidence, not a substitute for testing representative minimum-spec hardware.
 

@@ -130,7 +130,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	else:
 		if selection < 4:
 			var command_id := _voice_category * 4 + selection
-			var arena := player.get_parent().get_parent()
+			var arena := player.get_game_root()
 			arena.send_voice_command(command_id, _voice_scope)
 			set_voice_menu_visible(false)
 	get_viewport().set_input_as_handled()
@@ -152,7 +152,7 @@ func _process(delta: float) -> void:
 	_reticle.text = "x" if _hit_time > 0.0 else "+"
 	_reticle.modulate = Color("#fff08a") if _hit_time > 0.0 else Color("#69f5c5")
 	_reticle.scale = Vector2.ONE * (1.35 if _shot_time > 0.0 else 1.0)
-	var arena := player.get_parent().get_parent()
+	var arena := player.get_game_root()
 	var team_name: String = arena.get_team_name(player.team)
 	var callsign := SkooshNetworkPlayer.callsign_for_peer(player.peer_id)
 	var team_color := Color("#ff6a5d") if player.team == 0 else Color("#55caff")
@@ -163,31 +163,43 @@ func _process(delta: float) -> void:
 	_stats.add_theme_color_override("font_color", team_color)
 	_health_bar.value = player.health
 	_energy_bar.value = player.jet_energy
-	var capture_limit: int = int(arena.get_capture_limit())
-	_score.text = "RED  %d/%d  [%s]       ROUND %d       [%s]  %d/%d  BLUE" % [
-		arena.red_score, capture_limit, arena.get_flag_status(0), arena.round_number,
-		arena.get_flag_status(1), arena.blue_score, capture_limit
-	]
-	var carrying: bool = arena.player_carries_enemy_flag(player)
-	_objective.text = (
-		"RELAY KEY SECURED // RETURN TO YOUR STATION"
-		if carrying
-		else "ENEMY RELAY: %s     //     OUR RELAY: %s" % [
-			arena.get_flag_status(1 if player.team == 0 else 0),
-			arena.get_flag_status(player.team),
-		]
+	var match_state_current: bool = (
+		arena.is_world_active()
+		and arena.match_state_generation == arena.world_generation
 	)
+	var carrying := false
+	if match_state_current:
+		var capture_limit: int = int(arena.get_capture_limit())
+		_score.text = "RED  %d/%d  [%s]       MATCH %d       [%s]  %d/%d  BLUE" % [
+			arena.red_score, capture_limit, arena.get_flag_status(0), arena.round_number,
+			arena.get_flag_status(1), arena.blue_score, capture_limit
+		]
+		carrying = arena.player_carries_enemy_flag(player)
+		_objective.text = (
+			"OBJECTIVES REARMING // SCORE HOLDS"
+			if arena.is_objective_resetting()
+			else
+			"RELAY KEY SECURED // RETURN TO YOUR STATION"
+			if carrying
+			else "ENEMY RELAY: %s     //     OUR RELAY: %s" % [
+				arena.get_flag_status(1 if player.team == 0 else 0),
+				arena.get_flag_status(player.team),
+			]
+		)
+	else:
+		_score.text = "MAP STATE // SYNCHRONIZING"
+		_objective.text = "OBJECTIVE LINK PAUSED DURING WORLD CHANGE"
 	_objective.add_theme_color_override(
 		"font_color", Color("#ffe36d") if carrying else Color(0.75, 0.88, 0.86, 0.9)
 	)
 	var reload_fraction: float = player.get_weapon_readiness()
 	_reload_bar.value = reload_fraction * 100.0
 	_weapon_status.text = player.get_weapon_status()
-	_round_notice.visible = arena.round_over
-	if arena.round_over:
+	_round_notice.visible = match_state_current and arena.round_over
+	if match_state_current and arena.round_over:
 		var won: bool = arena.winner_team == player.team
 		var round_remaining := maxi(0, arena.round_restart_tick - NetworkTime.tick)
-		_round_notice.text = ("ROUND SECURED" if won else "ROUND LOST") + "\nREDEPLOY IN %.1f" % (round_remaining / 60.0)
+		_round_notice.text = ("MATCH SECURED" if won else "MATCH LOST") + "\nNEXT MATCH IN %.1f" % (round_remaining / 60.0)
 	_death.visible = player.dead
 	if player.dead:
 		var respawn_remaining := maxi(0, player.respawn_tick - NetworkTime.tick)
@@ -344,7 +356,7 @@ func _update_voice_menu() -> void:
 		_voice_title.text = "%s COMMS // SELECT CHANNEL" % scope_name
 		_voice_entries.text = "1   SOCIAL\n2   OBJECTIVE\n3   STATUS"
 		return
-	var arena := player.get_parent().get_parent() if player != null else null
+	var arena := player.get_game_root() if player != null else null
 	var commands: Array = arena.get_voice_commands() if arena != null else []
 	var category_names := ["SOCIAL", "OBJECTIVE", "STATUS"]
 	_voice_title.text = "%s COMMS // %s" % [scope_name, category_names[_voice_category]]

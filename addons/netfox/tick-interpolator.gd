@@ -31,6 +31,7 @@ var _property_entries: Array[PropertyEntry] = []
 var _properties_dirty: bool = false
 var _interpolators: Dictionary = {}
 var _is_teleporting: bool = false
+var _active: bool = true
 
 var _property_cache: PropertyCache
 
@@ -69,7 +70,7 @@ func add_property(node: Variant, property: String):
 ## Even if it's enabled, no interpolation will be done if there are no
 ## properties to interpolate.
 func can_interpolate() -> bool:
-	return enabled and not properties.is_empty() and not _is_teleporting
+	return _active and enabled and not properties.is_empty() and not _is_teleporting
 
 ## Record current state for interpolation.
 ## [br][br]
@@ -107,12 +108,21 @@ func _get_configuration_warnings() -> PackedStringArray:
 	)
 
 func _connect_signals() -> void:
+	if not _active:
+		return
 	NetworkTime.before_tick_loop.connect(_before_tick_loop)
 	NetworkTime.after_tick_loop.connect(_after_tick_loop)
 
 func _disconnect_signals() -> void:
-	NetworkTime.before_tick_loop.disconnect(_before_tick_loop)
-	NetworkTime.after_tick_loop.disconnect(_after_tick_loop)
+	if NetworkTime.before_tick_loop.is_connected(_before_tick_loop):
+		NetworkTime.before_tick_loop.disconnect(_before_tick_loop)
+	if NetworkTime.after_tick_loop.is_connected(_after_tick_loop):
+		NetworkTime.after_tick_loop.disconnect(_after_tick_loop)
+
+
+func deactivate() -> void:
+	_active = false
+	_disconnect_signals()
 
 func _enter_tree() -> void:
 	if Engine.is_editor_hint():
@@ -124,6 +134,8 @@ func _enter_tree() -> void:
 	# Wait a frame for any initial setup before recording first state
 	if record_first_state:
 		await get_tree().process_frame
+		if not _active or not is_inside_tree():
+			return
 		teleport()
 
 func _exit_tree() -> void:

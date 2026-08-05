@@ -32,6 +32,7 @@ var _latest_state_tick: int
 
 var _is_predicted_tick: bool
 var _is_initialized: bool
+var _active: bool = true
 
 # Signals
 signal _on_transmit_state(state: Dictionary, tick: int)
@@ -43,6 +44,10 @@ func get_earliest_input_tick() -> int:
 
 func get_latest_state_tick() -> int:
 	return _latest_state_tick
+
+func accept_authoritative_baseline(tick: int) -> void:
+	_latest_state_tick = tick
+	_next_full_state_tick = tick
 
 func set_predicted_tick(p_is_predicted_tick) -> void:
 	_is_predicted_tick = p_is_predicted_tick
@@ -73,8 +78,12 @@ func configure(
 	_diff_state_encoder = _DiffHistoryEncoder.new(_state_history, _property_cache)
 
 	_is_initialized = true
+	_active = true
 
 	reset()
+
+func deactivate() -> void:
+	_active = false
 
 func reset() -> void:
 	_ackd_state.clear()
@@ -204,7 +213,7 @@ func _notification(what):
 
 @rpc("any_peer", "unreliable", "call_remote")
 func _submit_input(tick: int, data: Array) -> void:
-	if not _is_initialized:
+	if not _is_initialized or not _active:
 		# Settings not processed yet
 		return
 
@@ -218,7 +227,7 @@ func _submit_input(tick: int, data: Array) -> void:
 # `serialized_state` is a serialized _PropertySnapshot
 @rpc("any_peer", "unreliable_ordered", "call_remote")
 func _submit_full_state(data: Array, tick: int) -> void:
-	if not _is_initialized:
+	if not _is_initialized or not _active:
 		# Settings not processed yet
 		return
 
@@ -235,7 +244,7 @@ func _submit_full_state(data: Array, tick: int) -> void:
 # State is a serialized _PropertySnapshot (Dictionary[String, Variant])
 @rpc("any_peer", "unreliable_ordered", "call_remote")
 func _submit_diff_state(data: PackedByteArray, tick: int, reference_tick: int) -> void:
-	if not _is_initialized:
+	if not _is_initialized or not _active:
 		# Settings not processed yet
 		return
 

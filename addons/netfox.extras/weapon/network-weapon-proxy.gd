@@ -9,6 +9,10 @@ var c_get_data: Callable
 var c_apply_data: Callable
 var c_is_reconcilable: Callable
 var c_reconcile: Callable
+var c_is_network_data_current: Callable
+var c_is_expected_request_decline: Callable
+var c_is_expected_use_decline: Callable
+var c_get_projectile_rpc_target_peers: Callable
 
 func _can_fire() -> bool:
 	return c_can_fire.call()
@@ -33,3 +37,17 @@ func _is_reconcilable(projectile: Node, request_data: Dictionary, local_data: Di
 
 func _reconcile(projectile: Node, local_data: Dictionary, remote_data: Dictionary):
 	c_reconcile.call(projectile, local_data, remote_data)
+
+func _is_network_data_current(data: Dictionary) -> bool:
+	return c_is_network_data_current.call(data)
+
+func _is_expected_request_decline(data: Dictionary) -> bool:
+	return c_is_expected_request_decline.call(data)
+
+func _is_expected_use_decline(data: Dictionary, sender: int) -> bool:
+	return c_is_expected_use_decline.call(data, sender)
+
+func _get_projectile_rpc_target_peers() -> Array[int]:
+	var peers: Array[int] = []
+	peers.assign(c_get_projectile_rpc_target_peers.call())
+	return peers

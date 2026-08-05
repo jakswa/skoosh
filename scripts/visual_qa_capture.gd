@@ -85,9 +85,9 @@ func _process(_delta: float) -> void:
 		_queue_capture("60-flag-carrier")
 	if arena.round_over:
 		_queue_capture("70-round-result")
-	if not _player.hud.is_voice_menu_visible() and arena.get_node("Projectiles").get_child_count() > 0:
+	if not _player.hud.is_voice_menu_visible() and arena.get_projectile_container().get_child_count() > 0:
 		_queue_capture("32-projectile-flight")
-	if arena.get_node("Effects").get_child_count() > 0:
+	if arena.get_effect_container().get_child_count() > 0:
 		_queue_capture("34-combat-effect")
 
 

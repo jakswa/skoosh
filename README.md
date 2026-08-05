@@ -23,6 +23,13 @@ Set `GODOT_BIN` to another command name or an absolute path, or override the por
 GODOT_BIN=godot4 SKOOSH_PORT=9078 ./tools/run_multiplayer_demo.sh
 ```
 
+Faultline Basin is the default competitive map. Select the other production map
+for the server and both clients with
+`SKOOSH_MAP_ID=cairn_steps ./tools/run_multiplayer_demo.sh`. See
+[`docs/production/COMPETITIVE_MAPS.md`](docs/production/COMPETITIVE_MAPS.md).
+The selected map is the rotation's starting point; completed score-limit matches
+alternate between Faultline and Cairn without disconnecting clients.
+
 SKOOSH uses Forward+ with the balanced presentation profile by default. Compare its feature tiers with:
 
 ```bash
@@ -69,17 +76,24 @@ See [`docs/operations/PLAYTESTING_AND_DISTRIBUTION.md`](docs/operations/PLAYTEST
 
 ### CTF loop
 
-Clients are balanced between RED and BLUE. Take the opposing flag and return to the glowing ring on your raised team platform while your flag is home. Death drops a carried flag; teammates return their dropped flag by touching it, otherwise it returns after ten seconds. The compact demo is sudden death: one capture wins, followed by a five-second intermission and a fresh round.
+Clients are balanced between RED and BLUE. Take the opposing flag and return to the glowing ring on your team platform while your flag is home. Death drops a carried flag; teammates return their dropped flag by touching it, otherwise it returns after ten seconds. The server-owned score limit defaults to three captures. Captures below the limit preserve the score and rearm both objectives after two seconds; reaching the limit starts a five-second intermission, then rebuilds the next production map and starts a fresh match while preserving connected peers and team assignments. Dedicated servers may set `--score-limit=N`, where `N` is exactly `3`, `4`, or `5`; other values fail startup.
 
 ## Automated checks
 
 ```bash
 ./tools/test_ground_jet.sh
 ./tools/test_oob_recovery.sh
-./tools/test_multiplayer_demo.sh       # about 51 seconds
+./tools/test_competitive_maps.sh
+./tools/test_map_mismatch.sh
+./tools/test_score_limit_cli.sh
+./tools/test_multiplayer_demo.sh       # about 111 seconds
+./tools/test_map_rotation.sh           # about 75 seconds
+./tools/test_network_bootstrap.sh
+./tools/test_rotation_ready_timeout.sh
+./tools/test_rotation_prepare_disconnect.sh
 ```
 
-The multiplayer test takes about 51 seconds and validates two-team spawning, all four authoritative weapon paths, cross-peer global voice relay, death/respawn, ski/jet movement, a flag capture, win state, and round restart.
+The multiplayer test takes about 111 seconds and validates two-team spawning, all four authoritative weapon paths, cross-peer global voice relay, death/respawn, ski/jet movement, full-map capture accumulation without an early win, score-limit victory, intermission/reset, and duplicate-award rejection. Set `SKOOSH_TEST_MAP=cairn_steps` to run it on the second production map. The rotation checks cover two live map changes, compatibility/bootstrap, a join during preparation, and bounded disconnect/timeout behavior.
 
 For off-screen visual and UX review, Compatibility uses `./tools/capture_visual_qa.sh`; Forward+ uses `./tools/capture_visual_qa_private_wayland.sh` with a private headless Weston compositor. Neither opens desktop windows or captures the host mouse. See [`docs/production/VISUAL_QA.md`](docs/production/VISUAL_QA.md).
 

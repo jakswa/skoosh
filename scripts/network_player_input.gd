@@ -22,11 +22,13 @@ var _configured := false
 var _bot_start_tick := -1
 var _bot_voice_sent := false
 var _bot_aim_settled_ticks := 0
+var _visual_qa_bot := false
 var visual_qa_lock := false
 
 
 func _ready() -> void:
 	super()
+	_visual_qa_bot = "--visual-qa-bot" in OS.get_cmdline_user_args()
 	call_deferred("_configure_if_local")
 
 
@@ -59,6 +61,17 @@ func _input(event: InputEvent) -> void:
 
 func _gather() -> void:
 	_configure_if_local()
+	var player := get_parent() as SkooshNetworkPlayer
+	var arena := player.get_game_root() if player != null else null
+	if (
+		arena != null
+		and (
+			not arena.is_world_active()
+			or not arena.is_peer_gameplay_admitted(player.peer_id)
+		)
+	):
+		_set_bot_idle()
+		return
 	if bot_mode:
 		_gather_bot()
 		return
@@ -74,33 +87,32 @@ func _gather() -> void:
 
 
 func _gather_bot() -> void:
+	var player := get_parent() as SkooshNetworkPlayer
+	var arena := player.get_game_root() if player != null else null
+	if not "avatars" in arena or arena.avatars.size() < 2:
+		_bot_start_tick = NetworkTime.tick
+		_set_bot_idle()
+		return
 	if _bot_start_tick < 0:
 		_bot_start_tick = NetworkTime.tick
 	var bot_age := NetworkTime.tick - _bot_start_tick
 	if bot_age >= 90 and not _bot_voice_sent:
 		_bot_voice_sent = true
-		var voice_arena := get_parent().get_parent().get_parent()
-		if voice_arena.has_method("send_voice_command"):
-			voice_arena.send_voice_command(0, VoiceCommandLibrary.SCOPE_GLOBAL)
-	if visual_qa_lock:
-		movement = Vector2.ZERO
-		ski = false
-		jet = false
-		fire = false
-		weapon_slot = 0
-		reset = false
-		look_delta = Vector2.ZERO
-		_bot_aim_settled_ticks = 0
+		if arena.has_method("send_voice_command"):
+			arena.send_voice_command(0, VoiceCommandLibrary.SCOPE_GLOBAL)
+	if visual_qa_lock or (_visual_qa_bot and bot_age < 132):
+		_set_bot_idle()
 		return
-	var movement_phase := bot_age >= 480
+	var movement_phase := bot_age >= 540
 	movement = Vector2.ZERO
 	ski = false
 	jet = false
-	fire = not movement_phase
-	weapon_slot = clampi(floori(float(bot_age) / 120.0), 0, 3) if not movement_phase else 0
+	# Settle the final weapon before movement so a late predicted shot cannot
+	# cross the phase boundary.
+	fire = bot_age < 450
+	weapon_slot = clampi(floori(float(bot_age) / 120.0), 0, 3)
 	reset = false
 	look_delta = Vector2.ZERO
-	var player := get_parent() as SkooshNetworkPlayer
 	if player == null or player.dead:
 		fire = false
 		_bot_aim_settled_ticks = 0
@@ -121,7 +133,7 @@ func _gather_bot() -> void:
 		# Keep CTF automation deliberately slower than a player. A short opening
 		# pop proves jet replication, then walking friction gives the bot a stable
 		# approach. Jet again only when it must climb onto a raised flag platform.
-		var opening_pop := bot_age < 490
+		var opening_pop := bot_age < 550
 		var platform_above := target_position.y - player.global_position.y > 1.5
 		var climbing_platform := planar_distance < 13.0 and platform_above
 		jet = opening_pop or climbing_platform
@@ -140,6 +152,17 @@ func _gather_bot() -> void:
 	# Cover the measured four-tick request skew after the local aim converges.
 	if fire and _bot_aim_settled_ticks < BOT_AIM_SETTLE_TICKS:
 		fire = false
+
+
+func _set_bot_idle() -> void:
+	movement = Vector2.ZERO
+	ski = false
+	jet = false
+	fire = false
+	weapon_slot = 0
+	reset = false
+	look_delta = Vector2.ZERO
+	_bot_aim_settled_ticks = 0
 
 
 func _weapon_key_index(keycode: Key) -> int:

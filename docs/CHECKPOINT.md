@@ -351,3 +351,65 @@ Implemented on `feature/combat-loadout`:
 - Extended acceptance bots and server counters to require accepted fire from every slot, a grenade impact, and confirmed gatling and sniper hits while preserving the movement, voice, CTF, and round-reset checks.
 
 Current limitation: hitscan is authoritative but not lag compensated. Historical player-capsule evaluation remains part of impairment qualification rather than this loadout implementation.
+
+## 17. Production competitive maps
+
+Implemented on `feature/proper-competitive-maps`:
+
+- Replaced the compact default with exactly two production rotation maps: default Faultline Basin and Cairn Steps. Kestrel Basin remains explicitly selectable as a legacy/test arena only.
+- Faultline uses a west-east capsule footprint, direct longitudinal fault trench, high basalt spine, screened recovery gully, recoverable raised perimeter, and violet night profile.
+- Cairn uses a north-south superellipse footprint, transverse stepped escarpment, exposed chute, screened switchback, central jet saddle, recoverable raised perimeter, and chalk/graphite day profile.
+- Map catalog data now drives deterministic terrain dimensions, curved authoritative OOB, bases, symmetric spawn sockets, bot routes, route marking, landmarks, material palette, atmosphere, and pre-spawn server/client map agreement.
+- Added automated contracts for production count/rotation, profile and swapped-axis topology distance, footprint/aspect, curved boundary recovery, base separation, route spacing/length/grade/landings, sightlines, symmetry, one-mesh/one-collider generation, and map mismatch rejection.
+
+These checks and automated CTF completions do not establish human balance or final production art. Both maps still require repeated human skiing, offense/defense, visibility, spawn-pressure, impairment, and minimum-spec evaluation. See `docs/production/COMPETITIVE_MAPS.md`.
+
+## 18. Authoritative score-limit match loop
+
+Implemented on `feature/match-loop`:
+
+- Replaced one-capture sudden death with a server-owned score limit defaulting
+  to three; only dedicated-server CLI values `3`, `4`, and `5` are accepted.
+- Replicated the selected limit and objective-reset deadline for late joiners
+  and HUD presentation.
+- Captures below the limit retain both scores and enter a two-second objective
+  rearm. Reaching the limit enters the existing five-second intermission, then
+  resets scores, objectives, and avatars for the next match.
+- Hardened capture award eligibility against stale or duplicate calls and
+  extended headless acceptance through accumulation, no early win, limit win,
+  intermission/reset, and duplicate rejection.
+- Combined map/match acceptance now requires the first capture on each selected
+  production map to visit every authored bot-route waypoint before scoring. Only
+  after that server-observed `route=full` capture may the explicit acceptance
+  seam position the carrier for normal authoritative pickup/capture contacts,
+  keeping each map run to roughly 116 wall-clock seconds while proving the full
+  limit loop.
+
+Automatic rotation was completed in the following implementation pass. See
+`docs/engineering/MAP_ROTATION_HANDOFF.md` for the persistent session/world
+split, bounded generation and admission protocols, acceptance, and remaining
+impairment qualification.
+
+## 19. Authoritative production-map rotation
+
+Implemented on `feature/proper-maps-score-loop`:
+
+- Score-limit matches rotate Faultline Basin to Cairn Steps and back while the
+  ENet session root, peer IDs, teams, and character assignments persist.
+- Every generation rebuilds terrain/collision, arena objectives, landmarks,
+  avatars and rollback histories, projectiles, effects, and map presentation
+  beneath a generation-qualified disposable world.
+- A server-owned SHA-256 compatibility contract, serialized admission queue,
+  immutable prepare/readiness deadlines, reliable rollback baselines, and
+  admitted-peer visibility prevent joins or delayed gameplay traffic from
+  mutating or addressing an unbuilt world.
+- Generation-qualified projectile, hitscan, impact, voice, transition, and
+  match-state traffic rejects stale data; retired paths remain inert for a
+  bounded grace period before normal netfox teardown.
+- Headless acceptance proves two rotations with stable peers and
+  acceptance-driven authoritative movement/fire/scoring after each rebuild,
+  same-ID incompatible-build rejection, a join during preparation, readiness
+  timeout recovery, and a disconnect during preparation.
+
+Remaining work is impairment, scale/bandwidth, minimum-spec timeout, and human
+match-pacing qualification rather than rotation architecture.

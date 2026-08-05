@@ -21,7 +21,7 @@ func fast_forward_presentation(elapsed_ticks: int) -> void:
 
 
 func _network_tick(delta: float, tick: int) -> void:
-	if spawn_tick < 0:
+	if spawn_tick < 0 or not is_generation_active():
 		return
 	var age := tick - spawn_tick
 	if age >= FUSE_TICKS:

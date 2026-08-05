@@ -52,14 +52,16 @@ func _network_tick(_delta: float, _tick: int) -> void:
 	_muzzle_time = 0.06
 	player.present_weapon_fire(weapon_slot)
 	player.hud.flash_shot()
-	_request_fire.rpc_id(1, NetworkTime.tick)
+	_request_fire.rpc_id(1, player.get_game_root().world_generation, NetworkTime.tick)
 
 
 func _can_fire() -> bool:
-	var arena := player.get_parent().get_parent()
+	var arena := player.get_game_root()
 	var round_active: bool = not arena.has_method("is_round_active") or bool(arena.is_round_active())
 	return (
 		not player.dead
+		and arena.is_node_in_active_world(player)
+		and arena.is_peer_gameplay_admitted(player.peer_id)
 		and round_active
 		and player.can_fire_weapon(weapon_slot)
 		and NetworkTime.tick - player.teleport_tick >= 15
@@ -68,8 +70,15 @@ func _can_fire() -> bool:
 
 
 @rpc("any_peer", "reliable", "call_remote")
-func _request_fire(request_tick: int) -> void:
-	if not multiplayer.is_server() or multiplayer.get_remote_sender_id() != player.peer_id:
+func _request_fire(generation: int, request_tick: int) -> void:
+	var arena := player.get_game_root()
+	if (
+		not multiplayer.is_server()
+		or generation != arena.world_generation
+		or not arena.is_node_in_active_world(player)
+		or multiplayer.get_remote_sender_id() != player.peer_id
+		or not arena.is_peer_gameplay_admitted(player.peer_id)
+	):
 		return
 	if NetworkTime.tick - _last_request_attempt_tick < REQUEST_ATTEMPT_INTERVAL_TICKS:
 		return
@@ -91,16 +100,24 @@ func _request_fire(request_tick: int) -> void:
 	if not result.is_empty():
 		end_position = result.get("position", end_position) as Vector3
 		var target := result.get("collider") as SkooshNetworkPlayer
-		if target != null and not target.dead and target.team != player.team:
+		if (
+			target != null
+			and target.gameplay_admitted
+			and not target.dead
+			and target.team != player.team
+		):
 			var distance := ray_origin.distance_to(end_position)
 			target.apply_damage(_damage_at_distance(distance), player.peer_id)
 			hit_enemy = true
-	var arena := player.get_parent().get_parent()
 	if arena.has_method("record_weapon_fire"):
 		arena.record_weapon_fire(weapon_slot)
 	if hit_enemy and arena.has_method("record_weapon_hit"):
 		arena.record_weapon_hit(weapon_slot)
-	_present_fire.rpc(muzzle_origin.global_position, end_position, hit_enemy)
+	_present_fire(generation, muzzle_origin.global_position, end_position, hit_enemy)
+	for peer_id in arena.get_gameplay_peer_ids():
+		_present_fire.rpc_id(
+			peer_id, generation, muzzle_origin.global_position, end_position, hit_enemy
+		)
 
 
 func _damage_at_distance(distance: float) -> int:
@@ -129,9 +146,13 @@ func _spread_direction(direction: Vector3, sequence: int) -> Vector3:
 
 
 @rpc("authority", "reliable", "call_local")
-func _present_fire(origin: Vector3, end_position: Vector3, hit_enemy: bool) -> void:
+func _present_fire(
+	generation: int, origin: Vector3, end_position: Vector3, hit_enemy: bool
+) -> void:
+	var arena := player.get_game_root()
+	if generation != arena.world_generation or not arena.is_node_in_active_world(player):
+		return
 	_muzzle_time = 0.06
-	var arena := player.get_parent().get_parent()
 	var tracer := MeshInstance3D.new()
 	tracer.name = "WeaponTracer"
 	var mesh := BoxMesh.new()
@@ -147,7 +168,7 @@ func _present_fire(origin: Vector3, end_position: Vector3, hit_enemy: bool) -> v
 	material.emission = weapon_color
 	material.emission_energy_multiplier = 4.0
 	tracer.material_override = material
-	arena.get_node("Effects").add_child(tracer)
+	arena.get_effect_container().add_child(tracer)
 	tracer.global_position = origin.lerp(end_position, 0.5)
 	tracer.global_basis = Basis.looking_at(origin.direction_to(end_position), Vector3.UP)
 	var tween := tracer.create_tween()

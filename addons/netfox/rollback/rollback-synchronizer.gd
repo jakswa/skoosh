@@ -87,6 +87,7 @@ var _last_simulated_tick: int
 var _has_input: bool
 var _input_tick: int
 var _is_predicted_tick: bool
+var _active: bool = true
 
 static var _logger: NetfoxLogger = NetfoxLogger._for_netfox("RollbackSynchronizer")
 
@@ -118,6 +119,21 @@ func process_settings() -> void:
 	_history_transmitter.sync_settings(root, enable_input_broadcast, full_state_interval, diff_ack_interval)
 	_history_transmitter.configure(_states, _inputs, _state_property_config, _input_property_config, visibility_filter, _property_cache, _skipset)
 	_history_recorder.configure(_states, _inputs, _state_property_config, _input_property_config, _property_cache, _skipset)
+
+func capture_authoritative_baseline() -> Dictionary:
+	return _PropertySnapshot.extract(_get_owned_state_props()).as_dictionary()
+
+func apply_authoritative_baseline(tick: int, state: Dictionary) -> bool:
+	if tick < 0 or state.is_empty():
+		return false
+	_states.clear()
+	_inputs.clear()
+	_freshness_store.clear()
+	_states.set_snapshot(tick, state)
+	_history_recorder.set_latest_state_tick(tick)
+	_history_transmitter.accept_authoritative_baseline(tick)
+	_history_recorder.apply_state(tick)
+	return true
 
 ## Process settings based on authority.
 ##
@@ -234,9 +250,13 @@ func _ready() -> void:
 		# Wait for time sync to complete
 		await NetworkTime.after_sync
 
+	if not _active or not is_inside_tree():
+		return
 	process_settings.call_deferred()
 
 func _connect_signals() -> void:
+	if not _active:
+		return
 	NetworkTime.before_tick.connect(_before_tick)
 	NetworkTime.after_tick.connect(_after_tick)
 
@@ -248,15 +268,29 @@ func _connect_signals() -> void:
 	NetworkRollback.after_loop.connect(_after_rollback_loop)
 
 func _disconnect_signals() -> void:
-	NetworkTime.before_tick.disconnect(_before_tick)
-	NetworkTime.after_tick.disconnect(_after_tick)
+	if NetworkTime.before_tick.is_connected(_before_tick):
+		NetworkTime.before_tick.disconnect(_before_tick)
+	if NetworkTime.after_tick.is_connected(_after_tick):
+		NetworkTime.after_tick.disconnect(_after_tick)
 
-	NetworkRollback.on_prepare_tick.disconnect(_on_prepare_tick)
-	NetworkRollback.on_process_tick.disconnect(_process_tick)
-	NetworkRollback.on_record_tick.disconnect(_on_record_tick)
+	if NetworkRollback.on_prepare_tick.is_connected(_on_prepare_tick):
+		NetworkRollback.on_prepare_tick.disconnect(_on_prepare_tick)
+	if NetworkRollback.on_process_tick.is_connected(_process_tick):
+		NetworkRollback.on_process_tick.disconnect(_process_tick)
+	if NetworkRollback.on_record_tick.is_connected(_on_record_tick):
+		NetworkRollback.on_record_tick.disconnect(_on_record_tick)
 
-	NetworkRollback.before_loop.disconnect(_before_rollback_loop)
-	NetworkRollback.after_loop.disconnect(_after_rollback_loop)
+	if NetworkRollback.before_loop.is_connected(_before_rollback_loop):
+		NetworkRollback.before_loop.disconnect(_before_rollback_loop)
+	if NetworkRollback.after_loop.is_connected(_after_rollback_loop):
+		NetworkRollback.after_loop.disconnect(_after_rollback_loop)
+
+
+func deactivate() -> void:
+	_active = false
+	_disconnect_signals()
+	if _history_transmitter != null:
+		_history_transmitter.deactivate()
 
 func _before_tick(_dt: float, tick: int) -> void:
 	_history_recorder.apply_state(tick)
@@ -332,6 +366,8 @@ func _enter_tree() -> void:
 	if not NetworkTime.is_initial_sync_done():
 		# Wait for time sync to complete
 		await NetworkTime.after_sync
+	if not _active or not is_inside_tree():
+		return
 	_connect_signals.call_deferred()
 	process_settings.call_deferred()
 

@@ -591,7 +591,7 @@ script = ExtResource("5_rollback")
 root = NodePath("..")
 state_properties = Array[String]([":transform", ":velocity", ":jet_energy", ":recharge_wait", ":jet_ground_pop_latched", ":ski_held", ":jet_active", ":did_teleport", ":active_weapon_slot", ":weapon_switch_tick", "Head:transform"])
 input_properties = Array[String](["Input:movement", "Input:ski", "Input:jet", "Input:fire", "Input:weapon_slot", "Input:reset", "Input:look_delta"])
-enable_input_broadcast = true
+enable_input_broadcast = false
 
 [node name="TickInterpolator" type="Node" parent="." node_paths=PackedStringArray("root")]
 script = ExtResource("6_interpolator")
@@ -599,6 +599,7 @@ root = NodePath("..")
 properties = Array[String]([":transform", "Head:transform"])
 
 [node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
+public_visibility = false
 replication_config = SubResource("ReplicationConfig")
 
 [node name="NetworkHUD" type="CanvasLayer" parent="."]
