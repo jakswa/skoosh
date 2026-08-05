@@ -8,8 +8,10 @@ const CHARACTER_PATHS := {
 }
 const SELECTED_SUIT_PATH := "res://assets/models/characters/vector_expedition_runner.glb"
 const BASE_PATH := "res://assets/models/environment/kestrel_relay_station.glb"
+const GATLING_PATH := "res://assets/models/weapons/kestrel_rail_gatling.glb"
 const TERRAIN_SHADER_PATH := "res://assets/materials/terrain/alpine_hardpack.gdshader"
 const CHARACTER_MANIFEST_PATH := "res://assets/manifests/character_shell_variants.json"
+const GATLING_MANIFEST_PATH := "res://assets/manifests/kestrel_rail_gatling.json"
 const REQUIRED_BONES: Array[StringName] = [
 	&"Root", &"Pelvis", &"Spine", &"Head",
 	&"UpperArm.L", &"Forearm.L", &"Thigh.L", &"Shin.L",
@@ -217,6 +219,8 @@ func _initialize() -> void:
 	if base_mesh_count != 5:
 		failures.append("expected five consolidated base meshes, found %d" % base_mesh_count)
 
+	var gatling_result := _validate_gatling_asset(failures)
+
 	var terrain_shader := load(TERRAIN_SHADER_PATH) as Shader
 	if terrain_shader == null:
 		failures.append("terrain shader did not load")
@@ -227,8 +231,8 @@ func _initialize() -> void:
 		quit(1)
 		return
 	print(
-		"ACCEPT asset pipeline: variants=3 skeletons=%d skinned_meshes=%d contract=[%s] selected_vector_meshes=%d base_meshes=%d terrain_shader=true"
-		% [total_skeletons, total_skinned_meshes, "; ".join(character_results), selected_mesh_count, base_mesh_count]
+		"ACCEPT asset pipeline: variants=3 skeletons=%d skinned_meshes=%d contract=[%s] selected_vector_meshes=%d base_meshes=%d gatling=(nodes=%d,meshes=%d,triangles=%d,materials=%d,rotor=true,socket=true,collision=false) terrain_shader=true"
+		% [total_skeletons, total_skinned_meshes, "; ".join(character_results), selected_mesh_count, base_mesh_count, gatling_result.nodes, gatling_result.meshes, gatling_result.triangles, gatling_result.materials]
 	)
 	quit()
 
@@ -266,6 +270,107 @@ func _load_character_manifest(failures: Array[String]) -> Dictionary:
 			failures.append("character shell manifest duplicate variant: %s" % entry_name)
 		entries[entry_name] = entry
 	return entries
+
+
+func _validate_gatling_asset(failures: Array[String]) -> Dictionary:
+	var result := {"nodes": 0, "meshes": 0, "vertices": 0, "triangles": 0, "materials": 0}
+	var scene := load(GATLING_PATH) as PackedScene
+	if scene == null:
+		failures.append("Kestrel Rail Gatling GLB did not load")
+		return result
+	var gatling := scene.instantiate() as Node3D
+	if gatling == null:
+		failures.append("Kestrel Rail Gatling root is not Node3D")
+		return result
+	if not gatling.transform.is_equal_approx(Transform3D.IDENTITY):
+		failures.append("gatling imported root transform is not identity")
+	var rotor := gatling.get_node_or_null("GatlingRotor") as Node3D
+	if rotor == null:
+		failures.append("gatling direct GatlingRotor contract node missing")
+	var socket := gatling.get_node_or_null("MuzzleSocket") as Node3D
+	if socket == null:
+		failures.append("gatling direct MuzzleSocket contract node missing")
+	else:
+		if socket.position.z >= -1.0 or absf(socket.position.x) > 0.001 or absf(socket.position.y) > 0.001:
+			failures.append("gatling MuzzleSocket does not establish centered -Z firing: %s" % socket.position)
+		if not socket.basis.is_equal_approx(Basis.IDENTITY):
+			failures.append("gatling MuzzleSocket basis is not identity: %s" % socket.basis)
+		var socket_forward := -socket.basis.z.normalized()
+		if socket_forward.dot(Vector3.FORWARD) < 0.9999:
+			failures.append("gatling MuzzleSocket forward=%s, expected Godot -Z" % socket_forward)
+	var collision_count := gatling.find_children("*", "CollisionObject3D", true, false).size()
+	if collision_count != 0:
+		failures.append("gatling imported %d collision objects" % collision_count)
+
+	var runtime_materials: Dictionary = {}
+	var meshes := gatling.find_children("*", "MeshInstance3D", true, false)
+	result.nodes = 1 + _count_descendants(gatling)
+	result.meshes = meshes.size()
+	for node in meshes:
+		var mesh_instance := node as MeshInstance3D
+		if mesh_instance.mesh == null:
+			continue
+		for surface_index in mesh_instance.mesh.get_surface_count():
+			var arrays := mesh_instance.mesh.surface_get_arrays(surface_index)
+			result.vertices += (arrays[Mesh.ARRAY_VERTEX] as PackedVector3Array).size()
+			result.triangles += int((arrays[Mesh.ARRAY_INDEX] as PackedInt32Array).size() / 3)
+			var runtime_material := mesh_instance.mesh.surface_get_material(surface_index)
+			if runtime_material != null:
+				runtime_materials[runtime_material.resource_name] = true
+	result.materials = runtime_materials.size()
+
+	var manifest_file := FileAccess.open(GATLING_MANIFEST_PATH, FileAccess.READ)
+	if manifest_file == null:
+		failures.append("gatling provenance manifest did not open")
+		gatling.free()
+		return result
+	var parsed: Variant = JSON.parse_string(manifest_file.get_as_text())
+	if not parsed is Dictionary:
+		failures.append("gatling provenance manifest is not valid JSON")
+		gatling.free()
+		return result
+	var manifest := parsed as Dictionary
+	var contract := manifest.get("contract", {}) as Dictionary
+	if str(contract.get("root", "")) != "Identity Node3D import root":
+		failures.append("gatling manifest root contract is missing")
+	if str(contract.get("articulation_node", "")) != "GatlingRotor":
+		failures.append("gatling manifest rotor contract is missing")
+	if str(contract.get("presentation_socket", "")) != "MuzzleSocket":
+		failures.append("gatling manifest socket contract is missing")
+	if str(contract.get("collision", "")) != "None; presentation only":
+		failures.append("gatling manifest no-collision contract is missing")
+	var stats := manifest.get("runtime_statistics", {}) as Dictionary
+	_validate_manifest_stat("Kestrel Rail Gatling", stats, "runtime_nodes", result.nodes, failures)
+	_validate_manifest_stat("Kestrel Rail Gatling", stats, "runtime_meshes", result.meshes, failures)
+	_validate_manifest_stat("Kestrel Rail Gatling", stats, "runtime_vertices", result.vertices, failures)
+	_validate_manifest_stat("Kestrel Rail Gatling", stats, "runtime_triangles", result.triangles, failures)
+	_validate_manifest_stat("Kestrel Rail Gatling", stats, "runtime_materials", result.materials, failures)
+	_validate_file_size("Kestrel Rail Gatling", "assets/source/weapons/kestrel_rail_gatling.blend", int(stats.get("source_bytes", -1)), failures)
+	_validate_file_size("Kestrel Rail Gatling", "assets/models/weapons/kestrel_rail_gatling.glb", int(stats.get("runtime_bytes", -1)), failures)
+	var runtime_sha256 := FileAccess.get_sha256(GATLING_PATH)
+	if runtime_sha256 != str(manifest.get("runtime_sha256", "")):
+		failures.append("gatling manifest runtime SHA-256 does not match GLB")
+	var budgets := manifest.get("budgets", {}) as Dictionary
+	for budget_field in ["maximum_runtime_triangles", "maximum_runtime_bytes", "maximum_runtime_nodes", "maximum_runtime_materials"]:
+		if int(budgets.get(budget_field, 0)) <= 0:
+			failures.append("gatling manifest budget missing: %s" % budget_field)
+	if result.triangles > int(budgets.get("maximum_runtime_triangles", 0)):
+		failures.append("gatling exceeds triangle budget")
+	if int(stats.get("runtime_bytes", 0)) > int(budgets.get("maximum_runtime_bytes", 0)):
+		failures.append("gatling exceeds file-size budget")
+	if result.nodes > int(budgets.get("maximum_runtime_nodes", 0)):
+		failures.append("gatling exceeds node budget")
+	if result.materials > int(budgets.get("maximum_runtime_materials", 0)):
+		failures.append("gatling exceeds material budget")
+	gatling.free()
+	return result
+
+
+func _count_descendants(root: Node) -> int:
+	var count := root.get_child_count()
+	for child in root.get_children():
+		count += _count_descendants(child)
+	return count
 
 
 func _validate_runtime_material_roles(

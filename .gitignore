@@ -4,6 +4,7 @@ fly.toml
 *.import
 !assets/models/weapons/solar_nomad_disc.glb.import
 !assets/models/weapons/solar_nomad_disc_launcher.glb.import
+!assets/models/weapons/kestrel_rail_gatling.glb.import
 !assets/models/environment/runway_base_kit.glb.import
 !assets/models/characters/runway_suit_rig.glb.import
 *.blend1

@@ -2,6 +2,9 @@ extends Node3D
 class_name SkooshHitscanWeapon
 
 const REQUEST_ATTEMPT_INTERVAL_TICKS := 3
+const PRESENTATION_PROXY_NAMES: Array[StringName] = [
+	&"ViewDiscProxy", &"ViewGrenadeProxy", &"ViewGatlingProxy", &"ViewSniperProxy",
+]
 
 @export_range(0, 3) var weapon_slot := 2
 @export var fire_cooldown := 0.1
@@ -27,7 +30,8 @@ var _muzzle_light: OmniLight3D
 
 func _ready() -> void:
 	var view_gun := player.get_node("Head/Camera3D/ViewGun") as Node3D
-	var authored_socket := view_gun.find_child("MuzzleSocket", true, false) as Node3D
+	var presentation_proxy := view_gun.get_node(NodePath(PRESENTATION_PROXY_NAMES[weapon_slot])) as Node3D
+	var authored_socket := presentation_proxy.find_child("MuzzleSocket", true, false) as Node3D
 	if authored_socket != null:
 		muzzle_origin.global_position = authored_socket.global_position
 	_build_muzzle_presentation()

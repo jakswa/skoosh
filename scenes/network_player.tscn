@@ -1,4 +1,4 @@
-[gd_scene load_steps=25 format=3]
+[gd_scene load_steps=26 format=3]
 
 [ext_resource type="Script" path="res://scripts/network_player.gd" id="1_player"]
 [ext_resource type="Script" path="res://scripts/network_player_input.gd" id="2_input"]
@@ -8,6 +8,7 @@
 [ext_resource type="Script" path="res://addons/netfox/tick-interpolator.gd" id="6_interpolator"]
 [ext_resource type="PackedScene" path="res://scenes/disc_projectile.tscn" id="7_projectile"]
 [ext_resource type="PackedScene" path="res://assets/models/weapons/kestrel_induction_launcher.glb" id="8_launcher_model"]
+[ext_resource type="PackedScene" path="res://assets/models/weapons/kestrel_rail_gatling.glb" id="9_gatling_model"]
 [ext_resource type="Script" path="res://scripts/grenade_launcher.gd" id="10_grenade_weapon"]
 [ext_resource type="PackedScene" path="res://scenes/grenade_projectile.tscn" id="11_grenade_projectile"]
 [ext_resource type="Script" path="res://scripts/hitscan_weapon.gd" id="12_hitscan_weapon"]
@@ -192,57 +193,7 @@ position = Vector3(0.5, 1.36, -0.46)
 rotation_degrees = Vector3(-8, 0, 0)
 scale = Vector3(0.72, 0.72, 0.72)
 
-[node name="Receiver" type="MeshInstance3D" parent="WorldModel/WorldWeaponProxies/WorldGatlingProxy"]
-position = Vector3(0, 0, -0.3)
-scale = Vector3(0.4, 0.28, 0.5)
-material_override = SubResource("GraphiteMaterial")
-mesh = SubResource("ProxyBoxMesh")
-cast_shadow = 0
-
-[node name="AerofoilCowling" type="MeshInstance3D" parent="WorldModel/WorldWeaponProxies/WorldGatlingProxy"]
-position = Vector3(0, 0.18, -0.43)
-scale = Vector3(0.5, 0.08, 0.76)
-material_override = SubResource("CeramicMaterial")
-mesh = SubResource("ProxyAerofoilMesh")
-cast_shadow = 0
-
-[node name="WorldGatlingRotor" type="Node3D" parent="WorldModel/WorldWeaponProxies/WorldGatlingProxy"]
-position = Vector3(0, 0, -0.36)
-
-[node name="RailL" type="MeshInstance3D" parent="WorldModel/WorldWeaponProxies/WorldGatlingProxy/WorldGatlingRotor"]
-position = Vector3(-0.14, 0.04, -0.48)
-scale = Vector3(0.065, 0.065, 1.18)
-material_override = SubResource("CeramicMaterial")
-mesh = SubResource("ProxyBoxMesh")
-cast_shadow = 0
-
-[node name="RailR" type="MeshInstance3D" parent="WorldModel/WorldWeaponProxies/WorldGatlingProxy/WorldGatlingRotor"]
-position = Vector3(0.14, 0.04, -0.48)
-scale = Vector3(0.065, 0.065, 1.18)
-material_override = SubResource("CeramicMaterial")
-mesh = SubResource("ProxyBoxMesh")
-cast_shadow = 0
-
-[node name="RailSignal" type="MeshInstance3D" parent="WorldModel/WorldWeaponProxies/WorldGatlingProxy/WorldGatlingRotor"]
-position = Vector3(0, -0.13, -0.48)
-scale = Vector3(0.065, 0.065, 1.18)
-material_override = SubResource("MintMaterial")
-mesh = SubResource("ProxyBoxMesh")
-cast_shadow = 0
-
-[node name="FrontClampH" type="MeshInstance3D" parent="WorldModel/WorldWeaponProxies/WorldGatlingProxy/WorldGatlingRotor"]
-position = Vector3(0, 0, -1.0)
-scale = Vector3(0.4, 0.055, 0.1)
-material_override = SubResource("GraphiteMaterial")
-mesh = SubResource("ProxyBoxMesh")
-cast_shadow = 0
-
-[node name="FrontClampV" type="MeshInstance3D" parent="WorldModel/WorldWeaponProxies/WorldGatlingProxy/WorldGatlingRotor"]
-position = Vector3(0, 0, -1.0)
-scale = Vector3(0.055, 0.35, 0.1)
-material_override = SubResource("GraphiteMaterial")
-mesh = SubResource("ProxyBoxMesh")
-cast_shadow = 0
+[node name="KestrelRailGatling" parent="WorldModel/WorldWeaponProxies/WorldGatlingProxy" instance=ExtResource("9_gatling_model")]
 
 [node name="WorldSniperProxy" type="Node3D" parent="WorldModel/WorldWeaponProxies"]
 visible = false
@@ -386,79 +337,11 @@ cast_shadow = 0
 
 [node name="ViewGatlingProxy" type="Node3D" parent="Head/Camera3D/ViewGun"]
 visible = false
+position = Vector3(-0.03, 0.035, -0.03)
+rotation_degrees = Vector3(15, 0, 0)
+scale = Vector3(0.6, 0.6, 0.6)
 
-[node name="Receiver" type="MeshInstance3D" parent="Head/Camera3D/ViewGun/ViewGatlingProxy"]
-position = Vector3(0, 0, -0.3)
-scale = Vector3(0.4, 0.28, 0.5)
-material_override = SubResource("GraphiteMaterial")
-mesh = SubResource("ProxyBoxMesh")
-cast_shadow = 0
-
-[node name="AerofoilCowling" type="MeshInstance3D" parent="Head/Camera3D/ViewGun/ViewGatlingProxy"]
-position = Vector3(0, 0.18, -0.43)
-scale = Vector3(0.5, 0.08, 0.76)
-material_override = SubResource("CeramicMaterial")
-mesh = SubResource("ProxyAerofoilMesh")
-cast_shadow = 0
-
-[node name="MotorGate" type="MeshInstance3D" parent="Head/Camera3D/ViewGun/ViewGatlingProxy"]
-position = Vector3(0, -0.14, -0.36)
-scale = Vector3(0.36, 0.1, 0.2)
-material_override = SubResource("MintMaterial")
-mesh = SubResource("ProxyBoxMesh")
-cast_shadow = 0
-
-[node name="ViewGatlingRotor" type="Node3D" parent="Head/Camera3D/ViewGun/ViewGatlingProxy"]
-position = Vector3(0, 0, -0.36)
-
-[node name="RailL" type="MeshInstance3D" parent="Head/Camera3D/ViewGun/ViewGatlingProxy/ViewGatlingRotor"]
-position = Vector3(-0.14, 0.04, -0.48)
-scale = Vector3(0.065, 0.065, 1.18)
-material_override = SubResource("CeramicMaterial")
-mesh = SubResource("ProxyBoxMesh")
-cast_shadow = 0
-
-[node name="RailR" type="MeshInstance3D" parent="Head/Camera3D/ViewGun/ViewGatlingProxy/ViewGatlingRotor"]
-position = Vector3(0.14, 0.04, -0.48)
-scale = Vector3(0.065, 0.065, 1.18)
-material_override = SubResource("CeramicMaterial")
-mesh = SubResource("ProxyBoxMesh")
-cast_shadow = 0
-
-[node name="RailSignal" type="MeshInstance3D" parent="Head/Camera3D/ViewGun/ViewGatlingProxy/ViewGatlingRotor"]
-position = Vector3(0, -0.13, -0.48)
-scale = Vector3(0.065, 0.065, 1.18)
-material_override = SubResource("MintMaterial")
-mesh = SubResource("ProxyBoxMesh")
-cast_shadow = 0
-
-[node name="RearClampH" type="MeshInstance3D" parent="Head/Camera3D/ViewGun/ViewGatlingProxy/ViewGatlingRotor"]
-position = Vector3(0, 0, -0.12)
-scale = Vector3(0.4, 0.055, 0.1)
-material_override = SubResource("GraphiteMaterial")
-mesh = SubResource("ProxyBoxMesh")
-cast_shadow = 0
-
-[node name="RearClampV" type="MeshInstance3D" parent="Head/Camera3D/ViewGun/ViewGatlingProxy/ViewGatlingRotor"]
-position = Vector3(0, 0, -0.12)
-scale = Vector3(0.055, 0.35, 0.1)
-material_override = SubResource("GraphiteMaterial")
-mesh = SubResource("ProxyBoxMesh")
-cast_shadow = 0
-
-[node name="FrontClampH" type="MeshInstance3D" parent="Head/Camera3D/ViewGun/ViewGatlingProxy/ViewGatlingRotor"]
-position = Vector3(0, 0, -1.0)
-scale = Vector3(0.4, 0.055, 0.1)
-material_override = SubResource("GraphiteMaterial")
-mesh = SubResource("ProxyBoxMesh")
-cast_shadow = 0
-
-[node name="FrontClampV" type="MeshInstance3D" parent="Head/Camera3D/ViewGun/ViewGatlingProxy/ViewGatlingRotor"]
-position = Vector3(0, 0, -1.0)
-scale = Vector3(0.055, 0.35, 0.1)
-material_override = SubResource("GraphiteMaterial")
-mesh = SubResource("ProxyBoxMesh")
-cast_shadow = 0
+[node name="KestrelRailGatling" parent="Head/Camera3D/ViewGun/ViewGatlingProxy" instance=ExtResource("9_gatling_model")]
 
 [node name="ViewSniperProxy" type="Node3D" parent="Head/Camera3D/ViewGun"]
 visible = false
