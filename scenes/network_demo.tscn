@@ -1,4 +1,4 @@
-[gd_scene load_steps=27 format=3]
+[gd_scene load_steps=28 format=3]
 
 [ext_resource type="Script" path="res://scripts/network_main.gd" id="1_main"]
 [ext_resource type="Script" path="res://scripts/terrain.gd" id="2_terrain"]
@@ -12,6 +12,7 @@
 [ext_resource type="Script" path="res://scripts/renderer_feature_profile.gd" id="10_renderer_profile"]
 [ext_resource type="Script" path="res://scripts/map_landmarks.gd" id="11_landmarks"]
 [ext_resource type="Script" path="res://scripts/network_match_state.gd" id="12_match_state"]
+[ext_resource type="Script" path="res://scripts/client_audio.gd" id="13_client_audio"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial"]
 sky_top_color = Color(0.055, 0.105, 0.17, 1)
@@ -403,6 +404,9 @@ replication_config = SubResource("GameReplicationConfig")
 public_visibility = false
 
 [node name="NetworkLobby" parent="." instance=ExtResource("4_lobby")]
+
+[node name="ClientAudio" type="Node" parent="."]
+script = ExtResource("13_client_audio")
 
 [node name="VisualQACapture" type="Node" parent="."]
 script = ExtResource("6_visual_qa")
