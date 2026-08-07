@@ -64,8 +64,8 @@ const WEAPON_DETAILS: Array[String] = [
 	$WorldModel/WorldWeaponProxies/WorldGatlingProxy,
 	$WorldModel/WorldWeaponProxies/WorldSniperProxy,
 ]
-@onready var view_gatling_rotor := $Head/Camera3D/ViewGun/ViewGatlingProxy/ViewGatlingRotor as Node3D
-@onready var world_gatling_rotor := $WorldModel/WorldWeaponProxies/WorldGatlingProxy/WorldGatlingRotor as Node3D
+@onready var view_gatling_rotor := $Head/Camera3D/ViewGun/ViewGatlingProxy/KestrelRailGatling/GatlingRotor as Node3D
+@onready var world_gatling_rotor := $WorldModel/WorldWeaponProxies/WorldGatlingProxy/KestrelRailGatling/GatlingRotor as Node3D
 
 var peer_id := 0
 var team := -1

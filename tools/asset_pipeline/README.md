@@ -1,5 +1,31 @@
 # Asset pipeline tools
 
+## Kestrel rail gatling
+
+Generate the shared first- and third-person gatling presentation asset from the
+repository root:
+
+```bash
+TMPDIR="$PWD/.tmp" blender --background --python tools/asset_pipeline/create_kestrel_gatling.py
+```
+
+This deterministic local generator writes the editable source, packed-material
+runtime GLB, and provenance/statistics manifest:
+
+```text
+assets/source/weapons/kestrel_rail_gatling.blend
+assets/models/weapons/kestrel_rail_gatling.glb
+assets/manifests/kestrel_rail_gatling.json
+```
+
+Blender +Y is authored as the firing direction and exports to Godot +Y up/-Z
+firing with an identity `Node3D` import root. The GLB preserves the named
+`GatlingRotor` articulation and `MuzzleSocket` presentation contract and has no
+collision. `WorldGatlingProxy` and `ViewGatlingProxy` instance this same model;
+authoritative hitscan behavior remains separate. Run `./tools/test_asset_pipeline.sh`
+after regeneration to import and verify nodes, orientation contract, collision
+absence, budgets, file hashes, and recorded runtime statistics.
+
 ## Solar Nomad disc launcher
 
 This pipeline experiment creates an original hard-surface first-person weapon and matching projectile using Blender Python. It saves editable source, generates deterministic PBR texture maps, and exports optimized Godot-ready GLBs.

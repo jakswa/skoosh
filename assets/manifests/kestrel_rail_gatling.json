@@ -1,0 +1,64 @@
+{
+  "asset_name": "Kestrel Rail Gatling",
+  "category": "shared first- and third-person weapon presentation model",
+  "status": "production gatling proxy replacement",
+  "creator": "Project-local deterministic Blender generation",
+  "source_url": null,
+  "acquisition_date": "2026-08-05",
+  "price_usd": 0,
+  "license": "Original project work; no external asset dependencies",
+  "commercial_use": true,
+  "redistribution": "May be redistributed with the project and game exports",
+  "attribution_required": false,
+  "ai_generated_service": null,
+  "generator": "tools/asset_pipeline/create_kestrel_gatling.py",
+  "generator_command": "TMPDIR=\"$PWD/.tmp\" blender --background --python tools/asset_pipeline/create_kestrel_gatling.py",
+  "source_files": [
+    "tools/asset_pipeline/create_kestrel_gatling.py",
+    "tools/asset_pipeline/blender_asset_utils.py",
+    "assets/source/weapons/kestrel_rail_gatling.blend"
+  ],
+  "runtime_files": [
+    "assets/models/weapons/kestrel_rail_gatling.glb"
+  ],
+  "contract": {
+    "root": "Identity Node3D import root",
+    "articulation_node": "GatlingRotor",
+    "presentation_socket": "MuzzleSocket",
+    "orientation": "Identity root; Godot +Y up and -Z firing",
+    "collision": "None; presentation only",
+    "shared_usage": "The same GLB is instanced by WorldGatlingProxy and ViewGatlingProxy"
+  },
+  "design": [
+    "Compact split rear housing, exposed hex drive, and underslung grip establish handheld scale.",
+    "Four chamfered accelerator rails rotate around an open centerline and end in independent muzzle shoes.",
+    "Graphite and dark steel mechanisms support weathered slate ceramic, minute mint status channels, and sparse expedition-orange indices.",
+    "No roof prism, square facade/gate, conventional barrel, collision, downloaded asset, or external service is used."
+  ],
+  "runtime_statistics": {
+    "source_meshes": 30,
+    "source_vertices": 376,
+    "source_polygons": 288,
+    "source_materials": 5,
+    "source_bytes": 209204,
+    "runtime_bytes": 619856,
+    "runtime_nodes": 12,
+    "runtime_meshes": 9,
+    "runtime_primitives": 9,
+    "runtime_vertices": 14102,
+    "runtime_triangles": 7304,
+    "runtime_materials": 5,
+    "embedded_textures": 2
+  },
+  "runtime_sha256": "91c5dd922052541d2c5ff4c067b74254bb8e336c8ebab76a4742da07167b9fb9",
+  "budgets": {
+    "maximum_runtime_triangles": 12000,
+    "maximum_runtime_bytes": 1500000,
+    "maximum_runtime_nodes": 20,
+    "maximum_runtime_materials": 5
+  },
+  "known_limitations": [
+    "No hand mesh, skeletal grip pose, authored LODs, or collision are included.",
+    "Ceramic wear is a compact generated packed texture rather than a hand-painted unique unwrap."
+  ]
+}
