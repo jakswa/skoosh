@@ -134,7 +134,7 @@ jobs:
         if: matrix.label == 'Linux'
         shell: bash
         env:
-          SKOOSH_TEST_JOBS: 2
+          SKOOSH_TEST_JOBS: 1
         run: ./tools/run_headless_tests.sh fast
 
       - name: Run exported two-client integration test

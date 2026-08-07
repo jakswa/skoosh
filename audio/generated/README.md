@@ -1,10 +1,10 @@
 # Generated game audio
 
 This directory contains SKOOSH's initial movement, combat, objective, ambience,
-and adaptive-score library. Every asset is rendered from mathematical
-oscillators by `tools/generate_game_audio.sh`; no recordings, sample packs,
-music libraries, generative-AI services, or third-party source material are
-used.
+and adaptive-score library. Every asset is rendered from seeded noise, filters,
+envelopes, and mathematical oscillators by `tools/generate_game_audio.sh`; no
+recordings, sample packs, music libraries, generative-AI services, or
+third-party source material are used.
 
 Regenerate the complete library and audition montage with:
 

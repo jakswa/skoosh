@@ -61,7 +61,7 @@ var _jet: AudioStreamPlayer
 var _ambience: AudioStreamPlayer
 var _music: AudioStreamPlayer
 var _music_stream: AudioStreamSynchronized
-var _exploration_music_db := -16.0
+var _exploration_music_db := -10.0
 var _combat_music_db := SILENT_DB
 var _objective_music_db := SILENT_DB
 var _positional_players: Array[AudioStreamPlayer3D] = []
@@ -110,7 +110,7 @@ func _process(delta: float) -> void:
 		_reset_match_snapshot(arena)
 	_update_map_ambience(str(arena.map_id))
 	_ambience.volume_db = move_toward(
-		_ambience.volume_db, -19.0, delta * LOOP_FADE_DB_PER_SECOND * 0.35
+		_ambience.volume_db, -14.0, delta * LOOP_FADE_DB_PER_SECOND * 0.35
 	)
 	_update_movement(delta)
 	_update_local_feedback()
@@ -125,16 +125,18 @@ func weapon_fired(slot: int, position: Vector3, local_shooter: bool, generation:
 	var index := clampi(slot, 0, WEAPON_FIRE_PATHS.size() - 1)
 	_combat_heat = minf(1.0, _combat_heat + (0.11 if index == 2 else 0.24))
 	if local_shooter:
-		_play_2d(WEAPON_FIRE_PATHS[index], &"SFX", -2.0)
+		_play_2d(WEAPON_FIRE_PATHS[index], &"SFX", -2.0, 0.018)
 	else:
-		_play_3d(WEAPON_FIRE_PATHS[index], position, -1.0, 95.0)
+		_play_3d(WEAPON_FIRE_PATHS[index], position, -1.0, 95.0, 0.025)
 
 
 func weapon_impact(slot: int, position: Vector3, hit_enemy: bool, generation: int) -> void:
 	if not _event_is_current(generation):
 		return
 	var index := clampi(slot, 0, WEAPON_IMPACT_PATHS.size() - 1)
-	_play_3d(WEAPON_IMPACT_PATHS[index], position, 1.0 if hit_enemy else -2.5, 115.0)
+	_play_3d(
+		WEAPON_IMPACT_PATHS[index], position, 1.0 if hit_enemy else -2.5, 115.0, 0.025
+	)
 	if _local_player != null and _local_player.global_position.distance_to(position) < 45.0:
 		_combat_heat = minf(1.0, _combat_heat + 0.14)
 
@@ -166,7 +168,9 @@ static func required_asset_paths() -> Array[String]:
 
 
 static func combat_layer_volume_db(heat: float) -> float:
-	return lerpf(SILENT_DB, -8.0, smoothstep(0.08, 0.9, clampf(heat, 0.0, 1.0)))
+	if heat <= 0.08:
+		return SILENT_DB
+	return lerpf(-24.0, -9.0, smoothstep(0.08, 0.9, clampf(heat, 0.0, 1.0)))
 
 
 func _build_loop_players() -> void:
@@ -179,7 +183,7 @@ func _build_loop_players() -> void:
 	_music_stream.set_sync_stream(0, _loop_stream(MUSIC_PATHS["exploration"]))
 	_music_stream.set_sync_stream(1, _loop_stream(MUSIC_PATHS["combat"]))
 	_music_stream.set_sync_stream(2, _loop_stream(MUSIC_PATHS["objective"]))
-	_music_stream.set_sync_stream_volume(0, -16.0)
+	_music_stream.set_sync_stream_volume(0, -10.0)
 	_music_stream.set_sync_stream_volume(1, SILENT_DB)
 	_music_stream.set_sync_stream_volume(2, SILENT_DB)
 	_music = AudioStreamPlayer.new()
@@ -232,20 +236,20 @@ func _update_map_ambience(map_id: String) -> void:
 
 func _update_movement(delta: float) -> void:
 	var speed_fraction := clampf((_local_player.horizontal_speed - 7.0) / 75.0, 0.0, 1.0)
-	var wind_target := lerpf(SILENT_DB, -7.5, sqrt(speed_fraction))
+	var wind_target := lerpf(SILENT_DB, -5.0, sqrt(speed_fraction))
 	var grounded := _local_player.is_on_floor()
 	var ski_fraction := clampf((_local_player.horizontal_speed - 3.0) / 38.0, 0.0, 1.0)
 	var ski_target := lerpf(SILENT_DB, -9.0, ski_fraction) if grounded and _local_player.ski_held else SILENT_DB
 	var jet_target := -7.0 if _local_player.jet_active else SILENT_DB
 	_wind.volume_db = move_toward(_wind.volume_db, wind_target, delta * LOOP_FADE_DB_PER_SECOND)
 	_ski.volume_db = move_toward(_ski.volume_db, ski_target, delta * LOOP_FADE_DB_PER_SECOND)
-	_jet.volume_db = move_toward(_jet.volume_db, jet_target, delta * LOOP_FADE_DB_PER_SECOND * 1.5)
+	_jet.volume_db = move_toward(_jet.volume_db, jet_target, delta * LOOP_FADE_DB_PER_SECOND * 3.5)
 	_wind.pitch_scale = lerpf(0.78, 1.34, speed_fraction)
 	_ski.pitch_scale = lerpf(0.86, 1.16, ski_fraction)
 	_jet.pitch_scale = lerpf(0.88, 1.08, _local_player.jet_energy / _local_player.max_jet_energy)
 	if grounded and not _last_grounded and _last_velocity_y < -6.0:
 		var landing_db := lerpf(-14.0, -3.0, clampf((-_last_velocity_y - 6.0) / 30.0, 0.0, 1.0))
-		_play_2d(MOVEMENT_PATHS["land"], &"Movement", landing_db)
+		_play_2d(MOVEMENT_PATHS["land"], &"Movement", landing_db, 0.025)
 	if _last_jet_active and not _local_player.jet_active and _local_player.jet_energy <= 0.05:
 		_play_2d(MOVEMENT_PATHS["jet_empty"], &"UI", -5.0)
 	_last_grounded = grounded
@@ -294,7 +298,7 @@ func _update_objective_feedback(arena: Node) -> void:
 	if arena.match_state_generation != arena.world_generation or not arena.is_world_active():
 		return
 	var captured: bool = arena.red_score > _last_red_score or arena.blue_score > _last_blue_score
-	if captured:
+	if captured and not arena.round_over:
 		_play_2d(OBJECTIVE_PATHS["capture"], &"UI", -1.0)
 		_combat_heat = maxf(_combat_heat, 0.72)
 	if arena.round_over and not _last_round_over:
@@ -329,8 +333,10 @@ func _update_music(delta: float, arena: Node) -> void:
 		arena.red_flag_state == FLAG_CARRIED or arena.blue_flag_state == FLAG_CARRIED
 	) else 0.0
 	var combat_target := combat_layer_volume_db(_combat_heat)
-	var objective_target := lerpf(SILENT_DB, -9.5, objective_pressure)
-	_exploration_music_db = move_toward(_exploration_music_db, -16.0, delta * 12.0)
+	var objective_target := SILENT_DB
+	if objective_pressure > 0.0:
+		objective_target = lerpf(-26.0, -9.5, smoothstep(0.0, 1.0, objective_pressure))
+	_exploration_music_db = move_toward(_exploration_music_db, -10.0, delta * 12.0)
 	_combat_music_db = move_toward(_combat_music_db, combat_target, delta * 18.0)
 	_objective_music_db = move_toward(_objective_music_db, objective_target, delta * 16.0)
 	_music_stream.set_sync_stream_volume(0, _exploration_music_db)
@@ -359,19 +365,28 @@ func _event_is_current(generation: int) -> bool:
 	return generation == arena.world_generation and arena.is_world_active()
 
 
-func _play_2d(path: String, bus_name: StringName, volume_db: float) -> void:
+func _play_2d(
+	path: String, bus_name: StringName, volume_db: float, pitch_variation: float = 0.0
+) -> void:
 	if not _enabled:
 		return
 	var player := AudioStreamPlayer.new()
 	player.bus = bus_name
 	player.stream = _stream(path)
 	player.volume_db = volume_db
+	player.pitch_scale = randf_range(1.0 - pitch_variation, 1.0 + pitch_variation)
 	add_child(player)
 	player.finished.connect(player.queue_free)
 	player.play()
 
 
-func _play_3d(path: String, position: Vector3, volume_db: float, max_distance: float) -> void:
+func _play_3d(
+	path: String,
+	position: Vector3,
+	volume_db: float,
+	max_distance: float,
+	pitch_variation: float = 0.0
+) -> void:
 	if not _enabled:
 		return
 	while _positional_players.size() >= MAX_POSITIONAL_PLAYERS:
@@ -382,6 +397,7 @@ func _play_3d(path: String, position: Vector3, volume_db: float, max_distance: f
 	player.bus = &"SFX"
 	player.stream = _stream(path)
 	player.volume_db = volume_db
+	player.pitch_scale = randf_range(1.0 - pitch_variation, 1.0 + pitch_variation)
 	player.max_distance = max_distance
 	player.unit_size = 8.0
 	player.attenuation_model = AudioStreamPlayer3D.ATTENUATION_INVERSE_SQUARE_DISTANCE
