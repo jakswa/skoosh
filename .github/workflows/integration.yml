@@ -115,29 +115,22 @@ jobs:
           test -f "$client_bin"
           echo "SKOOSH_CLIENT_BIN=$client_bin" >> "$GITHUB_ENV"
 
-      - name: Run ground-jet test
-        if: matrix.label != 'Linux'
-        shell: bash
-        run: ./tools/test_ground_jet.sh
-
-      - name: Run projectile presentation test
-        if: matrix.label != 'Linux'
-        shell: bash
-        run: ./tools/test_projectile_presentation.sh
-
-      - name: Run OOB recovery test
-        if: matrix.label != 'Linux'
-        shell: bash
-        run: ./tools/test_oob_recovery.sh
-
-      - name: Run fast source suite
+      # Cross-platform runners prove import and native export compatibility.
+      # Runtime integration is intentionally Linux-only; run the complete local
+      # suite before tagging a release (see PLAYTESTING_AND_DISTRIBUTION.md).
+      - name: Run Linux source and runtime checks
         if: matrix.label == 'Linux'
         shell: bash
         env:
           SKOOSH_TEST_JOBS: 1
-        run: ./tools/run_headless_tests.sh fast
+        run: |
+          ./tools/test_ground_jet.sh
+          ./tools/test_projectile_presentation.sh
+          ./tools/test_oob_recovery.sh
+          ./tools/run_headless_tests.sh fast
 
       - name: Run exported two-client integration test
+        if: matrix.label == 'Linux'
         shell: bash
         env:
           SKOOSH_TEST_LOG_DIR: ${{ runner.temp }}/skoosh-network-test

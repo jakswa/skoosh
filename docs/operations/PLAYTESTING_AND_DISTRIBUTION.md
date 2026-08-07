@@ -122,9 +122,22 @@ godot --headless --path . --export-release "Linux Dedicated Server"
 
 This repository has Linux, Windows, and universal macOS client presets plus a Linux server preset. The macOS archive is ad-hoc signed but not notarized, so Gatekeeper may require right-clicking the app and selecting **Open**. Windows may likewise warn about an unknown unsigned publisher. A Windows dedicated-server preset is not needed for the planned Linux hosting path.
 
-Every push to `main` triggers `.github/workflows/integration.yml`. Linux, Windows, and macOS runners each export their native client, start a native headless server, and run two exported clients through the ground-jet and authoritative CTF acceptance scenarios. Source-only rotation, bootstrap, and transition fault-injection checks are listed in `docs/engineering/MAP_ROTATION_HANDOFF.md`. Other branches and pull requests do not trigger this matrix.
+Every push to `main` triggers `.github/workflows/integration.yml`. Linux runs the
+source fast suite and the exported two-client authoritative smoke; Windows and
+macOS validate import and native client export only. This keeps ordinary pushes
+within a predictable action budget while preserving cross-platform packaging
+coverage. The complete local suite remains the pre-release confidence gate:
 
-Tags matching `v*` trigger `.github/workflows/release.yml`. It first requires a successful three-OS `main` integration run for the exact tagged commit, then exports all four targets with pinned Godot 4.4.1 templates, writes checksums, and publishes a GitHub Release. Create a playtest release with:
+```bash
+./tools/run_headless_tests.sh
+```
+
+Run it after the local source, map, bootstrap, rotation, timeout, and disconnect
+checks are green, then export the release candidates locally before tagging.
+Tags matching `v*` trigger `.github/workflows/release.yml`; it requires a
+successful three-OS `main` integration run for the exact tagged commit, then
+exports all four targets with pinned Godot 4.4.1 templates, writes checksums, and
+publishes a GitHub Release. Create a playtest release with:
 
 ```bash
 git tag v0.1.0-playtest.1
