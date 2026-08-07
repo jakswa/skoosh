@@ -30,6 +30,10 @@ children:
 Team and character assignments live at the persistent root and are restored in
 stable peer-ID order. The active world supplies map bounds, terrain queries,
 objective homes, spawn transforms, bot routes, and transient containers.
+Objective homes, platform elevations, and spawn transforms are
+generation-scoped. They are rebound from the new world before match reset,
+avatar spawn, respawn, bots, or acceptance contacts can use them; no retired
+world coordinate is an implicit persistent-session value.
 
 Retired worlds become invisible and collisionless immediately. Their netfox
 rollback/interpolation processing is deactivated, but their paths remain as
@@ -84,6 +88,13 @@ than letting its immutable avatar snapshot drift. Timeout and mismatch rejection
 clear admission state synchronously before transport teardown, so a late
 acknowledgement cannot race the rejection.
 
+If the joining peer or any already-admitted observer leaves during an incomplete
+admission, the transaction is cancelled before its immutable avatar snapshot
+can drift. Active admission, deadline, provisional avatar, bootstrap state,
+pending observer paths, baseline readiness, and transaction assignments are
+cleared synchronously before transport teardown. Late acknowledgements cannot
+complete the cancelled transaction, and queued peers remain queued.
+
 ## Rotation protocol
 
 The server owns `ACTIVE`, `PREPARING`, `COMMITTING`, and
@@ -109,6 +120,17 @@ The server owns `ACTIVE`, `PREPARING`, `COMMITTING`, and
 The final baseline avoids a netfox history-window overflow when terrain
 construction or a ready timeout advances synchronized time by more than the
 128-tick rollback history.
+
+Admission and rotation share baseline capture, server seeding, client
+application, generation validation, and tick-identity mechanics. Their peer
+barriers and acknowledgement decisions remain separate, so one transaction's
+baseline can never satisfy the other. The lifecycle state machine remains the
+only owner of global rollback enable/disable transitions.
+
+`--require-map-baseline` suppresses rotation for its fixture and is distinct
+from explicitly selecting legacy Kestrel. Both static paths still use the
+active map's current objective-home and spawn binding for initial spawn, death,
+OOB recovery, and new-match reset.
 
 ## Traffic boundaries
 

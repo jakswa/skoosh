@@ -4,25 +4,59 @@
 state, constraints, decisions, and known gaps. The repository `README.md` is the
 shortest path to running the game.
 
-## Active Work
+## Read First
+
+| Document | Authority |
+|---|---|
+| [Project checkpoint](CHECKPOINT.md) | Canonical product, technical, validation, and handoff state. |
+| [Repository README](../README.md) | Shortest path to running, testing, and exporting the game. |
+
+## Immediate Work
+
+These are the only current implementation plans. Follow the parent roadmap and
+keep each work packet green on `main`.
+
+| Order | Document | Purpose |
+|---:|---|---|
+| 0 | [Maintainability roadmap](engineering/MAINTAINABILITY_ROADMAP.md) | Sequence, ownership rules, sizing, and verification gates. |
+| 1 | [Acceptance boundary](engineering/ACCEPTANCE_BOUNDARY_PLAN.md) | Extract test policy and test-only world driving. |
+| 2 | [Match director](engineering/MATCH_DIRECTOR_EXTRACTION_PLAN.md) | Extract authoritative CTF, score, objective-reset, and round rules. |
+| 3 | [Network lifecycle](engineering/NETWORK_LIFECYCLE_EXTRACTION_PLAN.md) | Split world, avatar, baseline, admission, and rotation ownership behind stable RPC paths. |
+
+## Implemented Reference
+
+| Document | Current use |
+|---|---|
+| [Map rotation](engineering/MAP_ROTATION_HANDOFF.md) | Implemented world seam and generation/admission protocol contracts. |
+| [Competitive maps](production/COMPETITIVE_MAPS.md) | Implemented production rotation, map contracts, and remaining human validation. |
+
+## Future Qualification
+
+These contain legitimate later work, but they are not in the immediate
+maintainability queue.
+
+| Document | Future scope |
+|---|---|
+| [Combat networking roadmap](engineering/COMBAT_NETWORKING_ROADMAP.md) | Impairment, launch validation, latency treatment, and scale qualification. |
+| [Projectile presentation review](engineering/PROJECTILE_PRESENTATION_REVIEW.md) | Telemetry, correction, fuse, prediction, and profiling after the landed presentation seam. |
+
+## Operations
 
 | Document | Purpose |
 |---|---|
-| [Project checkpoint](CHECKPOINT.md) | Current product, technical, and validation state. |
-| [Maintainability roadmap](engineering/MAINTAINABILITY_ROADMAP.md) | Ordered, mainline-safe decomposition of the overloaded multiplayer root. |
-| [Acceptance boundary](engineering/ACCEPTANCE_BOUNDARY_PLAN.md) | Extract test policy and test-only world driving from production coordination. |
-| [Match director](engineering/MATCH_DIRECTOR_EXTRACTION_PLAN.md) | Extract authoritative CTF, score, objective-reset, and round rules. |
-| [Network lifecycle](engineering/NETWORK_LIFECYCLE_EXTRACTION_PLAN.md) | Split world construction, avatar membership, admission, and rotation behind stable RPC paths. |
-| [Combat networking roadmap](engineering/COMBAT_NETWORKING_ROADMAP.md) | Immediate networking and combat qualification work. |
-| [Projectile presentation review](engineering/PROJECTILE_PRESENTATION_REVIEW.md) | Audited projectile smoothing risks, implemented seam status, and measured follow-up stages. |
-| [Map rotation](engineering/MAP_ROTATION_HANDOFF.md) | Implemented world seam, bounded generation/admission protocols, acceptance, and remaining qualification. |
 | [Playtesting and distribution](operations/PLAYTESTING_AND_DISTRIBUTION.md) | Source, release, export, and playtest workflows. |
 | [Server deployment](operations/SERVER_DEPLOYMENT.md) | Dedicated-server operator runbook. |
+
+## Production Reference
+
+| Document | Purpose |
+|---|---|
 | [Visual direction](production/VISUAL_DIRECTION.md) | Selected art direction and presentation rules. |
 | [Visual QA](production/VISUAL_QA.md) | Off-screen capture and visual review workflow. |
-| [Competitive maps](production/COMPETITIVE_MAPS.md) | Production CTF rotation, map contracts, selection, and remaining validation. |
-| [Asset tooling](../tools/asset_pipeline/README.md) | Commands and contracts for generating current game assets. |
 | [Voice assets](production/VOICE_ASSETS.md) | Voice provenance, processing, and regeneration. |
+| [Audio](production/AUDIO.md) | Adaptive soundscape, mixer buses, provenance, and regeneration. |
+| [Asset tooling](../tools/asset_pipeline/README.md) | Commands and contracts for generating current game assets. |
+| [Audio generation](../tools/generate_game_audio.sh) | Procedural game-audio renderer and regeneration command. |
 
 ## Decision Records
 
@@ -49,7 +83,7 @@ current project truth or roadmap commitments.
 
 `archive/` preserves superseded plans, completed experiments, and early
 recommendations. Archived documents describe the project at the time they were
-written and do not override the checkpoint or active documents.
+written and do not override the checkpoint or immediate plans.
 
 | Document | Historical context |
 |---|---|

@@ -125,11 +125,18 @@ The driver may not:
 - Duplicate CTF eligibility rules.
 - Bypass generation or admitted-peer checks.
 
-The match director should expose successful pickup/capture/reset events before
-this packet. That lets `_take_flag` and `_capture_flag` stop containing
-acceptance branches. The duplicate-award characterization should invoke the
-same public authoritative capture attempt twice and observe that the second
-attempt is rejected.
+The match director must first emit acceptance-independent pickup, capture,
+objective-ready, round-win, and match-reset events. The root/test composition
+attaches the acceptance recorder as an optional observer. That lets `_take_flag`
+and `_capture_flag` stop containing acceptance branches during this packet,
+after the temporary root bridge is removed. The duplicate-award
+characterization should invoke the same public authoritative capture attempt
+twice and observe that the second attempt is rejected.
+
+Static-map operation remains a first-class path. Acceptance spawn/contact
+overrides belong only to this driver. Initial spawn, death respawn, OOB recovery,
+and static new-match reset in production must continue resolving from the
+current active world's map-derived spawn data.
 
 Verify:
 

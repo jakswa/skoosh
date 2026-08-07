@@ -200,10 +200,12 @@ func _validate_generated_terrain(map_id: String, config: Dictionary, terrain: No
 	var collisions := terrain.find_children("*", "CollisionShape3D", false, false)
 	_require(meshes.size() == 1, "%s does not have exactly one terrain mesh" % map_id)
 	_require(collisions.size() == 1, "%s does not have exactly one terrain collider" % map_id)
-	if meshes.size() != 1:
+	if meshes.size() != 1 or collisions.size() != 1:
 		return
 	var mesh := (meshes[0] as MeshInstance3D).mesh as ArrayMesh
 	_require(mesh != null and mesh.get_surface_count() == 1, "%s terrain has extra surfaces" % map_id)
+	if mesh == null or mesh.get_surface_count() != 1:
+		return
 	var resolution := config["grid_resolution"] as Vector2i
 	var arrays := mesh.surface_get_arrays(0)
 	var vertices := arrays[Mesh.ARRAY_VERTEX] as PackedVector3Array

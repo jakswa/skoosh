@@ -15,6 +15,8 @@ The selection deliberately incorporates:
   restrained shared team roles and a root-motion-free lean loop.
 - An open-slot disc launcher with a visible seated disc and feed path. Circular
   barrels, muzzle lenses, and nozzle rings are outside the weapon language.
+- An open four-rail Kestrel gatling with a visible rotating mechanism, shared by
+  first- and third-person presentation.
 
 ## Theme catalog
 
@@ -36,6 +38,9 @@ own coherent material and atmosphere family.
 
 - A seated disc must visibly correspond to the flying disc.
 - Disc launchers use rails, gates, clamps, or fields, never conventional barrels.
+- Authored weapon meshes expose explicit presentation sockets and share one
+  source across first- and third-person views; the server still owns fire
+  cadence, ray reconstruction, hit resolution, and damage.
 - Team color targets approximately one quarter of a character or structure.
 - Decorative geometry must not imply authoritative collision on competitive routes.
 - Character silhouettes prioritize helmet, shoulder/hip sweep, and twin jet pods.

@@ -1,8 +1,8 @@
 # SKOOSH — Research Findings and Decision Record
 
-**Status:** Research complete enough to choose the next experiment.  
-**Decision:** Stay with Godot unless the authoritative movement spike fails.  
-**Confidence:** Moderate. Engine, transport, and hosting feasibility are well supported; prediction quality for SKOOSH's exact movement remains unproven.
+**Status:** Historical pre-implementation decision record; the authoritative movement spike passed and the resulting multiplayer systems are now on `main`.
+**Decision:** Stay with Godot, ENet, and an authoritative dedicated-server model.
+**Confidence:** Moderate. Engine, transport, and hosting feasibility are well supported; impaired-network and scale qualification remain incomplete.
 
 ## Recommendation
 
@@ -17,7 +17,9 @@ Continue with Godot 4.4+ and native desktop clients. Use a Linux headless dedica
 
 Godot passes the practical engine and deployment gates. Unreal and Unity do not eliminate the game-specific skiing/jet prediction work, and both add enough workflow or ecosystem complexity that a port is not justified before Godot is tested directly.
 
-This is a conditional commitment, not faith in the current movement implementation. The next decision gate is a measured multiplayer movement spike.
+At the time of this record, the next decision gate was a measured multiplayer
+movement spike. That gate passed. Current networking gaps are tracked in
+`docs/engineering/COMBAT_NETWORKING_ROADMAP.md` and the project checkpoint.
 
 ## Why Godot remains favored
 

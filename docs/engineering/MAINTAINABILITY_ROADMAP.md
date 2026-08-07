@@ -73,9 +73,10 @@ Sizes describe review and regression surface rather than calendar estimates.
 | 3 | Extract acceptance route/contact driving | M | Removes test-only world mutation after the match API exists. |
 | 4 | Extract deterministic world construction | M | Gives admission and rotation one explicit disposable-world result. |
 | 5 | Extract avatar assignment, registry, and visibility policy | M | Removes shared peer/world membership state before protocol extraction. |
-| 6 | Extract admission implementation behind root RPC wrappers | L | Admission becomes manageable once world and avatar APIs are explicit. |
-| 7 | Extract rotation implementation behind root RPC wrappers | L | Highest-risk move; depends on all earlier lifecycle seams. |
-| 8 | Replace authoritative root duck typing with a gameplay context | M | Prevents weapons and players from growing a new implicit monolith. |
+| 6 | Extract shared rollback-baseline mechanics | M | Admission and rotation must not grow competing baseline implementations. |
+| 7 | Extract admission implementation behind root RPC wrappers | L | Admission becomes manageable once world, avatar, and baseline APIs are explicit. |
+| 8 | Extract rotation and active-world lifecycle coordination behind root RPC wrappers | L | Highest-risk move; depends on all earlier lifecycle seams. |
+| 9 | Replace authoritative root duck typing with a gameplay context | M | Prevents weapons and players from growing a new implicit monolith. |
 
 Detailed plans:
 
@@ -83,7 +84,7 @@ Detailed plans:
 - [Match director](MATCH_DIRECTOR_EXTRACTION_PLAN.md)
 - [Network lifecycle](NETWORK_LIFECYCLE_EXTRACTION_PLAN.md)
 
-Order 8 should be planned from evidence gathered during orders 4-7. The first
+Order 9 should be planned from evidence gathered during orders 4-8. The first
 scope should cover authoritative weapon, projectile, respawn, generation, and
 container access. HUD, visual QA, and optional presentation hooks can migrate
 later. Do not create a generic service locator or event bus.
@@ -95,15 +96,16 @@ later. Do not create a generic service locator or event bus.
 | `NetworkDemo` root | Transport lifecycle, stable RPC endpoints, controller composition | CTF rules, test result policy, world construction details |
 | Acceptance recorder/driver | Test observations, test-only route/contact driving, result evaluation | Score mutation, damage, admission, rotation decisions |
 | Match director | Flag transitions, capture eligibility, score, objective reset, round transitions | ENet, world construction, peer admission |
-| World builder | Deterministic construction and typed references to one `World_N` | Rotation barriers, peer readiness, match rules |
-| Avatar registry | Assignments, avatar lookup, spawn/remove, network visibility | Team balancing policy outside its inputs, world selection |
+| World lifecycle | Deterministic construction, world retirement/tombstones, and typed references to one `World_N` | Avatar teardown, rotation barriers, match rules |
+| Avatar registry | Assignments, avatar lookup, spawn/remove, avatar callback teardown, network visibility | World tombstones, world selection |
+| Baseline coordinator | Authoritative capture/seeding, client application, generation validation, and baseline tick identity | Admission/rotation barriers, global phase changes |
 | Admission controller | Queue, agreement, bootstrap, visibility barrier, admission baseline | World rotation and match rules |
-| Rotation controller | Prepare/commit/ready/activate state and deadlines | Terrain generation details and CTF contact rules |
+| Lifecycle/rotation coordinator | Active world binding, legal phase/generation transitions, prepare/commit/ready/activate barriers, rollback enablement | Terrain generation details and CTF contact rules |
 | Gameplay context | Narrow authoritative services consumed by players and weapons | Every root field or optional presentation concern |
 
 ## Feature admission rule
 
-Until orders 1-7 are complete, new feature code should not add another domain to
+Until orders 1-8 are complete, new feature code should not add another domain to
 `network_main.gd`. A root addition is acceptable only when it is one of:
 
 - A stable RPC wrapper that delegates immediately.

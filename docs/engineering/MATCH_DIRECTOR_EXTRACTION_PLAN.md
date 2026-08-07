@@ -15,7 +15,10 @@ and generation properties. `NetworkDemo/ReplicatedGameState` and
 `GameStateSynchronizer` are stable network paths. They remain in place.
 
 The new match director owns rules applied to that state. It must not duplicate
-the state in a second set of fields.
+the state in a second set of fields. It binds to explicitly replaceable
+generation-scoped world data; objective homes are rebound after every world
+build and before objective reset, spawning, bots, or activation can use them.
+It must not retain a one-time copy of the first map's homes.
 
 Candidate root logic begins around:
 
@@ -43,6 +46,9 @@ The root retains:
 - Rotation initiation and protocol execution.
 - Stable public wrappers used by players, HUD, visual QA, and tests.
 - Presentation calls that bind replicated state to the current flag nodes.
+- Static-map avatar respawn after a new-match reset. The root consumes the
+  director's reset event and asks the avatar registry to respawn admitted
+  avatars; rotating matches receive rebuilt avatars instead.
 
 The director requests rotation through a signal or returned transition result.
 It never calls rotation RPCs or changes the world phase itself.
@@ -71,8 +77,9 @@ consumers, not a second match implementation.
 1. Add focused characterization for pickup, teammate return, carrier death,
    timeout, capture eligibility, duplicate capture rejection, score accumulation,
    score-limit win, objective reset, and new-match reset.
-2. Construct the director with the existing `SkooshNetworkMatchState` and the
-   two current flag homes.
+2. Construct the director with the existing `SkooshNetworkMatchState` and an
+   explicit active-world binding that can replace both objective homes each
+   generation.
 3. Move flag getters/setters and pure transition rules first.
 4. Keep root tick/contact wrappers and log text stable while they delegate.
 
@@ -90,14 +97,16 @@ Verify:
 **Size:** M
 
 1. Move capture scoring, objective reset, round end, and new-round reset.
-2. Emit domain events consumed by acceptance recording instead of calling
-   acceptance counters from match rules.
+2. Emit acceptance-independent domain events. The root/test composition may
+   attach the acceptance recorder as an optional observer; match rules never
+   call acceptance counters.
 3. Have the root translate the round-won event into `_begin_rotation()` when the
    current map participates in production rotation.
 4. Have disconnect, death, OOB recovery, and respawn call explicit director
    methods for carrier cleanup.
-5. Remove acceptance-specific branches from capture rules after the acceptance
-   driver can observe director events.
+5. Leave a temporary root-side acceptance bridge if needed to keep this packet
+   independently green. Acceptance Packet C removes that bridge and the old
+   capture branches after its driver can observe these domain events.
 
 Verify:
 
@@ -137,6 +146,7 @@ Stop and split the packet if any proposed director:
 - `network_main.gd` coordinates match ticks and rotation but does not implement
   flag or scoring rules.
 - Replicated property names and node paths are unchanged.
-- Acceptance observes match events rather than being embedded in match logic.
+- Match logic has no acceptance dependency; any temporary root bridge is
+  removed by Acceptance Packet C.
 - HUD, respawn, OOB, disconnect, bots, static matches, and rotating matches all
   retain current behavior.

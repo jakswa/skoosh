@@ -153,22 +153,27 @@ Record:
 
 Report distributions and percentiles, not only peaks.
 
-### Stage 1: fix normal projectile stepping
+### Stage 1: qualify the landed presentation seam
 
-1. Build both interpolation options in a disposable branch or worktree.
-2. Compare current effective `physics_jitter_fix=0.5` with `0.0`; keep all other
+The implementation selected Option B: simulation remains on the projectile
+root and a top-level `PresentationRoot` interpolates render transforms. The
+focused contract proves simulation-position and launch-serialization isolation,
+but it does not qualify all runtime conditions.
+
+1. Compare current effective `physics_jitter_fix=0.5` with `0.0`; keep all other
    timing settings fixed.
-3. Exercise 60, 120, and 144 Hz render conditions, V-Sync on and off, and a
+2. Exercise 60, 120, and 144 Hz render conditions, V-Sync on and off, and a
    stable cap. The current visual-QA path caps at 60 FPS and cannot qualify this
    issue alone.
-4. Test multiple network ticks in one render frame, rollback, local and remote
+3. Test multiple network ticks in one render frame, rollback, local and remote
    shots, immediate spawn, reconcile, impact, lifetime expiry, map retirement,
    and dedicated-server execution.
-5. Prefer Option A only if the transform audit and runtime traces prove no
-   simulation contamination. Otherwise use Option B.
+4. Trace simulation and presentation transforms to prove no render state enters
+   launch data, collision, impact, or reconciliation.
 
-Expected result: smooth between-tick projectile presentation with identical
-server launch, path, collision tick, impact position, damage, and despawn.
+Expected result: the landed between-tick presentation remains smooth with
+identical server launch, path, collision tick, impact position, damage, and
+despawn.
 
 ### Stage 2: conceal bounded owner reconciliation
 
@@ -276,7 +281,8 @@ The later implementation is complete only when all of these hold:
 ## Priority summary
 
 1. Instrument launch, correction, impact, frame pacing, and effect cost.
-2. Fix between-tick projectile presentation and A/B `physics_jitter_fix`.
+2. Qualify the landed between-tick presentation seam and A/B
+   `physics_jitter_fix`.
 3. Add measured, bounded correction concealment.
 4. Add generation-safe world-only impact and grenade-fuse prediction.
 5. Pool/warm effects if profiling confirms frame-time cost.

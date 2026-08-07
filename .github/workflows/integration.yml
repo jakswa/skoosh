@@ -116,16 +116,26 @@ jobs:
           echo "SKOOSH_CLIENT_BIN=$client_bin" >> "$GITHUB_ENV"
 
       - name: Run ground-jet test
+        if: matrix.label != 'Linux'
         shell: bash
         run: ./tools/test_ground_jet.sh
 
       - name: Run projectile presentation test
+        if: matrix.label != 'Linux'
         shell: bash
         run: ./tools/test_projectile_presentation.sh
 
       - name: Run OOB recovery test
+        if: matrix.label != 'Linux'
         shell: bash
         run: ./tools/test_oob_recovery.sh
+
+      - name: Run fast source suite
+        if: matrix.label == 'Linux'
+        shell: bash
+        env:
+          SKOOSH_TEST_JOBS: 2
+        run: ./tools/run_headless_tests.sh fast
 
       - name: Run exported two-client integration test
         shell: bash

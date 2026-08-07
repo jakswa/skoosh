@@ -1,11 +1,11 @@
 # SKOOSH — Project Checkpoint
 
-**Checkpoint date:** 2026-07-31  
-**Status:** First playable movement/time-trial MVP plus an initial authoritative multiplayer/combat vertical slice; human multiplayer playtest and impairment testing remain.  
+**Checkpoint date:** 2026-08-07
+**Status:** Authoritative multiplayer now includes a four-slot loadout, voice, adaptive client audio, score-limit CTF, two production maps, connection-preserving rotation, an authored gatling presentation, and a projectile simulation/presentation seam. Maintainability extraction is the immediate implementation lane; human playtest, impairment, scale, balance, and audio-mix qualification remain.
 **Direction decision:** Proper multiplayer is a destination. Native desktop clients use an authoritative dedicated-server model; browser support is no longer a destination. Godot 4.4+, ENet, and Forward+ with the balanced presentation profile are the current baseline.
 **Purpose:** Record where the project is, the first playtest impressions, and the likely cost of expanding it. This is context, not an instruction to address the feedback immediately.
 
-> **Reading note:** This is an append-only project history. Sections 1-12 preserve the original movement-prototype checkpoint; sections 13-15 supersede them with the current multiplayer, disc/voice, and selected visual-direction state.
+> **Reading note:** This is an append-only project history. Sections 1-12 preserve the original movement-prototype checkpoint. Sections 13-19 are chronological implementation milestones whose earlier limitations are superseded by later sections. Section 20 is the mainline handoff. Sections 21-22 record the landed audio and gatling milestones.
 
 ## 1. What exists now
 
@@ -265,6 +265,9 @@ The best leverage is to make movement command-driven, readable, and enjoyable, t
 
 ## 13. Multiplayer implementation checkpoint
 
+Historical milestone: later sections supersede this section's sudden-death,
+weapon, map, and rotation limitations.
+
 Implemented:
 
 - Vendored netfox v1.35.3 (`addons/netfox*`) under its MIT license.
@@ -308,7 +311,7 @@ Important limitations:
 
 ## 14. Voice, disc, and playtest presentation pass
 
-Implemented on the `feature/voice-disc-ux` playtest branch:
+Implemented during the voice/disc/UX milestone, now merged to `main`:
 
 - Replaced the hitscan pulse rifle with the only/default disc launcher: 82 m/s visible projectiles, 55% shooter-velocity inheritance, 0.82-second cadence, 5.8 m authoritative splash, and up to 105 damage.
 - Clients predict disc presentation, while the server substitutes its current muzzle/aim, simulates swept flight, resolves impact/falloff, rejects friendly fire, and owns damage and kill credit.
@@ -329,8 +332,8 @@ Still pending:
 The three-way visual bake-off completed from shared baseline `593f763`. The
 selected direction uses Kestrel's daytime alpine atmosphere and practical
 material hierarchy, STRATOS route grammar and aerofoil equipment silhouette,
-and Khepri triune monument/objective language. The implementation remains on
-`feature/voice-disc-ux` by explicit user request.
+and Khepri triune monument/objective language. The result was developed during
+the historical `feature/voice-disc-ux` milestone and is now merged to `main`.
 
 The former runway mannequin is replaced by three Blender-authored character
 shell variants. The server assigns and replicates one presentation-only variant
@@ -342,7 +345,7 @@ unchanged. See `docs/production/VISUAL_DIRECTION.md` and
 
 ## 16. Four-slot combat loadout
 
-Implemented on `feature/combat-loadout`:
+Implemented during the combat-loadout milestone, now merged to `main`:
 
 - Added server-validated slots for the existing disc, an arcing impact/fuse grenade, a deterministic-spread gatling gun, and an accurate sniper rifle.
 - The grenade uses swept ballistic flight, 7.2 m authoritative splash, teammate immunity, and half self-damage without blast impulse.
@@ -354,7 +357,7 @@ Current limitation: hitscan is authoritative but not lag compensated. Historical
 
 ## 17. Production competitive maps
 
-Implemented on `feature/proper-competitive-maps`:
+Implemented during the competitive-maps milestone, now merged to `main`:
 
 - Replaced the compact default with exactly two production rotation maps: default Faultline Basin and Cairn Steps. Kestrel Basin remains explicitly selectable as a legacy/test arena only.
 - Faultline uses a west-east capsule footprint, direct longitudinal fault trench, high basalt spine, screened recovery gully, recoverable raised perimeter, and violet night profile.
@@ -366,7 +369,7 @@ These checks and automated CTF completions do not establish human balance or fin
 
 ## 18. Authoritative score-limit match loop
 
-Implemented on `feature/match-loop`:
+Implemented during the match-loop milestone, now merged to `main`:
 
 - Replaced one-capture sudden death with a server-owned score limit defaulting
   to three; only dedicated-server CLI values `3`, `4`, and `5` are accepted.
@@ -392,7 +395,7 @@ impairment qualification.
 
 ## 19. Authoritative production-map rotation
 
-Implemented on `feature/proper-maps-score-loop`:
+Implemented during the production-map rotation milestone, now merged to `main`:
 
 - Score-limit matches rotate Faultline Basin to Cairn Steps and back while the
   ENet session root, peer IDs, teams, and character assignments persist.
@@ -413,3 +416,76 @@ Implemented on `feature/proper-maps-score-loop`:
 
 Remaining work is impairment, scale/bandwidth, minimum-spec timeout, and human
 match-pacing qualification rather than rotation architecture.
+
+## 20. Current mainline maintainability checkpoint
+
+The immediate risk is ownership concentration rather than broken fundamentals.
+`scripts/network_main.gd` is now roughly 2,500 lines and coordinates transport,
+admission, disposable worlds, avatar membership, rollback baselines, rotation,
+CTF, voice, bots, metrics, and automated acceptance. Server authority and the
+persistent-session/disposable-world protocol remain the correct foundation.
+
+Current implementation work is intentionally limited to the ordered plans in
+`docs/engineering/MAINTAINABILITY_ROADMAP.md`:
+
+1. Finish separating acceptance evaluation and test-only driving.
+2. Extract authoritative match rules.
+3. Split world, avatar, shared-baseline, admission, and rotation ownership
+   behind unchanged root RPC paths.
+4. Introduce a narrow authoritative gameplay context after lifecycle ownership
+   is explicit.
+
+`docs/engineering/COMBAT_NETWORKING_ROADMAP.md` and
+`docs/engineering/PROJECTILE_PRESENTATION_REVIEW.md` retain future
+qualification work, but they are not the immediate implementation queue. The
+implemented rotation contract remains documented in
+`docs/engineering/MAP_ROTATION_HANDOFF.md`.
+
+## 21. Adaptive client-audio foundation
+
+Implemented during the adaptive-audio milestone, now merged to `main`. See
+`docs/production/AUDIO.md` for the owning production reference.
+
+- Added a persistent client-only audio director (`scripts/client_audio.gd`) with
+  speed-scaled wind, ski, and jet loops, landing and jet-empty cues, weapon
+  fire/impact, hit/damage/death/respawn UI cues, and flag pickup/drop/return,
+  capture, and match start/victory/defeat objective cues.
+- Added per-map ambience (Faultline Basin, Cairn Steps) and a three-stem,
+  sample-aligned adaptive score (exploration, combat, objective) crossfaded by
+  combat heat and objective pressure, with a quiet floor that silences music
+  until in-match pressure justifies it.
+- Added seven mixer buses (Master, Music, Ambience, SFX, Movement, UI, Voice)
+  with a Master output limiter, voice-to-music ducking, and a bounded 32-slot
+  positional pool for remote voices. `default_bus_layout.tres` defines the mix.
+- Added 29 reproducible procedural assets rendered by
+  `tools/generate_game_audio.sh` from seeded noise, filters, envelopes, and
+  oscillators—no recordings, sample packs, libraries, or AI services. Provenance
+  and regeneration live in `docs/production/AUDIO.md` and
+  `audio/generated/README.md`; `SHA256SUMS` records committed renders.
+- Generated audio is excluded from dedicated-server exports, and the director
+  no-ops in headless/server runs.
+- Added an audio asset/bus/music-alignment contract to the bounded fast headless
+  suite (`tools/test_client_audio.sh`).
+
+Validation: the audio asset/bus contract, ground-jet, multiplayer-demo, and fast
+headless suites pass; dedicated-server export excludes generated audio.
+
+Still pending: automated checks validate asset and bus integration, not
+subjective mix quality. Final mix levels, loudness, and balance need a human
+gameplay/listening pass across real matches.
+
+## 22. Authored gatling presentation
+
+Implemented during the gatling-redesign milestone, now merged to `main`:
+
+- Replaced the house-like primitive gatling proxies with one authored Kestrel
+  rail gatling shared by first- and third-person presentation.
+- Added a deterministic Blender generator, editable source, runtime GLB,
+  provenance manifest, packed material treatment, and import-contract tests.
+- Preserved server-authoritative hitscan behavior while resolving presentation
+  from the model's own muzzle socket.
+
+The asset and presentation contracts are recorded in
+`docs/decisions/ASSET_PIPELINE_EXPLORATION.md`,
+`docs/production/VISUAL_DIRECTION.md`, and
+`tools/asset_pipeline/README.md`.

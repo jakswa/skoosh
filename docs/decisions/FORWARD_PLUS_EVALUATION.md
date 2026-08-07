@@ -2,16 +2,17 @@
 
 > **STATUS: ADOPTED:** The user approved Forward+ after a live two-client playtest. The balanced profile is the visual bake-off baseline; lean remains the low-spec profile and showcase remains opt-in evidence.
 
-## Decision being tested
+## Adopted decision
 
-Determine whether native desktop SKOOSH should use Godot Forward+ before the visual-direction bake-off. The renderer choice is project-wide on desktop, so this should be decided before three art candidates build incompatible presentation systems.
+This record evaluated whether native desktop SKOOSH should use Godot Forward+
+before the visual-direction bake-off. The user adopted Forward+; the evaluation
+steps below are retained as decision evidence rather than current work.
 
 ## User playtest
 
 The default project profile is **balanced**:
 
 ```bash
-cd /home/jake/sandbox/skoosh-forward-plus
 ./tools/run_multiplayer_demo.sh
 ```
 
@@ -127,7 +128,8 @@ Godot 4.5 adds SMAA, which may be a better native antialiasing option. That shou
 
 ## Validation
 
-Passed on the experiment branch:
+Passed on the historical experiment worktree before the result merged to
+`main`:
 
 - `tools/test_ground_jet.sh`.
 - `tools/test_asset_pipeline.sh`.
@@ -136,7 +138,11 @@ Passed on the experiment branch:
 - Eleven-state GPU-backed Compatibility visual QA.
 - PCK export and `--main-pack` smoke launch.
 
-A complete Linux executable export is currently blocked because the host does not have Godot 4.4.1 export templates installed. The export failure occurs before platform packaging and is not a Forward+ runtime failure.
+During the evaluation, a complete Linux executable export was blocked on that
+host because Godot 4.4.1 export templates were not installed. This was a
+host-setup limitation, not a Forward+ runtime failure. Current export
+requirements and commands live in
+`docs/operations/PLAYTESTING_AND_DISTRIBUTION.md`.
 
 ## Adopted policy
 

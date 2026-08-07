@@ -1,6 +1,6 @@
 # SKOOSH Asset Pipeline Exploration
 
-**Status:** Exploration complete and exercised by the visual bake-off. The selected hybrid now includes a purpose-built disc launcher/projectile, terrain/base language, and a replacement rigged character. See `docs/production/VISUAL_DIRECTION.md`.
+**Status:** Exploration complete and exercised by the visual bake-off. The selected hybrid now includes purpose-built disc and gatling weapon assets, terrain/base language, and replacement rigged characters. See `docs/production/VISUAL_DIRECTION.md`.
 
 ## 1. Purpose
 
@@ -26,6 +26,10 @@ The Solar Nomad launcher experiment has moved the project beyond a model-import 
 - User feedback can be incorporated through rapid model regeneration rather than destructive scene edits.
 - Godot materials react to real scene lighting in both the original Compatibility runway and the adopted Forward+ renderer.
 - Gameplay-responsive recoil, disc removal, recharge, muzzle presentation, and a shared projectile source are functional.
+- The Kestrel rail gatling now applies the same contract to a shared first- and
+  third-person weapon: deterministic Blender source, packed materials, a named
+  rotor and muzzle socket, an optimized GLB, provenance manifest, and
+  import-contract coverage.
 - Authoritative multiplayer, ground movement, and standardized off-screen capture validate successfully.
 - A textured terrain shader and optimized shared base kit now prove world-asset integration without changing collision.
 - A neutral skinned momentum-suit mannequin now replaces the primitive remote-player world model, proving armature, skin, animation, team materials, and multiplayer presentation.
@@ -408,4 +412,7 @@ Remove the hold only when:
 - [x] Worker prompts can name exact tools and asset permissions.
 - [x] Standard captures prove the work is more than a palette swap.
 
-The technical hold may now be removed when the user explicitly starts the bake-off. Workers must treat all runway visuals—including Solar Nomad—as disposable examples, not a house style.
+The technical hold was removed and the visual bake-off completed. This checklist
+is retained as completion evidence. Workers must treat all runway visuals,
+including Solar Nomad, as disposable examples rather than the selected house
+style.

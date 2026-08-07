@@ -9,7 +9,7 @@ without changing the persistent-session/disposable-world protocol documented in
 This is the highest-risk maintainability work. It starts only after acceptance
 and match rules have owners outside `scripts/network_main.gd`.
 
-**Total size:** XL. It is four projects, not one patch.
+**Total size:** XL. It is five projects, not one patch.
 
 ## Protocol constraints
 
@@ -26,10 +26,17 @@ Keep all of the following stable throughout this plan:
 - Immediate collision/visibility retirement plus bounded world tombstones.
 - Stable team and character assignments across generations.
 
+One persistent lifecycle coordinator owns `world_generation`, active map/hash,
+`world_phase`, the active typed world result, match-state generation
+publication, and legal rollback enable/disable transitions. The root fills this
+role until the final rotation/lifecycle project is extracted. Admission and
+rotation are serialized clients of that owner; neither may independently
+publish an active world or cache a separate current generation.
+
 Root RPC methods remain wrappers even after controllers own their state. Do not
 move them to controller child nodes as part of this plan.
 
-## Project 1: world builder
+## Project 1: world construction and retirement
 
 **Size:** M
 
@@ -46,6 +53,19 @@ The builder should return one typed world result containing the current:
 - Landmarks.
 - Players, projectiles, and effects containers.
 - Team homes and platform elevations.
+- Authoritative spawn-socket data/resolution for the selected map.
+
+Homes, platform elevations, and spawn transforms are generation-scoped. Match,
+avatar, bot, respawn, and acceptance consumers query the active world result and
+must not cache values from a retired generation. The lifecycle coordinator
+publishes the new binding before any match reset or avatar spawn can use it.
+
+This owner also handles world visibility/collision retirement,
+projectile/effect cleanup, tombstone retention, and tombstone expiry. It does
+not retire avatar callbacks or mutate registry membership. Normal committed
+generations retain inert tombstones for the grace interval; speculative
+bootstrap replacement and complete connection teardown may free unowned worlds
+immediately.
 
 The root swaps one result rather than rebinding many unrelated fields. Map
 catalog data may remain a `Dictionary`; the world result itself should be typed.
@@ -53,7 +73,7 @@ catalog data may remain a `Dictionary`; the world result itself should be typed.
 Split this project if needed:
 
 1. Construct and validate `World_N` through a root wrapper.
-2. Move initial-world adoption and retirement/tombstone ownership.
+2. Move initial-world adoption and world retirement/tombstone ownership.
 
 Verify:
 
@@ -79,6 +99,8 @@ The registry owns:
 - Spawn/remove and retirement teardown.
 - Gameplay admission membership.
 - Avatar and replicated-state visibility operations.
+- `retire_for_rotation()`, rollback/input callback teardown, and avatar-specific
+  visibility teardown before a world becomes a tombstone.
 
 The registry receives the active world result and `player_scene`; it does not
 choose maps, run admission deadlines, or initiate rotation.
@@ -92,7 +114,38 @@ Verify:
 ./tools/run_headless_tests.sh character-variants rotation-lifecycle network-bootstrap map-rotation
 ```
 
-## Project 3: admission controller
+## Project 3: shared rollback-baseline coordinator
+
+**Size:** M
+
+Admission and rotation currently share baseline capture, server seeding, client
+application, and one stable root RPC path. Extract those mechanics once before
+either protocol controller.
+
+The coordinator owns:
+
+- Authoritative state capture and server seeding.
+- Client application and generation/hash validation.
+- Baseline tick identity and transaction separation.
+- Typed completion callbacks to admission or rotation.
+
+The lifecycle coordinator remains the only owner of global
+`NetworkRollback.enabled` changes. Admission requests one baseline only after
+bootstrap while the world is `ACTIVE`. Rotation requests an initial build
+baseline and a final activation baseline while waiting for readiness. A
+baseline acknowledgement from one transaction must never satisfy the other,
+and the final activation baseline is not another readiness barrier.
+
+Keep `_apply_rollback_baseline` as the stable root RPC wrapper and dispatch its
+result to the requesting transaction without changing its wire signature.
+
+Verify:
+
+```bash
+./tools/run_headless_tests.sh network-bootstrap rotation-ready-timeout map-rotation
+```
+
+## Project 4: admission controller
 
 **Size:** L, split into at least two green packets.
 
@@ -106,6 +159,7 @@ Packet A owns state and local transitions:
 - Agreement deadline and map/hash decision.
 - Pending bootstrap and avatar-observer sets.
 - Synchronous timeout/mismatch cleanup.
+- The immutable admitted-observer snapshot used by the transaction.
 
 Packet B owns baseline and visibility orchestration:
 
@@ -113,6 +167,13 @@ Packet B owns baseline and visibility orchestration:
 - Existing-observer path confirmation.
 - Reliable baseline application/acknowledgement.
 - Final visibility opening and admission completion.
+
+If the joining peer or any already-admitted observer leaves while admission is
+incomplete, cancel the transaction before registry membership changes can make
+its snapshot drift. Synchronously clear the active peer, deadline, provisional
+avatar, bootstrap state, pending observer paths, baseline readiness/tick, and
+transaction assignments before transport teardown. Late acknowledgements must
+not complete the cancelled transaction, and queued peers remain queued.
 
 Keep these root RPC wrappers and signatures stable:
 
@@ -141,7 +202,7 @@ Before accepting the project:
 ./tools/run_headless_tests.sh rotation-ready-timeout rotation-prepare-disconnect map-rotation
 ```
 
-## Project 4: rotation controller
+## Project 5: rotation and active-world lifecycle coordinator
 
 **Size:** L, split into at least two green packets.
 
@@ -172,9 +233,11 @@ Keep these root RPC wrappers and signatures stable:
 - `_ack_world_ready`
 - `_activate_world`
 
-The controller coordinates the world builder, avatar registry, admission
-controller, and match reset through narrow methods. It must not reconstruct
-terrain, mutate CTF rules, or inspect acceptance counters.
+The controller becomes the persistent lifecycle owner described above and
+coordinates world construction, avatar registry, baseline coordinator,
+admission controller, and match reset through narrow methods. It must not
+reconstruct terrain, mutate CTF rules, or inspect acceptance counters. Avatar
+retirement happens before the old world is published as an inert tombstone.
 
 Verify each packet with:
 
@@ -192,14 +255,15 @@ SKOOSH_TEST_JOBS=1 ./tools/run_headless_tests.sh all
 
 Before adding more transition features, extend characterization for:
 
-- Admitted-peer departure during each admission subphase.
+- Joining-peer and admitted-observer departure during each admission subphase,
+  including cancellation before registry mutation.
 - Delayed current- and previous-generation acknowledgements.
 - Ready timeout after a successful build acknowledgement.
 - Disconnect during preparation and during disconnect flush.
 - Retired-world packets resolving only against inert tombstones.
 
-This does not need to block Project 1. It should be in place before Project 3
-or 4 changes protocol-state ownership.
+This does not need to block Project 1. It should be in place before Project 4
+or 5 changes protocol-state ownership.
 
 ## Follow-on gameplay context
 
@@ -229,6 +293,8 @@ new name.
 - One typed world result replaces scattered active-world node references.
 - Peer assignment, avatar membership, and visibility have one owner.
 - Admission and rotation have separate explicit state machines.
+- Shared baseline mechanics cannot cross-satisfy admission and rotation
+  transactions.
 - Match and acceptance code do not participate in lifecycle protocol details.
 - All static-map, join, mismatch, timeout, disconnect, rotation, OOB, combat,
   and movement checks remain green.
